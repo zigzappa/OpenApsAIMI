@@ -577,6 +577,12 @@ import kotlin.math.roundToInt
     fun getLastCarbsRecord(): Carbs? =
         database.carbsDao.getLastCarbsRecord()
 
+    fun getMostRecentCarbByDate(): Carbs? = database.carbsDao.getMostRecentCarbByDate()
+
+    fun getUserEntryDataWithNotesFromTime(timestamp: Long): Single<List<UserEntry>> =
+        database.userEntryDao.getUserEntryDataWithNotesFromTime(timestamp)
+            .subscribeOn(Schedulers.io())
+
     fun getLastCarbsRecordWrapped(): Single<ValueWrapper<Carbs>> =
         database.carbsDao.getLastCarbsRecordMaybe()
             .subscribeOn(Schedulers.io())

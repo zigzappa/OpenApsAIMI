@@ -48,6 +48,7 @@ import app.aaps.database.ValueWrapper
 import app.aaps.database.entities.Bolus
 import app.aaps.database.entities.ExtendedBolus
 import app.aaps.database.entities.TemporaryBasal
+import app.aaps.database.entities.UserEntry
 import app.aaps.database.entities.interfaces.end
 import app.aaps.database.impl.AppRepository
 import app.aaps.plugins.main.R
@@ -311,6 +312,26 @@ class IobCobCalculatorPlugin @Inject constructor(
         // Future carbs
         carbs.forEach { carb -> if (carb.timestamp > now) futureCarbs += carb.amount }
         return CobInfo(timestamp, displayCob, futureCarbs)
+    }
+
+    override fun getFutureCob(): Double {
+        var futureCarbs = 0.0
+        val now = dateUtil.now()
+        val carbs = repository.getCarbsDataFromTimeExpanded(now, true).blockingGet()
+        carbs.forEach { carb -> if (carb.timestamp > now) futureCarbs += carb.amount }
+        return futureCarbs
+    }
+
+    override fun getMostRecentCarbByDate(): Long? {
+        return repository.getMostRecentCarbByDate()?.timestamp
+    }
+
+    override fun getMostRecentCarbAmount(): Double? {
+        return repository.getMostRecentCarbByDate()?.amount
+    }
+
+    override fun getUserEntryDataWithNotesFromTime(timestamp: Long): List<UserEntry> {
+        return repository.getUserEntryDataWithNotesFromTime(timestamp).blockingGet()
     }
 
     override fun getMealDataWithWaitingForCalculationFinish(): MealData {
