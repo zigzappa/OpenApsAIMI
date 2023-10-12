@@ -43,7 +43,6 @@ import java.text.DecimalFormatSymbols
 import java.time.LocalTime
 import java.util.Locale
 import kotlin.math.ln
-import kotlin.text.Typography.dagger
 
 class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAndroidInjector) : DetermineBasalAdapter {
 
@@ -148,8 +147,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         var mealStr = " COB: ${cob}g   Future: ${futureCarbs}g <br/> COB Age Min: $lastCarbAgeMin <br/><br/> "
         mealStr += "tags0to60minAgo: ${tags0to60minAgo}<br/> tags60to120minAgo: $tags60to120minAgo<br/> " +
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo"
-        val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump"
-
+        val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
+         ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 12 octobre 2023"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -277,7 +276,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         return smbToGive
     }*/
     private fun calculateSMBFromModel(): Float {
-    var selectedModelFile: File? = null
+    var selectedModelFile: File?
     var modelInputs: FloatArray
 
     when {
