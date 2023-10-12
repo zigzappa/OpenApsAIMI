@@ -255,26 +255,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         return (number * 1000.0).roundToInt() / 1000.0f
     }
 
-    /*private fun calculateSMBFromModel(): Float {
-        if (!modelFile.exists()) {
-            aapsLogger.error(LTag.APS, "NO Model found at AAPS/ml/model.tflite")
-            return 0.0f
-        }
 
-        val interpreter = Interpreter(modelFile)
-        val modelInputs = floatArrayOf(
-            hourOfDay.toFloat(), weekend.toFloat(),
-            bg, targetBg, iob, cob, lastCarbAgeMin.toFloat(), futureCarbs, delta, shortAvgDelta, longAvgDelta,
-            tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour,
-            recentSteps5Minutes.toFloat(), recentSteps10Minutes.toFloat(), recentSteps15Minutes.toFloat(), recentSteps30Minutes.toFloat(), recentSteps60Minutes.toFloat()
-        )
-        val output = arrayOf(floatArrayOf(0.0f))
-        interpreter.run(modelInputs, output)
-        interpreter.close()
-        var smbToGive = output[0][0]
-        smbToGive = "%.4f".format(smbToGive.toDouble()).toFloat()
-        return smbToGive
-    }*/
     private fun calculateSMBFromModel(): Float {
     var selectedModelFile: File?
     var modelInputs: FloatArray
