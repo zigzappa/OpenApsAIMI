@@ -28,5 +28,77 @@
             validate:floatminNumber="0.05"
             validate:testType="floatNumericRange" />
 
+        <info.nightscout.core.validators.ValidatingEditTextPreference
+            android:defaultValue="130"
+            android:dialogMessage="If BG is bigger than this value, B30 (basal 500% during 30 minutes) will not running"
+            android:inputType="numberDecimal"
+            android:key="@string/key_B30_upperBG"
+            android:title="B30 Upper BG to stop B30"
+            validate:floatmaxNumber="200"
+            validate:floatminNumber="0"
+            validate:testType="floatNumericRange" />
+
+        <info.nightscout.core.validators.ValidatingEditTextPreference
+            android:defaultValue="6"
+            android:dialogMessage="If delta is bigger than this value, B30 (basal 500% during 30 minutes) will not running"
+            android:inputType="numberDecimal"
+            android:key="@string/key_B30_upperdelta"
+            android:title="B30 Upper delta to stop B30"
+            validate:floatmaxNumber="15"
+            validate:floatminNumber="0"
+            validate:testType="floatNumericRange" />
+
+        <info.nightscout.core.validators.ValidatingEditTextPreference
+            android:defaultValue="20"
+            android:dialogMessage="b30 duration is the duration in minutes of the first basal action after the manual bolus (> iTime_Starting_Bolus)"
+            android:inputType="numberDecimal"
+            android:key="@string/key_B30_duration"
+            android:title="first B30 duration after a bolus"
+            validate:floatmaxNumber="100"
+            validate:floatminNumber="0"
+            validate:testType="floatNumericRange" />
+
+
+        <info.nightscout.core.validators.ValidatingEditTextPreference
+            android:defaultValue="50"
+            android:dialogMessage="Weight in kg to calculate the basal"
+            android:inputType="numberDecimal"
+            android:key="@string/key_aimiweight"
+            android:title="Weight in kg"
+            validate:floatmaxNumber="150"
+            validate:floatminNumber="0"
+            validate:testType="floatNumericRange" />
+
+        <info.nightscout.core.validators.ValidatingEditTextPreference
+            android:defaultValue="50"
+            android:dialogMessage="TDD average 7 days"
+            android:inputType="numberDecimal"
+            android:key="@string/key_tdd7"
+            android:title="TDD 7 days"
+            validate:floatmaxNumber="150"
+            validate:floatminNumber="0"
+            validate:testType="floatNumericRange" />
+
+        <info.nightscout.core.validators.ValidatingEditTextPreference
+            android:defaultValue="50"
+            android:dialogMessage="Average carbs for a meal. it's an estimation not a precise value"
+            android:inputType="numberDecimal"
+            android:key="@string/key_cho"
+            android:title="CHO / Meal"
+            validate:floatmaxNumber="150"
+            validate:floatminNumber="0"
+            validate:testType="floatNumericRange" />
+
+        <app.aaps.core.validators.ValidatingEditTextPreference
+            android:defaultValue="100"
+            android:enabled="true"
+            android:dialogMessage="@string/DynISFAdjust_summary"
+            android:inputType="numberDecimal"
+            android:key="@string/key_DynISFAdjust"
+            android:title="@string/DynISFAdjust_title"
+            validate:floatmaxNumber="300"
+            validate:floatminNumber="1"
+            validate:testType="floatNumericRange" />
+
     </PreferenceCategory>
 </androidx.preference.PreferenceScreen>

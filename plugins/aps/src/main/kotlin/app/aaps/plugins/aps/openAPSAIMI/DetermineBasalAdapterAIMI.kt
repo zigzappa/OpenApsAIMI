@@ -38,7 +38,10 @@ import kotlin.math.roundToInt
 import java.util.Calendar
 import kotlin.math.min
 import org.tensorflow.lite.Interpreter
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
 import java.time.LocalTime
+import java.util.Locale
 import kotlin.math.ln
 import kotlin.text.Typography.dagger
 
@@ -105,6 +108,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var autosensData = JSONObject()
     private val path = File(Environment.getExternalStorageDirectory().toString())
     private val modelFile = File(path, "AAPS/ml/model.tflite")
+    private val modelHBFile = File(path, "AAPS/ml/modelHB.tflite")
 
     override var currentTempParam: String? = null
     override var iobDataParam: String? = null
@@ -127,6 +131,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         smbToGive = roundToPoint05(smbToGive)
 
         logDataToCsv(predictedSMB, smbToGive)
+        logDataToCsvHB(predictedSMB,smbToGive)
 
         val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB"
         val glucoseStr = " bg: $bg <br/> targetBg: $targetBg <br/> " +
@@ -178,6 +183,32 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
         file.appendText(valuesToRecord + "\n")
     }
+    private fun logDataToCsvHB(predictedSMB: Float, smbToGive: Float) {
+        val dateStr = dateUtil.dateAndTimeString(dateUtil.now())
+
+        val headerRow = "dateStr,dateLong,hourOfDay,weekend," +
+            "bg,targetBg,iob,cob,lastCarbAgeMin,futureCarbs,delta,shortAvgDelta,longAvgDelta," +
+            "accelerating_up,deccelerating_up,accelerating_down,deccelerating_down,stable," +
+            "tdd7DaysPerHour,tdd2DaysPerHour,tddDailyPerHour,tdd24HrsPerHour," +
+            "recentSteps5Minutes,recentSteps10Minutes,recentSteps15Minutes,recentSteps30Minutes,recentSteps60Minutes,averageBeatsPerMinute," +
+            "tags0to60minAgo,tags60to120minAgo,tags120to180minAgo,tags180to240minAgo," +
+            "variableSensitivity,lastbolusage,predictedSMB,maxIob,maxSMB,smbGiven\n"
+        val valuesToRecord = "$dateStr,${dateUtil.now()},$hourOfDay,$weekend," +
+            "$bg,$targetBg,$iob,$cob,$lastCarbAgeMin,$futureCarbs,$delta,$shortAvgDelta,$longAvgDelta," +
+            "$accelerating_up,$deccelerating_up,$accelerating_down,$deccelerating_down,$stable," +
+            "$tdd7DaysPerHour,$tdd2DaysPerHour,$tddPerHour,$tdd24HrsPerHour," +
+            "$recentSteps5Minutes,$recentSteps10Minutes,$recentSteps15Minutes,$recentSteps30Minutes,$recentSteps60Minutes,$recentSteps180Minutes," +
+            "$averageBeatsPerMinute, $averageBeatsPerMinute180" +
+            "$tags0to60minAgo,$tags60to120minAgo,$tags120to180minAgo,$tags180to240minAgo," +
+            "$variableSensitivity,$predictedSMB,$maxIob,$maxSMB,$smbToGive"
+
+        val file = File(path, "AAPS/aiSMB_NewrecordsHBeat.csv")
+        if (!file.exists()) {
+            file.createNewFile()
+            file.appendText(headerRow)
+        }
+        file.appendText(valuesToRecord + "\n")
+    }
 
     private fun applySafetyPrecautions(smbToGiveParam: Float): Float {
         var smbToGive = smbToGiveParam
@@ -200,6 +231,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         if (delta < b30upperdelta && bg < b30upperbg && lastsmbtime > 10){
             smbToGive = basalSMB
         }
+        val safetysmb = bg < (targetBg + 40) && delta < 10 || recentSteps180Minutes > 1500 && bg < 140
+        if (safetysmb){
+            smbToGive /= 2
+        }
         // don't give insulin if dropping fast
         val droppingFast = bg < 150 && delta < -5
         val droppingFastAtHigh = bg < 200 && delta < -7
@@ -221,7 +256,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         return (number * 1000.0).roundToInt() / 1000.0f
     }
 
-    private fun calculateSMBFromModel(): Float {
+    /*private fun calculateSMBFromModel(): Float {
         if (!modelFile.exists()) {
             aapsLogger.error(LTag.APS, "NO Model found at AAPS/ml/model.tflite")
             return 0.0f
@@ -240,7 +275,45 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         var smbToGive = output[0][0]
         smbToGive = "%.4f".format(smbToGive.toDouble()).toFloat()
         return smbToGive
+    }*/
+    private fun calculateSMBFromModel(): Float {
+    var selectedModelFile: File? = null
+    var modelInputs: FloatArray
+
+    when {
+        modelHBFile.exists() -> {
+            selectedModelFile = modelHBFile
+            modelInputs = floatArrayOf(
+                hourOfDay.toFloat(), weekend.toFloat(),
+                bg, targetBg, iob, delta, shortAvgDelta, longAvgDelta,
+                tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour, averageBeatsPerMinute.toFloat()
+            )
+        }
+        modelFile.exists() -> {
+            selectedModelFile = modelFile
+            modelInputs = floatArrayOf(
+                hourOfDay.toFloat(), weekend.toFloat(),
+                bg, targetBg, iob, delta, shortAvgDelta, longAvgDelta,
+                tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour
+            )
+        }
+        else -> {
+            aapsLogger.error(LTag.APS, "NO Model found at specified location")
+            return 0.0F
+        }
     }
+
+    val interpreter = Interpreter(selectedModelFile!!)
+    val output = arrayOf(floatArrayOf(0.0F))
+    interpreter.run(modelInputs, output)
+    interpreter.close()
+    var smbToGive = output[0][0].toString().replace(',', '.').toDouble()
+
+    val formatter = DecimalFormat("#.####", DecimalFormatSymbols(Locale.US))
+    smbToGive = formatter.format(smbToGive).toDouble()
+
+    return smbToGive.toFloat()
+}
 
     @Suppress("SpellCheckingInspection")
     @Throws(JSONException::class)
@@ -305,14 +378,17 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.accelerating_down = if (delta < -2 && delta - longAvgDelta < -2) 1 else 0
         this.deccelerating_down = if (delta < 0 && (delta > shortAvgDelta || delta > longAvgDelta)) 1 else 0
         this.stable = if (delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3) 1 else 0
-
+        var tdd7P = SafeParse.stringToDouble(sp.getString(R.string.key_tdd7, "50"))
         var tdd7Days = tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))?.totalAmount?.toFloat() ?: 0.0f
+        if (tdd7Days == 0.0f) tdd7Days = tdd7P.toFloat()
         this.tdd7DaysPerHour = tdd7Days / 24
 
-        val tdd2Days = tddCalculator.averageTDD(tddCalculator.calculate(2, allowMissingDays = false))?.totalAmount?.toFloat() ?: 0.0f
+        var tdd2Days = tddCalculator.averageTDD(tddCalculator.calculate(2, allowMissingDays = false))?.totalAmount?.toFloat() ?: 0.0f
+        if (tdd2Days == 0.0f) tdd2Days = tdd7P.toFloat()
         this.tdd2DaysPerHour = tdd2Days / 24
         val tddLast4H = tdd2DaysPerHour.toDouble() * 4
-        val tddDaily = tddCalculator.averageTDD(tddCalculator.calculate(1, allowMissingDays = false))?.totalAmount?.toFloat() ?: 0.0f
+        var tddDaily = tddCalculator.averageTDD(tddCalculator.calculate(1, allowMissingDays = false))?.totalAmount?.toFloat() ?: 0.0f
+        if (tddDaily == 0.0f) tddDaily = tdd7P.toFloat()
         this.tddPerHour = tddDaily / 24
 
         val tdd24Hrs = tddCalculator.calculateDaily(-24, 0)?.totalAmount?.toFloat() ?: 0.0f
@@ -376,6 +452,24 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             beatsPerMinuteValues180 = listOf(10)
             this.averageBeatsPerMinute180 = 10.0
         }
+        if (tdd2Days != null && tdd2Days != 0.0f) {
+            this.basalaimi = (tdd2Days / SafeParse.stringToDouble(sp.getString(R.string.key_aimiweight, "50"))).toFloat()
+        } else {
+            this.basalaimi = (tdd7P / SafeParse.stringToDouble(sp.getString(R.string.key_aimiweight, "50"))).toFloat()
+        }
+        if (tdd2Days != null && tdd2Days != 0.0f) {
+            this.CI = 450 / tdd2Days
+        } else {
+
+            this.CI = (450 / tdd7P).toFloat()
+        }
+
+        val choKey = SafeParse.stringToDouble(sp.getString(R.string.key_cho, "50"))
+        if (CI != 0.0f && CI != Float.POSITIVE_INFINITY && CI != Float.NEGATIVE_INFINITY) {
+            this.aimilimit = (choKey / CI).toFloat()
+        } else {
+            this.aimilimit = (choKey / profile.getIc()).toFloat()
+        }
         val timenow = LocalTime.now()
         val sixAM = LocalTime.of(6, 0)
         if (averageBeatsPerMinute != 0.0) {
@@ -409,19 +503,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
     this.maxIob = sp.getDouble(R.string.key_openapssmb_max_iob, 5.0).toFloat()
         this.maxSMB = sp.getDouble(R.string.key_openapsaimi_max_smb, 1.0).toFloat()
-        if (tdd2Days != null && tdd2Days != 0.0f) {
-            this.CI = 450 / tdd2Days
-        } else {
-            val tdd7Key = SafeParse.stringToDouble(sp.getString(R.string.key_tdd7, "50"))
-            this.CI = (450 / tdd7Key).toFloat()
-        }
 
-        val choKey = SafeParse.stringToDouble(sp.getString(R.string.key_cho, "50"))
-        if (CI != 0.0f && CI != Float.POSITIVE_INFINITY && CI != Float.NEGATIVE_INFINITY) {
-            this.aimilimit = (choKey / CI).toFloat()
-        } else {
-            this.aimilimit = (choKey / profile.getIc()).toFloat()
-        }
         // profile.dia
         val abs = iobCobCalculator.calculateAbsoluteIobFromBaseBasals(System.currentTimeMillis())
         val absIob = abs.iob
