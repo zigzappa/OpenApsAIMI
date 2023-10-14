@@ -4,8 +4,8 @@
     xmlns:validate="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory
-        android:key="@string/key_openapssmb_settings"
-        android:title="@string/openapssmb"
+        android:key="@string/key_openapsaimi_settings"
+        android:title="@string/openapsaimi"
         app:initialExpandedChildrenCount="0">
 
         <SwitchPreference
