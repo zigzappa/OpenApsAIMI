@@ -236,10 +236,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         if (belowTargetAndDropping || belowMinThreshold || belowTargetAndStableButNoCob) {
             smbToGive = 0.0f
         }
-        if (delta < b30upperdelta && bg < b30upperbg && lastsmbtime > 10){
+        if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime > 15){
             smbToGive = basalSMB
         }
-        val safetysmb = bg < (targetBg + 40) && delta < 10 || recentSteps180Minutes > 1500 && bg < 140
+        val safetysmb = bg < (targetBg + 40) && delta < 10 && delta > 2 || recentSteps180Minutes > 1500 && bg < 130
         if (safetysmb){
             smbToGive /= 2
         }
