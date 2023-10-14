@@ -4,8 +4,8 @@
     xmlns:validate="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory
-        android:key="@string/key_openapsaimi_settings"
-        android:title="@string/openapsaimi"
+        android:key="@string/key_openapssmb_settings"
+        android:title="@string/openapssmb"
         app:initialExpandedChildrenCount="0">
 
         <SwitchPreference
@@ -14,7 +14,7 @@
             android:title="Enable Counting from the watch"
             android:summary="This option will use the hardware from the watch instead of the phone." />
 
-        <info.nightscout.core.validators.ValidatingEditTextPreference
+        <app.aaps.core.validators.ValidatingEditTextPreference
             android:defaultValue="5"
             android:dialogMessage="@string/openapssmb_max_iob_summary"
             android:inputType="numberDecimal"
@@ -24,7 +24,7 @@
             validate:floatminNumber="1"
             validate:testType="floatNumericRange" />
 
-        <info.nightscout.core.validators.ValidatingEditTextPreference
+        <app.aaps.core.validators.ValidatingEditTextPreference
             android:defaultValue="2"
             android:dialogMessage="@string/openapsaimi_maxsmb_summary"
             android:inputType="numberDecimal"
@@ -34,7 +34,7 @@
             validate:floatminNumber="0.05"
             validate:testType="floatNumericRange" />
 
-        <info.nightscout.core.validators.ValidatingEditTextPreference
+        <app.aaps.core.validators.ValidatingEditTextPreference
             android:defaultValue="130"
             android:dialogMessage="If BG is bigger than this value, B30 (basal 500% during 30 minutes) will not running"
             android:inputType="numberDecimal"
@@ -44,7 +44,7 @@
             validate:floatminNumber="0"
             validate:testType="floatNumericRange" />
 
-        <info.nightscout.core.validators.ValidatingEditTextPreference
+        <app.aaps.core.validators.ValidatingEditTextPreference
             android:defaultValue="6"
             android:dialogMessage="If delta is bigger than this value, B30 (basal 500% during 30 minutes) will not running"
             android:inputType="numberDecimal"
@@ -54,7 +54,7 @@
             validate:floatminNumber="0"
             validate:testType="floatNumericRange" />
 
-        <info.nightscout.core.validators.ValidatingEditTextPreference
+        <app.aaps.core.validators.ValidatingEditTextPreference
             android:defaultValue="20"
             android:dialogMessage="b30 duration is the duration in minutes of the first basal action after the manual bolus (> iTime_Starting_Bolus)"
             android:inputType="numberDecimal"
@@ -65,7 +65,7 @@
             validate:testType="floatNumericRange" />
 
 
-        <info.nightscout.core.validators.ValidatingEditTextPreference
+        <app.aaps.core.validators.ValidatingEditTextPreference
             android:defaultValue="50"
             android:dialogMessage="Weight in kg to calculate the basal"
             android:inputType="numberDecimal"
@@ -75,7 +75,7 @@
             validate:floatminNumber="0"
             validate:testType="floatNumericRange" />
 
-        <info.nightscout.core.validators.ValidatingEditTextPreference
+        <app.aaps.core.validators.ValidatingEditTextPreference
             android:defaultValue="50"
             android:dialogMessage="TDD average 7 days"
             android:inputType="numberDecimal"
@@ -85,7 +85,7 @@
             validate:floatminNumber="0"
             validate:testType="floatNumericRange" />
 
-        <info.nightscout.core.validators.ValidatingEditTextPreference
+        <app.aaps.core.validators.ValidatingEditTextPreference
             android:defaultValue="50"
             android:dialogMessage="Average carbs for a meal. it's an estimation not a precise value"
             android:inputType="numberDecimal"
