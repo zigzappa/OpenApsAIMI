@@ -236,12 +236,17 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         if (belowTargetAndDropping || belowMinThreshold || belowTargetAndStableButNoCob) {
             smbToGive = 0.0f
         }
-        if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime > 15){
+        if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime < 15){
+            smbToGive = 0.0f
+        }else if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime > 15){
             smbToGive = basalSMB
         }
-        val safetysmb = bg < (targetBg + 40) && delta < 10 && delta > 2 || recentSteps180Minutes > 1500 && bg < 130
+        val safetysmb = recentSteps180Minutes > 1500 && bg < 130
         if (safetysmb){
             smbToGive /= 2
+        }
+        if (recentSteps5Minutes > 100 && recentSteps30Minutes > 500 && lastsmbtime < 20){
+            smbToGive = 0.0f
         }
         // don't give insulin if dropping fast
         val droppingFast = bg < 150 && delta < -5
