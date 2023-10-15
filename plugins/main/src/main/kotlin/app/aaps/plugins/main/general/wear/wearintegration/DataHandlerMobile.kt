@@ -1283,7 +1283,8 @@ class DataHandlerMobile @Inject constructor(
             steps30min = actionStepsRate.steps30min,
             steps60min = actionStepsRate.steps60min,
             steps180min = actionStepsRate.steps180min,
-            device = actionStepsRate.device)
+            device = actionStepsRate.device
+        )
         repository.runTransaction(InsertOrUpdateStepsCountTransaction(stepsCount)).blockingAwait()
     }
 
