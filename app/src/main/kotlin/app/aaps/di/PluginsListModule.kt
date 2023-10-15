@@ -23,6 +23,7 @@ import app.aaps.plugins.insulin.InsulinOrefRapidActingPlugin
 import app.aaps.plugins.insulin.InsulinOrefUltraRapidActingPlugin
 import app.aaps.plugins.main.general.actions.ActionsPlugin
 import app.aaps.plugins.main.general.food.FoodPlugin
+import app.aaps.plugins.sync.garmin.GarminPlugin
 import app.aaps.plugins.main.general.overview.OverviewPlugin
 import app.aaps.plugins.main.general.persistentNotification.PersistentNotificationPlugin
 import app.aaps.plugins.main.general.smsCommunicator.SmsCommunicatorPlugin
@@ -471,6 +472,12 @@ abstract class PluginsListModule {
     @IntoMap
     @IntKey(610)
     abstract fun bindAvgSmoothingPlugin(plugin: AvgSmoothingPlugin): PluginBase
+
+    @Binds
+    @AllConfigs
+    @IntoMap
+    @IntKey(623)
+    abstract fun bindGarminPlugin(plugin: GarminPlugin): PluginBase
 
     @Qualifier
     annotation class AllConfigs
