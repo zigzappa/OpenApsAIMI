@@ -125,7 +125,16 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         val predictedSMB = calculateSMBFromModel()
         var smbToGive = predictedSMB
-
+        var morningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_morning_factor, "100")) / 100.0
+        var afternoonfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_afternoon_factor, "100")) / 100.0
+        var eveningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_evening_factor, "100")) / 100.0
+        if (hourOfDay in 1..11){
+            smbToGive *= morningfactor.toFloat()
+        }else if (hourOfDay in 12..18){
+            smbToGive *= afternoonfactor.toFloat()
+        }else if (hourOfDay in 18..23){
+            smbToGive *= eveningfactor.toFloat()
+        }
         smbToGive = applySafetyPrecautions(smbToGive)
         smbToGive = roundToPoint05(smbToGive)
 
@@ -227,10 +236,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         if (belowTargetAndDropping || belowMinThreshold || belowTargetAndStableButNoCob) {
             smbToGive = 0.0f
         }
-        if (delta < b30upperdelta && bg < b30upperbg && lastsmbtime > 10){
+        if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime > 15){
             smbToGive = basalSMB
         }
-        val safetysmb = bg < (targetBg + 40) && delta < 10 || recentSteps180Minutes > 1500 && bg < 140
+        val safetysmb = bg < (targetBg + 40) && delta < 10 && delta > 2 || recentSteps180Minutes > 1500 && bg < 130
         if (safetysmb){
             smbToGive /= 2
         }
