@@ -255,9 +255,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         if (droppingFast || droppingFastAtHigh || droppingVeryFast) {
             smbToGive = 0.0f
         }
-        if (smbToGive < 0.0f) {
+        if ((smbToGive < 0.0f || smbToGive === 0.0f ) && delta > 6 && bg > 130 && lastsmbtime > 15) {
+            smbToGive = basalSMB
+        } else if (smbToGive < 0.0f)
             smbToGive = 0.0f
-        }
         return smbToGive
     }
 
@@ -359,6 +360,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.futureCarbs = iobCobCalculator.getFutureCob().toFloat()
         val fourHoursAgo = now - 4 * 60 * 60 * 1000
         this.recentNotes = iobCobCalculator.getUserEntryDataWithNotesFromTime(fourHoursAgo)
+
         this.tags0to60minAgo = parseNotes(0, 60)
         this.tags60to120minAgo = parseNotes(60, 120)
         this.tags120to180minAgo = parseNotes(120, 180)
@@ -508,9 +510,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.b30upperdelta = SafeParse.stringToDouble(sp.getString(R.string.key_B30_upperdelta, "10"))
         val b30duration = SafeParse.stringToDouble(sp.getString(R.string.key_B30_duration, "20"))
 
-        if (delta < b30upperdelta && bg < b30upperbg){
-            this.basalSMB = (((basalaimi * delta) / 60) * b30duration).toFloat()
-        }
+        this.basalSMB = (((basalaimi * delta) / 60) * b30duration).toFloat()
+
 
         val variableSensitivityDouble = variableSensitivity.toDoubleSafely()
         if (variableSensitivityDouble != null) {
@@ -601,6 +602,18 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             autosensData.put("ratio", 1.0)
         }
     }
+
+
+    private fun determineNoteBasedOnBg(bg: Double): String {
+        return when {
+            bg > 170 -> "more aggressive"
+            bg in 90.0..100.0 -> "less aggressive"
+            bg in 80.0..89.9 -> "too aggressive" // Vous pouvez ajuster ces valeurs selon votre logique
+            bg < 80 -> "low treatment"
+            else -> "normal" // Vous pouvez définir un autre message par défaut pour les cas non couverts
+        }
+    }
+
     fun Number.toDoubleSafely(): Double? {
         val doubleValue = this.toDouble()
         return doubleValue.takeIf { !it.isNaN() && !it.isInfinite() }
@@ -609,6 +622,11 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val olderTimeStamp = now - endMinAgo * 60 * 1000
         val moreRecentTimeStamp = now - startMinAgo * 60 * 1000
         var notes = ""
+        var recentNotes2: MutableList<String> = mutableListOf()
+
+        val autoNote = determineNoteBasedOnBg(bg.toDouble())
+        recentNotes2.add(autoNote)
+
         recentNotes?.forEach { note ->
             if(note.timestamp > olderTimeStamp
                 && note.timestamp <= moreRecentTimeStamp
@@ -617,7 +635,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 && !note.note.lowercase().contains("more aggressive")
                 && !note.note.lowercase().contains("too aggressive")
             ) {
-                notes += if(notes.isEmpty()) "" else " "
+                notes += if(notes.isEmpty()) recentNotes2 else " "
                 notes += note.note
             }
         }
