@@ -390,7 +390,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         if (tddDaily == 0.0f) tddDaily = tdd7P.toFloat()
         this.tddPerHour = tddDaily / 24
 
-        val tdd24Hrs = tddCalculator.calculateDaily(-24, 0)?.totalAmount?.toFloat() ?: 0.0f
+        var tdd24Hrs = tddCalculator.calculateDaily(-24, 0)?.totalAmount?.toFloat() ?: 0.0f
+        if (tdd24Hrs == 0.0f) tdd24Hrs = tdd7P.toFloat()
         this.tdd24HrsPerHour = tdd24Hrs / 24
         val tddLast8to4H  = tdd24HrsPerHour.toDouble() * 4
         val insulin = activePlugin.activeInsulin
