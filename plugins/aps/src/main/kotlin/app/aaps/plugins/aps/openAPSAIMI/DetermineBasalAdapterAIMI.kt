@@ -234,7 +234,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         // don't give insulin if below target too aggressive
         val belowTargetAndDropping = bg < targetBg && delta < -2
         val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 5
-        val belowMinThreshold = bg < 70
+        val belowMinThreshold = bg < 80
         if (belowTargetAndDropping || belowMinThreshold || belowTargetAndStableButNoCob) {
             smbToGive = 0.0f
         }
