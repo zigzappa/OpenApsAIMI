@@ -58,6 +58,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
     private var iob = 0.0f
     private var cob = 0.0f
+    private var predictedBg = 0.0f
     private var lastCarbAgeMin: Int = 0
     private var futureCarbs = 0.0f
     private var recentNotes: List<UserEntry>? = null
@@ -67,6 +68,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var tags180to240minAgo = ""
     private var bg = 0.0f
     private var targetBg = 100.0f
+    private var normalBgThreshold = 150.0f
     private var delta = 0.0f
     private var shortAvgDelta = 0.0f
     private var longAvgDelta = 0.0f
@@ -97,6 +99,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var CI = 0.0f
     private var variableSensitivity = 0.0f
     private var averageBeatsPerMinute = 0.0
+    private var averageBeatsPerMinute60 = 0.0
     private var averageBeatsPerMinute180 = 0.0
     private var b30upperbg = 0.0
     private var b30upperdelta = 0.0
@@ -117,7 +120,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     override var mealDataParam: String? = null
     override var scriptDebug = ""
 
-
     private var now: Long = 0
 
     @Suppress("SpellCheckingInspection")
@@ -129,27 +131,27 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         var morningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_morning_factor, "100")) / 100.0
         var afternoonfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_afternoon_factor, "100")) / 100.0
         var eveningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_evening_factor, "100")) / 100.0
-        if (hourOfDay in 1..11){
+        if (hourOfDay in 1..11) {
             smbToGive *= morningfactor.toFloat()
-        }else if (hourOfDay in 12..18){
+        } else if (hourOfDay in 12..18) {
             smbToGive *= afternoonfactor.toFloat()
-        }else if (hourOfDay in 18..23){
+        } else if (hourOfDay in 18..23) {
             smbToGive *= eveningfactor.toFloat()
         }
         smbToGive = applySafetyPrecautions(smbToGive)
         smbToGive = roundToPoint05(smbToGive)
 
         logDataToCsv(predictedSMB, smbToGive)
-        logDataToCsvHB(predictedSMB,smbToGive)
+        logDataToCsvHB(predictedSMB, smbToGive)
 
         val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB"
-        val glucoseStr = " bg: $bg <br/> targetBg: $targetBg <br/> " +
+        val glucoseStr = " bg: $bg <br/> targetBg: $targetBg <br/> futureBg: $predictedBg <br/>" +
             "delta: $delta <br/> short avg delta: $shortAvgDelta <br/> long avg delta: $longAvgDelta <br/>" +
             " accelerating_up: $accelerating_up <br/> deccelerating_up: $deccelerating_up <br/> accelerating_down: $accelerating_down <br/> deccelerating_down: $deccelerating_down <br/> stable: $stable"
         val iobStr = " IOB: $iob <br/> tdd 7d/h: ${roundToPoint05(tdd7DaysPerHour)} <br/> " +
             "tdd 2d/h : ${roundToPoint05(tdd2DaysPerHour)} <br/> " +
             "tdd daily/h : ${roundToPoint05(tddPerHour)} <br/> " +
-            "tdd 24h/h : ${roundToPoint05(tdd24HrsPerHour)}" +
+            "tdd 24h/h : ${roundToPoint05(tdd24HrsPerHour)}<br/>" +
             "basalaimi : $basalaimi <br/> basalsmb : $basalSMB <br/>"
         val profileStr = " Hour of day: $hourOfDay <br/> Weekend: $weekend <br/>" +
             " 5 Min Steps: $recentSteps5Minutes <br/> 10 Min Steps: $recentSteps10Minutes <br/> 15 Min Steps: $recentSteps15Minutes <br/>" +
@@ -159,8 +161,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         mealStr += "tags0to60minAgo: ${tags0to60minAgo}<br/> tags60to120minAgo: $tags60to120minAgo<br/> " +
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-         ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 17 octobre 2023"
-        val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive,basaloapsaimirate, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
+            ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 18 octobre 2023"
+        val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, basaloapsaimirate, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
         iobDataParam = iobData.toString()
@@ -193,6 +195,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
         file.appendText(valuesToRecord + "\n")
     }
+
     private fun logDataToCsvHB(predictedSMB: Float, smbToGive: Float) {
         val dateStr = dateUtil.dateAndTimeString(dateUtil.now())
 
@@ -220,7 +223,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         file.appendText(valuesToRecord + "\n")
     }
 
-    private fun applySafetyPrecautions(smbToGiveParam: Float): Float {
+    /*private fun applySafetyPrecautions(smbToGiveParam: Float): Float {
         var smbToGive = smbToGiveParam
         // don't exceed max IOB
         if (iob + smbToGive > maxIob) {
@@ -263,6 +266,87 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         } else if (smbToGive < 0.0f)
             smbToGive = 0.0f
         return smbToGive
+    }*/
+    private fun applySafetyPrecautions(smbToGiveParam: Float): Float {
+        var smbToGive = smbToGiveParam
+
+        // Appliquer les limites maximum
+        smbToGive = applyMaxLimits(smbToGive)
+
+        // Vérifier les conditions de sécurité critiques
+        if (isCriticalSafetyCondition()) {
+            return 0.0f  // Arrêt immédiat si une condition de sécurité critique est remplie
+        }
+
+        // Ajustements basés sur des conditions spécifiques
+        smbToGive = applySpecificAdjustments(smbToGive)
+
+        // Assurer que smbToGive n'est pas négatif et appliquer des ajustements finaux
+        smbToGive = finalizeSmbToGive(smbToGive)
+
+        return smbToGive
+    }
+
+    private fun applyMaxLimits(smb: Float): Float {
+        var result = smb
+        if (iob + smb > maxIob) {
+            result = maxIob - iob
+        }
+        if (smb > maxSMB) {
+            result = maxSMB
+        }
+        return result
+    }
+
+    private fun isCriticalSafetyCondition(): Boolean {
+        val belowMinThreshold = bg < 80
+        val belowTargetAndDropping = bg < targetBg && delta < -2
+        val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 5
+        val droppingFast = bg < 150 && delta < -5
+        val droppingFastAtHigh = bg < 200 && delta < -7
+        val droppingVeryFast = delta < -10
+        val prediction = predictedBg < targetBg
+        // Vous pouvez ajouter ici d'autres conditions de sécurité critiques si nécessaire
+
+        return belowMinThreshold || belowTargetAndDropping || belowTargetAndStableButNoCob ||
+            droppingFast || droppingFastAtHigh || droppingVeryFast || prediction
+    }
+
+    private fun applySpecificAdjustments(smb: Float): Float {
+        var result = smb
+
+        // Vos autres conditions et ajustements moins critiques viennent ici
+        if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime < 15) {
+            result = 0.0f
+        } else if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime > 15) {
+            result = basalSMB
+        }
+
+        val safetysmb = recentSteps180Minutes > 1500 && bg < 130
+        if (safetysmb) {
+            result /= 2
+        }
+
+        if (recentSteps5Minutes > 100 && recentSteps30Minutes > 500 && lastsmbtime < 20) {
+            result = 0.0f
+        }
+
+        return result
+    }
+
+    private fun finalizeSmbToGive(smb: Float): Float {
+        var result = smb
+        // Assurez-vous que smbToGive n'est pas négatif
+        if (result < 0.0f) {
+            result = 0.0f
+        }
+
+        // Logique finale pour ajuster smbToGive
+        if (result == 0.0f && delta > 6 && bg > 130 && lastsmbtime > 15) {
+            result = basalSMB
+        }
+
+        return result
     }
 
     private fun roundToPoint05(number: Float): Float {
@@ -273,45 +357,152 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         return (number * 1000.0).roundToInt() / 1000.0f
     }
 
-
     private fun calculateSMBFromModel(): Float {
-    var selectedModelFile: File?
-    var modelInputs: FloatArray
+        var selectedModelFile: File?
+        var modelInputs: FloatArray
 
-    when {
-        modelHBFile.exists() -> {
-            selectedModelFile = modelHBFile
-            modelInputs = floatArrayOf(
-                hourOfDay.toFloat(), weekend.toFloat(),
-                bg, targetBg, iob, delta, shortAvgDelta, longAvgDelta,
-                tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour, averageBeatsPerMinute.toFloat()
-            )
+        when {
+            modelHBFile.exists() -> {
+                selectedModelFile = modelHBFile
+                modelInputs = floatArrayOf(
+                    hourOfDay.toFloat(), weekend.toFloat(),
+                    bg, targetBg, iob, delta, shortAvgDelta, longAvgDelta,
+                    tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour, averageBeatsPerMinute.toFloat()
+                )
+            }
+
+            modelFile.exists()   -> {
+                selectedModelFile = modelFile
+                modelInputs = floatArrayOf(
+                    hourOfDay.toFloat(), weekend.toFloat(),
+                    bg, targetBg, iob, delta, shortAvgDelta, longAvgDelta,
+                    tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour
+                )
+            }
+
+            else                 -> {
+                aapsLogger.error(LTag.APS, "NO Model found at specified location")
+                return 0.0F
+            }
         }
-        modelFile.exists() -> {
-            selectedModelFile = modelFile
-            modelInputs = floatArrayOf(
-                hourOfDay.toFloat(), weekend.toFloat(),
-                bg, targetBg, iob, delta, shortAvgDelta, longAvgDelta,
-                tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour
-            )
+
+        val interpreter = Interpreter(selectedModelFile!!)
+        val output = arrayOf(floatArrayOf(0.0F))
+        interpreter.run(modelInputs, output)
+        interpreter.close()
+        var smbToGive = output[0][0].toString().replace(',', '.').toDouble()
+
+        val formatter = DecimalFormat("#.####", DecimalFormatSymbols(Locale.US))
+        smbToGive = formatter.format(smbToGive).toDouble()
+
+        return smbToGive.toFloat()
+    }
+
+    fun calculateAdjustedDelayFactor(
+        bg: Float, recentSteps180Minutes: Int, averageBeatsPerMinute60: Float, averageBeatsPerMinute180: Float
+    ): Float {
+        // Seuil pour une activité physique significative basée sur les étapes
+        val stepActivityThreshold = 1500
+
+        // Seuil d'augmentation de la fréquence cardiaque indiquant une activité accrue
+        val heartRateIncreaseThreshold = 1.2  // par exemple, une augmentation de 20%
+
+        // Seuil à partir duquel l'efficacité de l'insuline commence à diminuer
+        val insulinSensitivityDecreaseThreshold = 1.5 * normalBgThreshold
+
+        // Déterminer si une activité physique significative a eu lieu
+        val increasedPhysicalActivity = recentSteps180Minutes > stepActivityThreshold
+
+        // Calculer le changement relatif de la fréquence cardiaque
+        val heartRateChange = averageBeatsPerMinute60 / averageBeatsPerMinute180
+
+        // Indicateur d'une augmentation possible de la fréquence cardiaque due à l'exercice
+        val increasedHeartRateActivity = heartRateChange >= heartRateIncreaseThreshold
+
+        // Calculer le facteur de base avant de prendre en compte l'activité physique
+        val baseFactor = when {
+            bg <= normalBgThreshold -> 1f
+            bg <= insulinSensitivityDecreaseThreshold -> 1f - ((bg - normalBgThreshold) / (insulinSensitivityDecreaseThreshold - normalBgThreshold))
+            else -> 0.5f // Arbitraire, à ajuster en fonction de la physiologie individuelle
         }
-        else -> {
-            aapsLogger.error(LTag.APS, "NO Model found at specified location")
-            return 0.0F
+
+        // Si une activité physique est détectée (soit par les étapes, soit par la fréquence cardiaque),
+        // nous ajustons le facteur de retard pour augmenter la sensibilité à l'insuline.
+        return if (increasedPhysicalActivity || increasedHeartRateActivity) {
+            (baseFactor.toFloat() * 0.8f).coerceAtLeast(0.5f)  // Ici, nous utilisons 0.8f pour indiquer qu'il s'agit d'un Float
+        } else {
+            baseFactor.toFloat()  // Cela devrait déjà être un Float
         }
     }
 
-    val interpreter = Interpreter(selectedModelFile!!)
-    val output = arrayOf(floatArrayOf(0.0F))
-    interpreter.run(modelInputs, output)
-    interpreter.close()
-    var smbToGive = output[0][0].toString().replace(',', '.').toDouble()
+    fun calculateInsulinEffect(
+        bg: Float,
+        iob: Float,
+        variableSensitivity: Float,
+        cob: Float,
+        normalBgThreshold: Float,
+        recentSteps180Min: Int,
+        averageBeatsPerMinute60: Float,
+        averageBeatsPerMinute180: Float
+    ): Float {
+        // Calculer l'effet initial de l'insuline
+        var insulinEffect = iob * variableSensitivity
 
-    val formatter = DecimalFormat("#.####", DecimalFormatSymbols(Locale.US))
-    smbToGive = formatter.format(smbToGive).toDouble()
+        // Si des glucides sont présents, nous pourrions vouloir ajuster l'effet de l'insuline pour tenir compte de l'absorption des glucides.
+        if (cob > 0) {
+            // Ajustement hypothétique basé sur la présence de glucides. Ce facteur doit être déterminé par des tests/logique métier.
+            insulinEffect *= 0.9f
+        }
 
-    return smbToGive.toFloat()
-}
+        // Calculer le facteur de retard ajusté en fonction de l'activité physique
+        val adjustedDelayFactor = calculateAdjustedDelayFactor(
+            normalBgThreshold,
+            recentSteps180Min,
+            averageBeatsPerMinute60,
+            averageBeatsPerMinute180
+        )
+
+        // Appliquer le facteur de retard ajusté à l'effet de l'insuline
+        insulinEffect *= adjustedDelayFactor
+
+        // En fonction de la glycémie actuelle, nous pourrions vouloir faire d'autres ajustements.
+        if (bg > normalBgThreshold) {
+            // Si la glycémie est élevée, l'effet de l'insuline peut être différent. Ajustez selon la logique métier/test.
+            insulinEffect *= 1.1f
+        }
+
+        return insulinEffect
+    }
+    fun predictFutureBg(
+        bg: Float,
+        iob: Float,  // Insuline active (IOB)
+        variableSensitivity: Float,  // Facteur de sensibilité à l'insuline (ISF)
+        cob: Float,  // Glucides à bord (COB)
+        CI: Float,  // Rapport insuline/glucides (ICR)
+    ): Float {
+        // Temps moyen d'absorption des glucides en heures
+        val averageCarbAbsorptionTime = 2.5f
+
+        // Convertir le temps d'absorption en minutes pour le calcul
+        val absorptionTimeInMinutes = averageCarbAbsorptionTime * 60
+
+        // Calculer l'effet de l'insuline sur la baisse de la glycémie
+        val insulinEffect = iob * variableSensitivity
+
+        // Calculer l'effet des glucides sur l'augmentation de la glycémie
+        // en supposant que 'absorptionTime' représente la période de temps pendant laquelle les glucides sont absorbés
+        val carbEffect = (cob / absorptionTimeInMinutes) * CI
+
+        // Prédire la glycémie future
+        val futureBg = bg - insulinEffect + carbEffect
+
+        return futureBg
+    }
+
+
+
+
+
 
     @Suppress("SpellCheckingInspection")
     @Throws(JSONException::class)
@@ -408,6 +599,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         this.variableSensitivity = Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1).toFloat()
         var beatsPerMinuteValues: List<Int>
+        var beatsPerMinuteValues60: List<Int>
         var beatsPerMinuteValues180: List<Int>
         val timeMillisNow = System.currentTimeMillis()
         val timeMillis5 = System.currentTimeMillis() - 5 * 60 * 1000 // 5 minutes en millisecondes
@@ -465,21 +657,37 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             this.averageBeatsPerMinute = 80.0
         }
         try {
-
-            val heartRates180 = repository.getHeartRatesFromTimeToTime(timeMillis180,timeMillisNow)
-            beatsPerMinuteValues180 = heartRates180.map { it.beatsPerMinute.toInt() } // Extract beatsPerMinute values from heartRates
-            this.averageBeatsPerMinute180 = if (beatsPerMinuteValues180.isNotEmpty()) {
-                beatsPerMinuteValues180.average()
+            val heartRates = repository.getHeartRatesFromTimeToTime(timeMillis60,timeMillisNow)
+            beatsPerMinuteValues60 = heartRates.map { it.beatsPerMinute.toInt() } // Extract beatsPerMinute values from heartRates
+            this.averageBeatsPerMinute60 = if (beatsPerMinuteValues60.isNotEmpty()) {
+                beatsPerMinuteValues60.average()
             } else {
-                10.0 // or some other default value
+                80.0 // or some other default value
             }
 
         } catch (e: Exception) {
             // Log that watch is not connected
             //println("Watch is not connected. Using default values for heart rate data.")
             // Réaffecter les variables à leurs valeurs par défaut
-            beatsPerMinuteValues180 = listOf(10)
-            this.averageBeatsPerMinute180 = 10.0
+            beatsPerMinuteValues = listOf(80)
+            this.averageBeatsPerMinute = 80.0
+        }
+        try {
+
+            val heartRates180 = repository.getHeartRatesFromTimeToTime(timeMillis180,timeMillisNow)
+            beatsPerMinuteValues180 = heartRates180.map { it.beatsPerMinute.toInt() } // Extract beatsPerMinute values from heartRates
+            this.averageBeatsPerMinute180 = if (beatsPerMinuteValues180.isNotEmpty()) {
+                beatsPerMinuteValues180.average()
+            } else {
+                80.0 // or some other default value
+            }
+
+        } catch (e: Exception) {
+            // Log that watch is not connected
+            //println("Watch is not connected. Using default values for heart rate data.")
+            // Réaffecter les variables à leurs valeurs par défaut
+            beatsPerMinuteValues180 = listOf(80)
+            this.averageBeatsPerMinute180 = 80.0
         }
         if (tdd2Days != null && tdd2Days != 0.0f) {
             this.basalaimi = (tdd2Days / SafeParse.stringToDouble(sp.getString(R.string.key_aimiweight, "50"))).toFloat()
@@ -561,6 +769,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         } else {
             variableSensitivity = profile.getIsfMgdl().toFloat()
         }
+        this.predictedBg = predictFutureBg(bg, iob, variableSensitivity, cob, CI)
 
         this.profile = JSONObject()
         this.profile.put("max_iob", maxIob)
@@ -571,6 +780,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("min_bg", minBg)
         this.profile.put("max_bg", maxBg)
         this.profile.put("target_bg", targetBg)
+        this.profile.put("predictedBg", predictedBg)
         this.profile.put("carb_ratio", CI)
         this.profile.put("sens", variableSensitivity)
         this.profile.put("max_daily_safety_multiplier", sp.getInt(R.string.key_openapsama_max_daily_safety_multiplier, 3))
