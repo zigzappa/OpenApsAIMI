@@ -41,11 +41,10 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
 
         this.date = dateUtil.now()
 
-
-        this.rate = basaloapsaimirate.toDouble()
-        this.duration = SafeParse.stringToDouble(sp.getString(R.string.key_B30_duration, "20")).toInt()
-        if (rate < 0) rate = 0.0
         isTempBasalRequested = true
+        rate = basaloapsaimirate.toDouble()
+        if (rate < 0) rate = 0.0
+        duration = SafeParse.stringToDouble(sp.getString(R.string.key_B30_duration, "20")).toInt()
 
         this.smb = requestedSMB.toDouble()
         if (requestedSMB > 0) {
