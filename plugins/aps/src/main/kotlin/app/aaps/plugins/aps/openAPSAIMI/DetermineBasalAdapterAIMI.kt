@@ -270,9 +270,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private fun applySafetyPrecautions(smbToGiveParam: Float): Float {
         var smbToGive = smbToGiveParam
 
-        // Appliquer les limites maximum
-        smbToGive = applyMaxLimits(smbToGive)
-
         // Vérifier les conditions de sécurité critiques
         if (isCriticalSafetyCondition()) {
             return 0.0f  // Arrêt immédiat si une condition de sécurité critique est remplie
@@ -280,6 +277,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         // Ajustements basés sur des conditions spécifiques
         smbToGive = applySpecificAdjustments(smbToGive)
+
+        // Appliquer les limites maximum
+        smbToGive = applyMaxLimits(smbToGive)
 
         // Assurer que smbToGive n'est pas négatif et appliquer des ajustements finaux
         smbToGive = finalizeSmbToGive(smbToGive)
