@@ -3,7 +3,7 @@ name: Auto Build APK
 on:
   push:
     branches:
-      - master  # Changez ceci à la branche sur laquelle vous souhaitez déclencher la construction
+      - dev_Plugin_OpenApsAIMI_autobuild  # Changez ceci à la branche sur laquelle vous souhaitez déclencher la construction
 
 jobs:
   build:
