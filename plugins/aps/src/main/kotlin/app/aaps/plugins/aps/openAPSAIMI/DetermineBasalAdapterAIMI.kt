@@ -241,12 +241,12 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         return smbToGive
     }
 
-    private fun applyMaxLimits(smb: Float): Float {
-        var result = smb
-        if (iob + smb > maxIob) {
+    private fun applyMaxLimits(smbToGive: Float): Float {
+        var result = smbToGive
+        if (iob + smbToGive > maxIob) {
             result = maxIob - iob
         }
-        if (smb > maxSMB) {
+        if (smbToGive > maxSMB) {
             result = maxSMB
         }
         return result
@@ -266,8 +266,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             droppingFast || droppingFastAtHigh || droppingVeryFast || prediction
     }
 
-    private fun applySpecificAdjustments(smb: Float): Float {
-        var result = smb
+    private fun applySpecificAdjustments(smbToGive: Float): Float {
+        var result = smbToGive
 
         if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime < 15) {
             result = 0.0f
@@ -287,8 +287,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         return result
     }
 
-    private fun finalizeSmbToGive(smb: Float): Float {
-        var result = smb
+    private fun finalizeSmbToGive(smbToGive: Float): Float {
+        var result = smbToGive
         // Assurez-vous que smbToGive n'est pas négatif
         if (result < 0.0f) {
             result = 0.0f
