@@ -1,25 +1,29 @@
-name: Auto Build APK
+name: Android CI/CD
 
 on:
   push:
-    branches:
-      - dev_Plugin_OpenApsAIMI_autobuild  # Changez ceci à la branche sur laquelle vous souhaitez déclencher la construction
+    branches: [ "Dev_OpenApsAIMI_autobuild" ]
 
 jobs:
-  build:
+  build-and-sign:
+
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Setup JDK
+    - name: Set up JDK 11
       uses: actions/setup-java@v2
       with:
-        java-version: 11
-        distribution: 'adopt'
+        java-version: '11'
+        distribution: 'temurin'
+        cache: gradle
 
-    - name: Set up Keystore
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Build and Sign Release APK
       env:
         KEYSTORE_FILE: ${{ secrets.KEYSTORE_FILE }}
         KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -30,8 +34,10 @@ jobs:
         echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> keystore.properties
         echo "KEY_ALIAS=$KEY_ALIAS" >> keystore.properties
         echo "KEY_PASSWORD=$KEY_PASSWORD" >> keystore.properties
-
-    - name: Build and Sign Release APK
-      run: |
-        chmod +x ./gradlew
         ./gradlew assembleRelease
+
+    - name: Archive APK
+      uses: actions/upload-artifact@v2
+      with:
+        name: app-release.apk
+        path: app/build/outputs/apk/release/app-release.apk
