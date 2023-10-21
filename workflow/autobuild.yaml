@@ -1,0 +1,37 @@
+name: Auto Build APK
+
+on:
+  push:
+    branches:
+      - master  # Changez ceci à la branche sur laquelle vous souhaitez déclencher la construction
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup JDK
+      uses: actions/setup-java@v2
+      with:
+        java-version: 11
+        distribution: 'adopt'
+
+    - name: Set up Keystore
+      env:
+        KEYSTORE_FILE: ${{ secrets.KEYSTORE_FILE }}
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      run: |
+        echo "KEYSTORE_FILE=$KEYSTORE_FILE" > keystore.properties
+        echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> keystore.properties
+        echo "KEY_ALIAS=$KEY_ALIAS" >> keystore.properties
+        echo "KEY_PASSWORD=$KEY_PASSWORD" >> keystore.properties
+
+    - name: Build and Sign Release APK
+      run: |
+        chmod +x ./gradlew
+        ./gradlew assembleRelease
