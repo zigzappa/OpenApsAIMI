@@ -305,8 +305,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val droppingFast = bg < 150 && delta < -5
         val droppingFastAtHigh = bg < 200 && delta < -7
         val droppingVeryFast = delta < -10
-        val prediction = predictedBg < targetBg
-        // Vous pouvez ajouter ici d'autres conditions de sécurité critiques si nécessaire
+        val prediction = predictedBg < targetBg && delta < 10
+
 
         return belowMinThreshold || belowTargetAndDropping || belowTargetAndStableButNoCob ||
             droppingFast || droppingFastAtHigh || droppingVeryFast || prediction
