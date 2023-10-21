@@ -67,6 +67,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var tags180to240minAgo = ""
     private var bg = 0.0f
     private var targetBg = 100.0f
+    private var normalBgThreshold = 150.0f
+    private var predictedBg = 0.0f
     private var delta = 0.0f
     private var shortAvgDelta = 0.0f
     private var longAvgDelta = 0.0f
@@ -93,6 +95,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var basalaimi = 0.0f
     private var basalSMB = 0.0f
     private var aimilimit = 0.0f
+    private var basaloapsaimirate = 0.0f
     private var CI = 0.0f
     private var variableSensitivity = 0.0f
     private var averageBeatsPerMinute = 0.0
@@ -142,7 +145,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         logDataToCsvHB(predictedSMB,smbToGive)
 
         val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB"
-        val glucoseStr = " bg: $bg <br/> targetBg: $targetBg <br/> " +
+        val glucoseStr = " bg: $bg <br/> targetBg: $targetBg <br/> futureBg: $predictedBg <br/>" +
             "delta: $delta <br/> short avg delta: $shortAvgDelta <br/> long avg delta: $longAvgDelta <br/>" +
             " accelerating_up: $accelerating_up <br/> deccelerating_up: $deccelerating_up <br/> accelerating_down: $accelerating_down <br/> deccelerating_down: $deccelerating_down <br/> stable: $stable"
         val iobStr = " IOB: $iob <br/> tdd 7d/h: ${roundToPoint05(tdd7DaysPerHour)} <br/> " +
@@ -158,7 +161,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
          ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 17 octobre 2023"
-        val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
+        val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, basaloapsaimirate, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
         iobDataParam = iobData.toString()
@@ -217,49 +220,86 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
         file.appendText(valuesToRecord + "\n")
     }
-
     private fun applySafetyPrecautions(smbToGiveParam: Float): Float {
         var smbToGive = smbToGiveParam
-        // don't exceed max IOB
-        if (iob + smbToGive > maxIob) {
-            smbToGive = maxIob - iob
+
+        // Vérifier les conditions de sécurité critiques
+        if (isCriticalSafetyCondition()) {
+            return 0.0f  // Arrêt immédiat si une condition de sécurité critique est remplie
         }
 
-        // don't exceed max SMB
-        if (smbToGive > maxSMB) {
-            smbToGive = maxSMB
+        // Ajustements basés sur des conditions spécifiques
+        smbToGive = applySpecificAdjustments(smbToGive)
+
+        // Appliquer les limites maximum
+        smbToGive = applyMaxLimits(smbToGive)
+
+        // Assurer que smbToGive n'est pas négatif et appliquer des ajustements finaux
+        smbToGive = finalizeSmbToGive(smbToGive)
+
+        return smbToGive
+    }
+
+    private fun applyMaxLimits(smb: Float): Float {
+        var result = smb
+        if (iob + smb > maxIob) {
+            result = maxIob - iob
         }
-        // don't give insulin if below target too aggressive
+        if (smb > maxSMB) {
+            result = maxSMB
+        }
+        return result
+    }
+
+    private fun isCriticalSafetyCondition(): Boolean {
+        val belowMinThreshold = bg < 80
         val belowTargetAndDropping = bg < targetBg && delta < -2
         val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 5
-        val belowMinThreshold = bg < 80
-        if (belowTargetAndDropping || belowMinThreshold || belowTargetAndStableButNoCob) {
-            smbToGive = 0.0f
-        }
-        if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime < 15){
-            smbToGive = 0.0f
-        }else if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime > 15){
-            smbToGive = basalSMB
-        }
-        val safetysmb = recentSteps180Minutes > 1500 && bg < 130
-        if (safetysmb){
-            smbToGive /= 2
-        }
-        if (recentSteps5Minutes > 100 && recentSteps30Minutes > 500 && lastsmbtime < 20){
-            smbToGive = 0.0f
-        }
-        // don't give insulin if dropping fast
         val droppingFast = bg < 150 && delta < -5
         val droppingFastAtHigh = bg < 200 && delta < -7
         val droppingVeryFast = delta < -10
-        val interval = iob > aimilimit && lastsmbtime < 10
-        if (droppingFast || droppingFastAtHigh || droppingVeryFast || interval){
-            smbToGive = 0.0f
+        val prediction = predictedBg < targetBg && delta < 10
+
+
+        return belowMinThreshold || belowTargetAndDropping || belowTargetAndStableButNoCob ||
+            droppingFast || droppingFastAtHigh || droppingVeryFast || prediction
+    }
+
+    private fun applySpecificAdjustments(smb: Float): Float {
+        var result = smb
+
+        // Vos autres conditions et ajustements moins critiques viennent ici
+        if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime < 15) {
+            result = 0.0f
+        } else if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime > 15) {
+            result = basalSMB
         }
-        if (smbToGive < 0.0f) {
-            smbToGive = 0.0f
+
+        val safetysmb = recentSteps180Minutes > 1500 && bg < 130
+        if (safetysmb) {
+            result /= 2
         }
-        return smbToGive
+
+        if (recentSteps5Minutes > 100 && recentSteps30Minutes > 500 && lastsmbtime < 20) {
+            result = 0.0f
+        }
+
+        return result
+    }
+
+    private fun finalizeSmbToGive(smb: Float): Float {
+        var result = smb
+        // Assurez-vous que smbToGive n'est pas négatif
+        if (result < 0.0f) {
+            result = 0.0f
+        }
+
+        // Logique finale pour ajuster smbToGive
+        if (result == 0.0f && delta > 6 && bg > 130 && lastsmbtime > 15) {
+            result = if ((iob + basalSMB) > maxIob) maxIob - iob else basalSMB
+        }
+
+        return result
     }
 
     private fun roundToPoint05(number: Float): Float {
@@ -309,6 +349,94 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
     return smbToGive.toFloat()
 }
+
+    fun calculateAdjustedDelayFactor(
+        bg: Float, recentSteps180Minutes: Int
+    ): Float {
+        // Seuil pour une activité physique significative
+        val stepActivityThreshold = 1500
+
+        // Seuil à partir duquel l'efficacité de l'insuline commence à diminuer
+        val insulinSensitivityDecreaseThreshold = 1.5 * normalBgThreshold
+
+        // Déterminer si une activité physique significative a eu lieu
+        val increasedPhysicalActivity = recentSteps180Minutes > stepActivityThreshold
+
+        // Calculer le facteur de base avant de prendre en compte l'activité physique
+        val baseFactor = when {
+            bg <= normalBgThreshold -> 1f
+            bg <= insulinSensitivityDecreaseThreshold -> 1f - ((bg - normalBgThreshold) / (insulinSensitivityDecreaseThreshold - normalBgThreshold))
+            else -> 0.5f // Arbitraire, à ajuster en fonction de la physiologie individuelle
+        }
+
+        // Si une activité physique est détectée (soit par les étapes, soit par la fréquence cardiaque),
+        // nous ajustons le facteur de retard pour augmenter la sensibilité à l'insuline.
+        return if (increasedPhysicalActivity) {
+            (baseFactor.toFloat() * 0.8f).coerceAtLeast(0.5f)  // Ici, nous utilisons 0.8f pour indiquer qu'il s'agit d'un Float
+        } else {
+            baseFactor.toFloat()  // Cela devrait déjà être un Float
+        }
+    }
+
+    fun calculateInsulinEffect(
+        bg: Float,
+        iob: Float,
+        variableSensitivity: Float,
+        cob: Float,
+        normalBgThreshold: Float,
+        recentSteps180Min: Int
+    ): Float {
+        // Calculer l'effet initial de l'insuline
+        var insulinEffect = iob * variableSensitivity
+
+        // Si des glucides sont présents, nous pourrions vouloir ajuster l'effet de l'insuline pour tenir compte de l'absorption des glucides.
+        if (cob > 0) {
+            // Ajustement hypothétique basé sur la présence de glucides. Ce facteur doit être déterminé par des tests/logique métier.
+            insulinEffect *= 0.9f
+        }
+
+        // Calculer le facteur de retard ajusté en fonction de l'activité physique
+        val adjustedDelayFactor = calculateAdjustedDelayFactor(
+            normalBgThreshold,
+            recentSteps180Min
+        )
+
+        // Appliquer le facteur de retard ajusté à l'effet de l'insuline
+        insulinEffect *= adjustedDelayFactor
+
+        // En fonction de la glycémie actuelle, nous pourrions vouloir faire d'autres ajustements.
+        if (bg > normalBgThreshold) {
+            // Si la glycémie est élevée, l'effet de l'insuline peut être différent. Ajustez selon la logique métier/test.
+            insulinEffect *= 1.1f
+        }
+
+        return insulinEffect
+    }
+    fun predictFutureBg(
+        bg: Float,
+        iob: Float,  // Insuline active (IOB)
+        variableSensitivity: Float,  // Facteur de sensibilité à l'insuline (ISF)
+        cob: Float,  // Glucides à bord (COB)
+        CI: Float,  // Rapport insuline/glucides (ICR)
+    ): Float {
+        // Temps moyen d'absorption des glucides en heures
+        val averageCarbAbsorptionTime = 2.5f
+
+        // Convertir le temps d'absorption en minutes pour le calcul
+        val absorptionTimeInMinutes = averageCarbAbsorptionTime * 60
+
+        // Calculer l'effet de l'insuline sur la baisse de la glycémie
+        val insulinEffect = iob * variableSensitivity
+
+        // Calculer l'effet des glucides sur l'augmentation de la glycémie
+        // en supposant que 'absorptionTime' représente la période de temps pendant laquelle les glucides sont absorbés
+        val carbEffect = (cob / absorptionTimeInMinutes) * CI
+
+        // Prédire la glycémie future
+        val futureBg = bg - insulinEffect + carbEffect
+
+        return futureBg
+    }
 
     @Suppress("SpellCheckingInspection")
     @Throws(JSONException::class)
@@ -481,8 +609,14 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.b30upperdelta = SafeParse.stringToDouble(sp.getString(R.string.key_B30_upperdelta, "10"))
         val b30duration = SafeParse.stringToDouble(sp.getString(R.string.key_B30_duration, "20"))
 
-        if (delta < b30upperdelta && bg < b30upperbg){
-            this.basalSMB = (((basalaimi * delta) / 60) * b30duration).toFloat()
+        this.basalSMB = (((basalaimi * delta) / 60) * b30duration).toFloat()
+
+        if (delta < b30upperdelta && delta > 1 && bg < b30upperbg && lastsmbtime > 10) {
+            this.basaloapsaimirate = basalSMB
+        }else if (predictedBg > targetBg){
+            this.basaloapsaimirate = basalSMB
+        }else{
+            this.basaloapsaimirate = 0.0f
         }
 
         val variableSensitivityDouble = variableSensitivity.toDoubleSafely()
@@ -524,7 +658,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         } else {
             variableSensitivity = profile.getIsfMgdl().toFloat()
         }
-
+        this.predictedBg = predictFutureBg(bg, iob, variableSensitivity, cob, CI)
         this.profile = JSONObject()
         this.profile.put("max_iob", maxIob)
         this.profile.put("dia", min(profile.dia, 3.0))
@@ -534,6 +668,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("min_bg", minBg)
         this.profile.put("max_bg", maxBg)
         this.profile.put("target_bg", targetBg)
+        this.profile.put("predictedBg", predictedBg)
         this.profile.put("carb_ratio", CI)
         this.profile.put("sens", variableSensitivity)
         this.profile.put("max_daily_safety_multiplier", sp.getInt(R.string.key_openapsama_max_daily_safety_multiplier, 3))
