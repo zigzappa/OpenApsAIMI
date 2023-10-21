@@ -222,51 +222,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
         file.appendText(valuesToRecord + "\n")
     }
-
-    /*private fun applySafetyPrecautions(smbToGiveParam: Float): Float {
-        var smbToGive = smbToGiveParam
-        // don't exceed max IOB
-        if (iob + smbToGive > maxIob) {
-            smbToGive = maxIob - iob
-        }
-
-        // don't exceed max SMB
-        if (smbToGive > maxSMB) {
-            smbToGive = maxSMB
-        }
-        // don't give insulin if below target too aggressive
-        val belowTargetAndDropping = bg < targetBg && delta < -2
-        val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 5
-        val belowMinThreshold = bg < 80
-        if (belowTargetAndDropping || belowMinThreshold || belowTargetAndStableButNoCob) {
-            smbToGive = 0.0f
-        }
-        if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime < 15){
-            smbToGive = 0.0f
-        }else if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime > 15){
-            smbToGive = basalSMB
-        }
-        val safetysmb = recentSteps180Minutes > 1500 && bg < 130
-        if (safetysmb){
-            smbToGive /= 2
-        }
-        if (recentSteps5Minutes > 100 && recentSteps30Minutes > 500 && lastsmbtime < 20){
-            smbToGive = 0.0f
-        }
-        // don't give insulin if dropping fast
-        val droppingFast = bg < 150 && delta < -5
-        val droppingFastAtHigh = bg < 200 && delta < -7
-        val droppingVeryFast = delta < -10
-        val interval = iob > aimilimit && lastsmbtime < 10
-        if (droppingFast || droppingFastAtHigh || droppingVeryFast || interval) {
-            smbToGive = 0.0f
-        }
-        if ((smbToGive < 0.0f || smbToGive === 0.0f ) && delta > 6 && bg > 130 && lastsmbtime > 15) {
-            smbToGive = basalSMB
-        } else if (smbToGive < 0.0f)
-            smbToGive = 0.0f
-        return smbToGive
-    }*/
     private fun applySafetyPrecautions(smbToGiveParam: Float): Float {
         var smbToGive = smbToGiveParam
 
@@ -281,7 +236,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         // Appliquer les limites maximum
         smbToGive = applyMaxLimits(smbToGive)
 
-        // Assurer que smbToGive n'est pas négatif et appliquer des ajustements finaux
         smbToGive = finalizeSmbToGive(smbToGive)
 
         return smbToGive
@@ -315,7 +269,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private fun applySpecificAdjustments(smb: Float): Float {
         var result = smb
 
-        // Vos autres conditions et ajustements moins critiques viennent ici
         if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime < 15) {
             result = 0.0f
         } else if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime > 15) {
@@ -343,7 +296,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         // Logique finale pour ajuster smbToGive
         if (result == 0.0f && delta > 6 && bg > 130 && lastsmbtime > 15) {
-            result = basalSMB
+            result = if ((iob + basalSMB) > maxIob) maxIob - iob else basalSMB
         }
 
         return result
