@@ -2,9 +2,9 @@ name: Android CI/CD
 
 on:
   push:
-    branches: [ "Dev_OpenApsAIMI_autobuild" ]
+    branches: [ "Dev_Plugin_OpenApsAIMI_autobuild" ]
   pull_request:
-    branches: [ "Dev_OpenApsAIMI_autobuild" ]
+    branches: [ "Dev_Plugin_OpenApsAIMI_autobuild" ]
 
 jobs:
   build-and-sign:
