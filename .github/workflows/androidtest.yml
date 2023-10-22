@@ -38,7 +38,7 @@ jobs:
         echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> keystore.properties
         echo "KEY_ALIAS=$KEY_ALIAS" >> keystore.properties
         echo "KEY_PASSWORD=$KEY_PASSWORD" >> keystore.properties
-        ./gradlew assembleRelease
+        ./gradlew build
 
     - name: Archive APK
       uses: actions/upload-artifact@v2
