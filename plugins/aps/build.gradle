@@ -1,15 +1,3 @@
-plugins {
-    id 'com.android.library'
-    id 'kotlin-android'
-    id 'kotlin-kapt'
-    id 'kotlin-allopen'
-}
-
-apply from: "${project.rootDir}/core/main/android_dependencies.gradle"
-apply from: "${project.rootDir}/core/main/android_module_dependencies.gradle"
-apply from: "${project.rootDir}/core/main/test_dependencies.gradle"
-apply from: "${project.rootDir}/core/main/allopen_dependencies.gradle"
-apply from: "${project.rootDir}/core/main/jacoco_global.gradle"
 
 android {
     namespace 'app.aaps.plugins.aps'
