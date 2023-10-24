@@ -442,14 +442,14 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         // Calculer l'effet de l'insuline sur la baisse de la glycémie
         val insulinEffect = calculateInsulinEffect(
-            currentBg,
+            bg,
             iob,
             variableSensitivity,
             cob,
             normalBgThreshold,
-            recentSteps180Min,
-            averageBeatsPerMinute60,
-            averageBeatsPerMinute180
+            recentSteps180Minutes,
+            averageBeatsPerMinute60.toFloat(),
+            averageBeatsPerMinute180.toFloat()
         )
 
         // Calculer l'effet des glucides sur l'augmentation de la glycémie
