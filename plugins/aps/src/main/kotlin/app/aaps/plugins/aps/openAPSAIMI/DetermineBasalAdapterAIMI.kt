@@ -259,10 +259,12 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val droppingFastAtHigh = bg < 200 && delta < -7
         val droppingVeryFast = delta < -10
         val prediction = predictedBg < targetBg && delta < 10
+        val interval = predictedBg < targetBg && delta > 10 && iob >= maxSMB && lastsmbtime < 10
+        val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB && lastsmbtime < 15
 
 
         return belowMinThreshold || belowTargetAndDropping || belowTargetAndStableButNoCob ||
-            droppingFast || droppingFastAtHigh || droppingVeryFast || prediction
+            droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval
     }
 
     private fun applySpecificAdjustments(smbToGive: Float): Float {
@@ -439,7 +441,16 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val absorptionTimeInMinutes = averageCarbAbsorptionTime * 60
 
         // Calculer l'effet de l'insuline sur la baisse de la glycémie
-        val insulinEffect = iob * variableSensitivity
+        val insulinEffect = calculateInsulinEffect(
+            currentBg,
+            iob,
+            variableSensitivity,
+            cob,
+            normalBgThreshold,
+            recentSteps180Min,
+            averageBeatsPerMinute60,
+            averageBeatsPerMinute180
+        )
 
         // Calculer l'effet des glucides sur l'augmentation de la glycémie
         // en supposant que 'absorptionTime' représente la période de temps pendant laquelle les glucides sont absorbés
