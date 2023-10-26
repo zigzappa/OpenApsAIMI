@@ -15,7 +15,6 @@ import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.stats.TddCalculator
-import app.aaps.core.interfaces.stats.TirCalculator
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.Round
 import app.aaps.core.interfaces.utils.SafeParse
@@ -128,15 +127,14 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         val predictedSMB = calculateSMBFromModel()
         var smbToGive = predictedSMB
-        var morningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_morning_factor, "100")) / 100.0
-        var afternoonfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_afternoon_factor, "100")) / 100.0
-        var eveningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_evening_factor, "100")) / 100.0
-        if (hourOfDay in 1..11){
-            smbToGive *= morningfactor.toFloat()
-        }else if (hourOfDay in 12..18){
-            smbToGive *= afternoonfactor.toFloat()
-        }else if (hourOfDay in 18..23){
-            smbToGive *= eveningfactor.toFloat()
+        val morningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_morning_factor, "100")) / 100.0
+        val afternoonfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_afternoon_factor, "100")) / 100.0
+        val eveningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_evening_factor, "100")) / 100.0
+        smbToGive = when {
+            hourOfDay in 1..11 -> smbToGive * morningfactor.toFloat()
+            hourOfDay in 12..18 -> smbToGive * afternoonfactor.toFloat()
+            hourOfDay in 19..23 -> smbToGive * eveningfactor.toFloat()
+            else -> smbToGive
         }
         smbToGive = applySafetyPrecautions(smbToGive)
         smbToGive = roundToPoint05(smbToGive)
@@ -160,7 +158,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         mealStr += "tags0to60minAgo: ${tags0to60minAgo}<br/> tags60to120minAgo: $tags60to120minAgo<br/> " +
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-         ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 17 octobre 2023"
+         ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 26 octobre 2023"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, basaloapsaimirate, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -312,8 +310,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
 
     private fun calculateSMBFromModel(): Float {
-    var selectedModelFile: File?
-    var modelInputs: FloatArray
+    val selectedModelFile: File?
+    val modelInputs: FloatArray
 
     when {
         modelHBFile.exists() -> {
@@ -426,7 +424,14 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val absorptionTimeInMinutes = averageCarbAbsorptionTime * 60
 
         // Calculer l'effet de l'insuline sur la baisse de la glycémie
-        val insulinEffect = iob * variableSensitivity
+        val insulinEffect = calculateInsulinEffect(
+            bg,
+            iob,
+            variableSensitivity,
+            cob,
+            normalBgThreshold,
+            recentSteps180Minutes
+        )
 
         // Calculer l'effet des glucides sur l'augmentation de la glycémie
         // en supposant que 'absorptionTime' représente la période de temps pendant laquelle les glucides sont absorbés
@@ -464,8 +469,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         tddLast8to4H: Double?
     ) {
         this.now = System.currentTimeMillis()
-        this.hourOfDay = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-        val dayOfWeek = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+        val calendarInstance = Calendar.getInstance()
+        this.hourOfDay = calendarInstance[Calendar.HOUR_OF_DAY]
+        val dayOfWeek = calendarInstance[Calendar.DAY_OF_WEEK]
         this.weekend = if (dayOfWeek == Calendar.SUNDAY || dayOfWeek == Calendar.SATURDAY) 1 else 0
 
         val iobCalcs = iobCobCalculator.calculateIobFromBolus()
@@ -501,7 +507,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.accelerating_down = if (delta < -2 && delta - longAvgDelta < -2) 1 else 0
         this.deccelerating_down = if (delta < 0 && (delta > shortAvgDelta || delta > longAvgDelta)) 1 else 0
         this.stable = if (delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3) 1 else 0
-        var tdd7P = SafeParse.stringToDouble(sp.getString(R.string.key_tdd7, "50"))
+        val tdd7P = SafeParse.stringToDouble(sp.getString(R.string.key_tdd7, "50"))
         var tdd7Days = tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))?.totalAmount?.toFloat() ?: 0.0f
         if (tdd7Days == 0.0f) tdd7Days = tdd7P.toFloat()
         this.tdd7DaysPerHour = tdd7Days / 24
