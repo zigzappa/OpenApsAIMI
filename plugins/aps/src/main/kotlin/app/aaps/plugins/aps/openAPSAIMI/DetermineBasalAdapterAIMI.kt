@@ -127,16 +127,16 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         val predictedSMB = calculateSMBFromModel()
         var smbToGive = predictedSMB
-        var morningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_morning_factor, "100")) / 100.0
-        var afternoonfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_afternoon_factor, "100")) / 100.0
-        var eveningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_evening_factor, "100")) / 100.0
-        if (hourOfDay in 1..11) {
-            smbToGive *= morningfactor.toFloat()
-        } else if (hourOfDay in 12..18) {
-            smbToGive *= afternoonfactor.toFloat()
-        } else if (hourOfDay in 18..23) {
-            smbToGive *= eveningfactor.toFloat()
+        val morningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_morning_factor, "100")) / 100.0
+        val afternoonfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_afternoon_factor, "100")) / 100.0
+        val eveningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_evening_factor, "100")) / 100.0
+        smbToGive = when {
+            hourOfDay in 1..11 -> smbToGive * morningfactor.toFloat()
+            hourOfDay in 12..18 -> smbToGive * afternoonfactor.toFloat()
+            hourOfDay in 19..23 -> smbToGive * eveningfactor.toFloat()
+            else -> smbToGive
         }
+
         smbToGive = applySafetyPrecautions(smbToGive)
         smbToGive = roundToPoint05(smbToGive)
 
@@ -312,8 +312,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     }
 
     private fun calculateSMBFromModel(): Float {
-        var selectedModelFile: File?
-        var modelInputs: FloatArray
+        val selectedModelFile: File?
+        val modelInputs: FloatArray
 
         when {
             modelHBFile.exists() -> {
@@ -493,8 +493,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         tddLast8to4H: Double?
     ) {
         this.now = System.currentTimeMillis()
-        this.hourOfDay = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-        val dayOfWeek = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+        val calendarInstance = Calendar.getInstance()
+        this.hourOfDay = calendarInstance[Calendar.HOUR_OF_DAY]
+        val dayOfWeek = calendarInstance[Calendar.DAY_OF_WEEK]
         this.weekend = if (dayOfWeek == Calendar.SUNDAY || dayOfWeek == Calendar.SATURDAY) 1 else 0
 
         val iobCalcs = iobCobCalculator.calculateIobFromBolus()
@@ -531,7 +532,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.accelerating_down = if (delta < -2 && delta - longAvgDelta < -2) 1 else 0
         this.deccelerating_down = if (delta < 0 && (delta > shortAvgDelta || delta > longAvgDelta)) 1 else 0
         this.stable = if (delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3) 1 else 0
-        var tdd7P = SafeParse.stringToDouble(sp.getString(R.string.key_tdd7, "50"))
+        val tdd7P = SafeParse.stringToDouble(sp.getString(R.string.key_tdd7, "50"))
         var tdd7Days = tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))?.totalAmount?.toFloat() ?: 0.0f
         if (tdd7Days == 0.0f) tdd7Days = tdd7P.toFloat()
         this.tdd7DaysPerHour = tdd7Days / 24
@@ -561,9 +562,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         tdd *= dynISFadjust
 
         this.variableSensitivity = Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1).toFloat()
-        var beatsPerMinuteValues: List<Int>
-        var beatsPerMinuteValues60: List<Int>
-        var beatsPerMinuteValues180: List<Int>
+        val beatsPerMinuteValues: List<Int>
+        val beatsPerMinuteValues60: List<Int>
+        val beatsPerMinuteValues180: List<Int>
         val timeMillisNow = System.currentTimeMillis()
         val timeMillis5 = System.currentTimeMillis() - 5 * 60 * 1000 // 5 minutes en millisecondes
         val timeMillis10 = System.currentTimeMillis() - 10 * 60 * 1000 // 10 minutes en millisecondes
@@ -614,9 +615,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         } catch (e: Exception) {
             // Log that watch is not connected
-            //println("Watch is not connected. Using default values for heart rate data.")
-            // Réaffecter les variables à leurs valeurs par défaut
-            beatsPerMinuteValues = listOf(80)
+            //beatsPerMinuteValues = listOf(80)
             this.averageBeatsPerMinute = 80.0
         }
         try {
@@ -630,9 +629,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         } catch (e: Exception) {
             // Log that watch is not connected
-            //println("Watch is not connected. Using default values for heart rate data.")
-            // Réaffecter les variables à leurs valeurs par défaut
-            beatsPerMinuteValues = listOf(80)
+            //beatsPerMinuteValues = listOf(80)
             this.averageBeatsPerMinute = 80.0
         }
         try {
@@ -647,9 +644,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         } catch (e: Exception) {
             // Log that watch is not connected
-            //println("Watch is not connected. Using default values for heart rate data.")
-            // Réaffecter les variables à leurs valeurs par défaut
-            beatsPerMinuteValues180 = listOf(80)
+            //beatsPerMinuteValues180 = listOf(80)
             this.averageBeatsPerMinute180 = 80.0
         }
         if (tdd2Days != null && tdd2Days != 0.0f) {
@@ -673,14 +668,14 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val timenow = LocalTime.now()
         val sixAM = LocalTime.of(6, 0)
         if (averageBeatsPerMinute != 0.0) {
-            if (averageBeatsPerMinute >= averageBeatsPerMinute180 && recentSteps5Minutes > 100 && recentSteps10Minutes > 200) {
-                this.basalaimi = (basalaimi * 0.65).toFloat()
-            } else if (averageBeatsPerMinute180 != 10.0 && averageBeatsPerMinute > averageBeatsPerMinute180 && bg >= 130 && recentSteps10Minutes === 0 && timenow > sixAM) {
-                this.basalaimi = (basalaimi * 1.3).toFloat()
-            } else if (averageBeatsPerMinute180 != 10.0 && averageBeatsPerMinute < averageBeatsPerMinute180 && recentSteps10Minutes === 0 && bg >= 130) {
-                this.basalaimi = (basalaimi * 1.2).toFloat()
+            this.basalaimi = when {
+                averageBeatsPerMinute >= averageBeatsPerMinute180 && recentSteps5Minutes > 100 && recentSteps10Minutes > 200 -> (basalaimi * 0.65).toFloat()
+                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute > averageBeatsPerMinute180 && bg >= 130 && recentSteps10Minutes === 0 && timenow > sixAM -> (basalaimi * 1.3).toFloat()
+                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute < averageBeatsPerMinute180 && recentSteps10Minutes === 0 && bg >= 130 -> (basalaimi * 1.2).toFloat()
+                else -> basalaimi
             }
         }
+
         this.b30upperbg = SafeParse.stringToDouble(sp.getString(R.string.key_B30_upperBG, "130"))
         this.b30upperdelta = SafeParse.stringToDouble(sp.getString(R.string.key_B30_upperdelta, "10"))
         val b30duration = SafeParse.stringToDouble(sp.getString(R.string.key_B30_duration, "20"))
@@ -798,11 +793,11 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
     }
 
-    fun Number.toDoubleSafely(): Double? {
+    private fun Number.toDoubleSafely(): Double? {
         val doubleValue = this.toDouble()
         return doubleValue.takeIf { !it.isNaN() && !it.isInfinite() }
     }
-    fun parseNotes(startMinAgo: Int, endMinAgo: Int): String {
+    private fun parseNotes(startMinAgo: Int, endMinAgo: Int): String {
         val olderTimeStamp = now - endMinAgo * 60 * 1000
         val moreRecentTimeStamp = now - startMinAgo * 60 * 1000
         var notes = ""

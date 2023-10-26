@@ -66,14 +66,6 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
         return newResult
     }
 
-    /*override fun json(): JSONObject? {
-        try {
-            return JSONObject(json.toString())
-        } catch (e: JSONException) {
-            aapsLogger.error(LTag.APS, "Unhandled exception", e)
-        }
-        return null
-    }*/
     override fun json(): JSONObject? {
         val result = "$constraintStr<br/><br/>$glucoseStr<br/><br/>$iobStr" +
             "<br/><br/>$profileStr<br/><br/>$mealStr<br/><br/><br/>$reason"
