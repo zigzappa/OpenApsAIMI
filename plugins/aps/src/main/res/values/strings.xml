@@ -172,6 +172,12 @@
     <string name="key_oaps_aimi_morning_factor">key_oaps_aimi_morning_factor</string>
     <string name="oaps_aimi_afternoon_factor_summary">Afternoon reactivity percentage between 12pm and 6 pm</string>
     <string name="key_oaps_aimi_afternoon_factor">key_oaps_aimi_afternoon_factor</string>
+    <string name="key_oaps_aimi_hyper_factor">key_oaps_aimi_hyper_factor</string>
+    <string name="key_DynISFAdjusthyper">key_DynISFAdjusthyper</string>
+    <string name="oaps_aimi_hyper_factor_summary"><![CDATA[Reactivity factor when bg > 180]]></string>
+    <string name="oaps_aimi_hyper_factor_title"><![CDATA[Reactivity factor BG > 180]]></string>
+    <string name="DynISFAdjusthyper_summary"><![CDATA[Increasing this value will increase the velocity to send smb when bg > 180]]></string>
+    <string name="DynISFAdjusthyper_title"><![CDATA[Dynisf Adjustment factor % BG > 180]]></string>
 
 
 </resources>
