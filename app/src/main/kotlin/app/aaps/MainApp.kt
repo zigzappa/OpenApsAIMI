@@ -1,8 +1,11 @@
 package app.aaps
 
 import android.bluetooth.BluetoothDevice
+import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.hardware.Sensor
+import android.hardware.SensorManager
 import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import android.os.Build
@@ -38,6 +41,7 @@ import app.aaps.implementation.db.CompatDBHelper
 import app.aaps.implementation.lifecycle.ProcessLifecycleListener
 import app.aaps.implementation.plugin.PluginStore
 import app.aaps.implementation.receivers.NetworkChangeReceiver
+import app.aaps.plugins.aps.openAPSAIMI.StepService
 import app.aaps.plugins.aps.utils.StaticInjector
 import app.aaps.plugins.main.general.overview.notifications.NotificationStore
 import app.aaps.plugins.main.general.themes.ThemeSwitcherPlugin
@@ -162,6 +166,9 @@ class MainApp : DaggerApplication() {
                 Widget.updateWidget(this@MainApp, "ScheduleEveryMin")
             }
             handler.postDelayed(refreshWidget, 60000)
+            val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+            val stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+            sensorManager.registerListener(StepService, stepSensor, SensorManager.SENSOR_DELAY_NORMAL)
             config.appInitialized = true
         }
     }

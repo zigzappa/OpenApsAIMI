@@ -20,6 +20,10 @@ dependencies {
     implementation(project(":core:utils"))
     implementation(project(":core:ui"))
     implementation(project(":core:validators"))
+    implementation("org.tensorflow:tensorflow-lite-support:0.1.0")
+    implementation ("org.tensorflow:tensorflow-lite-metadata:0.1.0")
+    implementation ("org.tensorflow:tensorflow-lite-gpu:2.3.0")
+    //implementation("androidx.room:room-compiler:2.6.0")
 
     testImplementation(project(":pump:virtual"))
     testImplementation(project(":shared:tests"))
