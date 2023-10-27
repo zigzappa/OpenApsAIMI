@@ -1,6 +1,8 @@
 package app.aaps.plugins.aps.di
 
 import app.aaps.plugins.aps.logger.LoggerCallback
+import app.aaps.plugins.aps.openAPSAIMI.DetermineBasalAdapterAIMI
+import app.aaps.plugins.aps.openAPSAIMI.DetermineBasalResultAIMISMB
 import app.aaps.plugins.aps.openAPSAMA.DetermineBasalAdapterAMAJS
 import app.aaps.plugins.aps.openAPSAMA.DetermineBasalResultAMA
 import app.aaps.plugins.aps.openAPSSMB.DetermineBasalAdapterSMBJS
@@ -18,5 +20,7 @@ abstract class AlgModule {
     @ContributesAndroidInjector abstract fun determineBasalResultAMAInjector(): DetermineBasalResultAMA
     @ContributesAndroidInjector abstract fun determineBasalAdapterAMAJSInjector(): DetermineBasalAdapterAMAJS
     @ContributesAndroidInjector abstract fun determineBasalAdapterSMBJSInjector(): DetermineBasalAdapterSMBJS
+    @ContributesAndroidInjector abstract fun determineBasalAdapterAIMIInjector(): DetermineBasalAdapterAIMI
+    @ContributesAndroidInjector abstract fun determineBasalResultAIMISMBInjector(): DetermineBasalResultAIMISMB
     @ContributesAndroidInjector abstract fun determineBasalAdapterSMBAutoISFJSInjector(): DetermineBasalAdapterSMBDynamicISFJS
 }
