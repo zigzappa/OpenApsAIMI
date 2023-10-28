@@ -162,7 +162,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         mealStr += "tags0to60minAgo: ${tags0to60minAgo}<br/> tags60to120minAgo: $tags60to120minAgo<br/> " +
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 27 octobre 2023"
+            ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 28 octobre 2023"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, basaloapsaimirate, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -298,7 +298,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
 
         // Logique finale pour ajuster smbToGive
-        if (result == 0.0f && delta > 6 && bg > 130 && lastsmbtime > 15) {
+        if (result == 0.0f && delta > 2 && bg > 100 && lastsmbtime > 20 && predictedBg > targetBg) {
             result = if ((iob + basalSMB) > maxIob) maxIob - iob else basalSMB
         }
 
