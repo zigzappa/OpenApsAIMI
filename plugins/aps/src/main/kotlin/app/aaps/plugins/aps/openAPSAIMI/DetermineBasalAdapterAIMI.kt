@@ -130,7 +130,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val morningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_morning_factor, "100")) / 100.0
         val afternoonfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_afternoon_factor, "100")) / 100.0
         val eveningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_evening_factor, "100")) / 100.0
-        val hyperfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_hyper_factor, "130")) / 100.0
+        val hyperfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_hyper_factor, "50")) / 100.0
         smbToGive = when {
             hourOfDay in 1..11 -> smbToGive * morningfactor.toFloat()
             hourOfDay in 12..18 -> smbToGive * afternoonfactor.toFloat()

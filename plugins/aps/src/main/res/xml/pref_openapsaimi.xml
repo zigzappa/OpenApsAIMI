@@ -141,10 +141,11 @@
 
         <androidx.preference.PreferenceScreen
             android:key="high_BG_settings"
-            android:title="High BG Preferences">
+            android:title="High BG Preferences"
+            android:visibility="gone">
 
             <app.aaps.core.validators.ValidatingEditTextPreference
-                android:defaultValue="130"
+                android:defaultValue="50"
                 android:enabled="true"
                 android:dialogMessage="@string/oaps_aimi_hyper_factor_summary"
                 android:inputType="numberDecimal"
