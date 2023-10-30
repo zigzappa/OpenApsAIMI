@@ -77,10 +77,10 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
             // Ajout des données dans l'objet JSON
             jsonData.put("reason", result)
             // Ajout des informations concernant la basale
-            jsonData.put("rate", rate)
-            jsonData.put("duration", duration)
-            jsonData.put("standardBasal", basalaimi)
-            jsonData.put("adjustmentReason", "B30 action")
+            //jsonData.put("rate", rate)
+            //jsonData.put("duration", duration)
+            //jsonData.put("standardBasal", basalaimi)
+            //jsonData.put("adjustmentReason", "B30 action")
 
         } catch (e: JSONException) {
             aapsLogger.error(LTag.APS, "Error creating JSON object", e)
