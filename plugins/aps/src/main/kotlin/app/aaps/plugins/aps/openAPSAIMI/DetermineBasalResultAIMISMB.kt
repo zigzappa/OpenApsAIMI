@@ -19,12 +19,14 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
     var profileStr: String = ""
     var mealStr: String = ""
     var basaloapsaimirate: Float = 0.0f
+    var basalaimi: Float = 0.0f
     override var variableSens: Double? = null
 
     internal constructor(
         injector: HasAndroidInjector,
         requestedSMB: Float,
         basaloapsaimirate: Float,
+        basalaimi: Float,
         constraintStr: String,
         glucoseStr: String,
         iobStr: String,
@@ -38,13 +40,14 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
         this.profileStr = profileStr
         this.mealStr = mealStr
         this.basaloapsaimirate = basaloapsaimirate
+        this.basalaimi = basalaimi
 
         this.date = dateUtil.now()
 
         isTempBasalRequested = true
         rate = basaloapsaimirate.toDouble()
         if (rate < 0) rate = 0.0
-        duration = SafeParse.stringToDouble(sp.getString(R.string.key_B30_duration, "20")).toInt()
+        duration = SafeParse.stringToDouble(sp.getString(R.string.key_B30_duration, "30")).toInt()
 
         this.smb = requestedSMB.toDouble()
         if (requestedSMB > 0) {
@@ -73,10 +76,15 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
         try {
             // Ajout des données dans l'objet JSON
             jsonData.put("reason", result)
+            // Ajout des informations concernant la basale
+            jsonData.put("rate", rate)
+            jsonData.put("duration", duration)
+            jsonData.put("standardBasal", basalaimi)
+            jsonData.put("adjustmentReason", "B30 action")
 
         } catch (e: JSONException) {
             aapsLogger.error(LTag.APS, "Error creating JSON object", e)
-            return null  // ou vous pouvez choisir de retourner 'jsonData' même s'il est partiellement rempli
+            return null
         }
         return jsonData
     }
