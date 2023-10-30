@@ -59,7 +59,7 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
 
     override fun toSpanned(): Spanned {
         val result = "$constraintStr<br/><br/>$glucoseStr<br/><br/>$iobStr" +
-            "<br/><br/>$profileStr<br/><br/>$mealStr<br/><br/><br/>$reason"
+            "<br/><br/>$profileStr<br/><br/>$mealStr<br/><br/>$reason"
         return HtmlHelper.fromHtml(result)
     }
 
@@ -71,16 +71,11 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
 
     override fun json(): JSONObject? {
         val result = "$constraintStr<br/><br/>$glucoseStr<br/><br/>$iobStr" +
-            "<br/><br/>$profileStr<br/><br/>$mealStr<br/><br/><br/>$reason"
+            "<br/><br/>$profileStr<br/><br/>$mealStr<br/><br/>$reason"
         val jsonData = JSONObject()
         try {
             // Ajout des données dans l'objet JSON
             jsonData.put("reason", result)
-            // Ajout des informations concernant la basale
-            //jsonData.put("rate", rate)
-            //jsonData.put("duration", duration)
-            //jsonData.put("standardBasal", basalaimi)
-            //jsonData.put("adjustmentReason", "B30 action")
 
         } catch (e: JSONException) {
             aapsLogger.error(LTag.APS, "Error creating JSON object", e)

@@ -139,10 +139,10 @@
             validate:floatminNumber="1"
             validate:testType="floatNumericRange" />
 
+
         <androidx.preference.PreferenceScreen
             android:key="high_BG_settings"
-            android:title="High BG Preferences"
-            android:visibility="gone">
+            android:title="High BG Preferences">
 
             <app.aaps.core.validators.ValidatingEditTextPreference
                 android:defaultValue="50"

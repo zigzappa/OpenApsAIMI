@@ -244,14 +244,19 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
     private fun applyMaxLimits(smbToGive: Float): Float {
         var result = smbToGive
-        if (iob + smbToGive > maxIob) {
-            result = maxIob - iob
-        }
-        if (smbToGive > maxSMB) {
+
+        // Vérifiez d'abord si smbToGive dépasse maxSMB
+        if (result > maxSMB) {
             result = maxSMB
         }
+        // Ensuite, vérifiez si la somme de iob et smbToGive dépasse maxIob
+        if (iob + result > maxIob) {
+            result = maxIob - iob
+        }
+
         return result
     }
+
 
     private fun isCriticalSafetyCondition(): Boolean {
         val belowMinThreshold = bg < 80
@@ -685,9 +690,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         this.basalSMB = (((basalaimi * delta) / 60) * b30duration).toFloat()
 
-        if (delta < b30upperdelta && delta > 1 && bg < b30upperbg && lastsmbtime > 10) {
+        if (delta < b30upperdelta && delta > 1 && bg < b30upperbg && lastsmbtime > 20) {
             this.basaloapsaimirate = basalSMB
-        }else if (predictedBg > targetBg){
+        }else if (predictedBg > targetBg && bg > targetBg && lastsmbtime > 20){
             this.basaloapsaimirate = basalSMB
         }else{
             this.basaloapsaimirate = 0.0f
