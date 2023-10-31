@@ -35,13 +35,14 @@ import java.io.File
 import javax.inject.Inject
 import kotlin.math.roundToInt
 import java.util.Calendar
-import kotlin.math.min
 import org.tensorflow.lite.Interpreter
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.time.LocalTime
 import java.util.Locale
 import kotlin.math.ln
+import kotlin.math.pow
+import kotlin.math.round
 
 class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAndroidInjector) : DetermineBasalAdapter {
 
@@ -163,7 +164,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
             ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 28 octobre 2023"
-        val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, basalaimi, smbToGive, basaloapsaimirate, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
+        val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
         iobDataParam = iobData.toString()
@@ -533,7 +534,38 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.delta = glucoseStatus.delta.toFloat()
         this.shortAvgDelta = glucoseStatus.shortAvgDelta.toFloat()
         this.longAvgDelta = glucoseStatus.longAvgDelta.toFloat()
+        var nowMinutes = calendarInstance[Calendar.HOUR_OF_DAY] + calendarInstance[Calendar.MINUTE] / 60.0 + calendarInstance[Calendar.SECOND] / 3600.0
+        nowMinutes = round(nowMinutes * 100) / 100  // Arrondi à 2 décimales
+        val logMessage = "nowMinutes = $nowMinutes ; \n"
 
+        //val enableCircadian = profile["key_use_enable_circadian"] ?: false
+        val circadianSensitivity = (0.00000379 * nowMinutes.pow(5)) -
+            (0.00016422 * nowMinutes.pow(4)) +
+            (0.00128081 * nowMinutes.pow(3)) +
+            (0.02533782 * nowMinutes.pow(2)) -
+            (0.33275556 * nowMinutes) +
+            1.38581503
+
+        val circadianSmb = round(
+            ((0.00000379 * delta * nowMinutes.pow(5)) -
+                (0.00016422 * delta * nowMinutes.pow(4)) +
+                (0.00128081 * delta * nowMinutes.pow(3)) +
+                (0.02533782 * delta * nowMinutes.pow(2)) -
+                (0.33275556 * delta * nowMinutes) +
+                1.38581503) * 100
+        ) / 100  // Arrondi à 2 décimales
+        if (bg >= 110 && delta > 5) {
+            var hyperTarget = kotlin.math.max(72.0, profile.getTargetLowMgdl() - (bg - profile.getTargetLowMgdl()) / 3).roundToInt()
+            hyperTarget = (hyperTarget * kotlin.math.min(circadianSensitivity, 1.0)).toInt()
+            hyperTarget = kotlin.math.max(hyperTarget, 72)
+
+            this.targetBg = hyperTarget.toFloat()
+        }else if (circadianSmb > (0.1) && bg < 150){
+            var hypoTarget = 100 * kotlin.math.max(1.0,circadianSensitivity)
+            this.targetBg = (hypoTarget+circadianSmb).toFloat();
+        }else if (recentSteps5Minutes >= 0 && recentSteps30Minutes >= 500 || recentSteps180Minutes > 1500 && recentSteps5Minutes > 0){
+            this.targetBg = 120.0f
+        }
         this.accelerating_up = if (delta > 2 && delta - longAvgDelta > 2) 1 else 0
         this.deccelerating_up = if (delta > 0 && (delta < shortAvgDelta || delta < longAvgDelta)) 1 else 0
         this.accelerating_down = if (delta < -2 && delta - longAvgDelta < -2) 1 else 0
@@ -741,7 +773,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         this.profile = JSONObject()
         this.profile.put("max_iob", maxIob)
-        this.profile.put("dia", min(profile.dia, 3.0))
+        this.profile.put("dia", kotlin.math.min(profile.dia, 3.0))
         this.profile.put("type", "current")
         this.profile.put("max_daily_basal", profile.getMaxDailyBasal())
         this.profile.put("max_basal", maxBasal)
