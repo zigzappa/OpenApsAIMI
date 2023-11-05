@@ -42,6 +42,8 @@ import java.text.DecimalFormatSymbols
 import java.time.LocalTime
 import java.util.Locale
 import kotlin.math.ln
+import kotlin.math.pow
+import kotlin.math.round
 
 class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAndroidInjector) : DetermineBasalAdapter {
 
@@ -507,7 +509,36 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.delta = glucoseStatus.delta.toFloat()
         this.shortAvgDelta = glucoseStatus.shortAvgDelta.toFloat()
         this.longAvgDelta = glucoseStatus.longAvgDelta.toFloat()
+        var nowMinutes = calendarInstance[Calendar.HOUR_OF_DAY] + calendarInstance[Calendar.MINUTE] / 60.0 + calendarInstance[Calendar.SECOND] / 3600.0
+        nowMinutes = round(nowMinutes * 100) / 100  // Arrondi à 2 décimales
 
+        val circadianSensitivity = (0.00000379 * nowMinutes.pow(5)) -
+            (0.00016422 * nowMinutes.pow(4)) +
+            (0.00128081 * nowMinutes.pow(3)) +
+            (0.02533782 * nowMinutes.pow(2)) -
+            (0.33275556 * nowMinutes) +
+            1.38581503
+
+        val circadianSmb = round(
+            ((0.00000379 * delta * nowMinutes.pow(5)) -
+                (0.00016422 * delta * nowMinutes.pow(4)) +
+                (0.00128081 * delta * nowMinutes.pow(3)) +
+                (0.02533782 * delta * nowMinutes.pow(2)) -
+                (0.33275556 * delta * nowMinutes) +
+                1.38581503) * 100
+        ) / 100  // Arrondi à 2 décimales
+        if (bg >= 110 && delta > 5) {
+            var hyperTarget = kotlin.math.max(72.0, profile.getTargetLowMgdl() - (bg - profile.getTargetLowMgdl()) / 3).roundToInt()
+            hyperTarget = (hyperTarget * kotlin.math.min(circadianSensitivity, 1.0)).toInt()
+            hyperTarget = kotlin.math.max(hyperTarget, 72)
+
+            this.targetBg = hyperTarget.toFloat()
+        }else if (circadianSmb > (0.1) && bg < 150){
+            var hypoTarget = 100 * kotlin.math.max(1.0,circadianSensitivity)
+            this.targetBg = (hypoTarget+circadianSmb).toFloat();
+        }else if (recentSteps5Minutes >= 0 && recentSteps30Minutes >= 500 || recentSteps180Minutes > 1500 && recentSteps5Minutes > 0){
+            this.targetBg = 120.0f
+        }
         this.accelerating_up = if (delta > 2 && delta - longAvgDelta > 2) 1 else 0
         this.deccelerating_up = if (delta > 0 && (delta < shortAvgDelta || delta < longAvgDelta)) 1 else 0
         this.accelerating_down = if (delta < -2 && delta - longAvgDelta < -2) 1 else 0
@@ -568,9 +599,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         } catch (e: Exception) {
             // Log that watch is not connected
-            //println("Watch is not connected. Using default values for heart rate data.")
-            // Réaffecter les variables à leurs valeurs par défaut
-            beatsPerMinuteValues = listOf(80)
             this.averageBeatsPerMinute = 80.0
         }
         try {
@@ -585,9 +613,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         } catch (e: Exception) {
             // Log that watch is not connected
-            //println("Watch is not connected. Using default values for heart rate data.")
-            // Réaffecter les variables à leurs valeurs par défaut
-            beatsPerMinuteValues180 = listOf(10)
             this.averageBeatsPerMinute180 = 10.0
         }
         if (tdd2Days != null && tdd2Days != 0.0f) {
@@ -620,13 +645,13 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
         this.b30upperbg = SafeParse.stringToDouble(sp.getString(R.string.key_B30_upperBG, "130"))
         this.b30upperdelta = SafeParse.stringToDouble(sp.getString(R.string.key_B30_upperdelta, "10"))
-        val b30duration = SafeParse.stringToDouble(sp.getString(R.string.key_B30_duration, "20"))
+        val b30duration = SafeParse.stringToDouble(sp.getString(R.string.key_B30_duration, "30"))
 
         this.basalSMB = (((basalaimi * delta) / 60) * b30duration).toFloat()
 
-        if (delta < b30upperdelta && delta > 1 && bg < b30upperbg && lastsmbtime > 10) {
+        if (delta < b30upperdelta && delta > 1 && bg < b30upperbg && lastsmbtime > 20) {
             this.basaloapsaimirate = basalSMB
-        }else if (predictedBg > targetBg){
+        }else if (predictedBg > targetBg && bg > targetBg && lastsmbtime > 20){
             this.basaloapsaimirate = basalSMB
         }else{
             this.basaloapsaimirate = 0.0f
