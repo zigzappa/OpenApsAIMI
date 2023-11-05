@@ -127,9 +127,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         val predictedSMB = calculateSMBFromModel()
         var smbToGive = predictedSMB
-        val morningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_morning_factor, "100")) / 100.0
-        val afternoonfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_afternoon_factor, "100")) / 100.0
-        val eveningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_evening_factor, "100")) / 100.0
+        val morningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_morning_factor, "50")) / 100.0
+        val afternoonfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_afternoon_factor, "50")) / 100.0
+        val eveningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_evening_factor, "50")) / 100.0
         val hyperfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_hyper_factor, "30")) / 100.0
         smbToGive = when {
             hourOfDay in 1..11 -> smbToGive * morningfactor.toFloat()
@@ -161,7 +161,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
          ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 05 novembre 2023"
-        val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, basaloapsaimirate, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
+        val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
         iobDataParam = iobData.toString()
@@ -539,7 +539,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
         val tddWeightedFromLast8H = ((1.4 * tddLast4H) + (0.6 * tddLast8to4H)) * 3
         var tdd = (tddWeightedFromLast8H * 0.33) + (tdd7Days.toDouble() * 0.34) + (tddDaily.toDouble() * 0.33)
-        val dynISFadjust = SafeParse.stringToDouble(sp.getString(R.string.key_DynISFAdjust, "100")) / 100.0
+        val dynISFadjust = SafeParse.stringToDouble(sp.getString(R.string.key_DynISFAdjust, "120")) / 100.0
         val dynISFadjusthyper = SafeParse.stringToDouble(sp.getString(R.string.key_DynISFAdjusthyper, "150")) / 100.0
         tdd = if (bg > 180) tdd * dynISFadjusthyper else tdd * dynISFadjust
 
@@ -611,12 +611,11 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val timenow = LocalTime.now()
         val sixAM = LocalTime.of(6, 0)
         if (averageBeatsPerMinute != 0.0) {
-            if (averageBeatsPerMinute >= averageBeatsPerMinute180 && recentSteps5Minutes > 100 && recentSteps10Minutes > 200) {
-                this.basalaimi = (basalaimi * 0.65).toFloat()
-            } else if (averageBeatsPerMinute180 != 10.0 && averageBeatsPerMinute > averageBeatsPerMinute180 && bg >= 130 && recentSteps10Minutes === 0 && timenow > sixAM) {
-                this.basalaimi = (basalaimi * 1.3).toFloat()
-            } else if (averageBeatsPerMinute180 != 10.0 && averageBeatsPerMinute < averageBeatsPerMinute180 && recentSteps10Minutes === 0 && bg >= 130) {
-                this.basalaimi = (basalaimi * 1.2).toFloat()
+            this.basalaimi = when {
+                averageBeatsPerMinute >= averageBeatsPerMinute180 && recentSteps5Minutes > 100 && recentSteps10Minutes > 200 -> (basalaimi * 0.65).toFloat()
+                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute > averageBeatsPerMinute180 && bg >= 130 && recentSteps10Minutes === 0 && timenow > sixAM -> (basalaimi * 1.3).toFloat()
+                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute < averageBeatsPerMinute180 && recentSteps10Minutes === 0 && bg >= 110 -> (basalaimi * 1.2).toFloat()
+                else -> basalaimi
             }
         }
         this.b30upperbg = SafeParse.stringToDouble(sp.getString(R.string.key_B30_upperBG, "130"))

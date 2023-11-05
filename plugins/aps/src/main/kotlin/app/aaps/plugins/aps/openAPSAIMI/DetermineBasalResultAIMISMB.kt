@@ -3,9 +3,7 @@ package app.aaps.plugins.aps.openAPSAIMI
 import android.text.Spanned
 import app.aaps.core.interfaces.aps.VariableSensitivityResult
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.interfaces.utils.SafeParse
 import app.aaps.core.utils.HtmlHelper
-import app.aaps.plugins.aps.R
 import app.aaps.plugins.aps.openAPSSMB.DetermineBasalResultSMB
 import dagger.android.HasAndroidInjector
 import org.json.JSONException
@@ -18,13 +16,11 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
     var iobStr: String = ""
     var profileStr: String = ""
     var mealStr: String = ""
-    var basaloapsaimirate: Float = 0.0f
     override var variableSens: Double? = null
 
     internal constructor(
         injector: HasAndroidInjector,
         requestedSMB: Float,
-        basaloapsaimirate: Float,
         constraintStr: String,
         glucoseStr: String,
         iobStr: String,
@@ -37,14 +33,12 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
         this.iobStr = iobStr
         this.profileStr = profileStr
         this.mealStr = mealStr
-        this.basaloapsaimirate = basaloapsaimirate
 
         this.date = dateUtil.now()
 
         this.isTempBasalRequested = true
-        rate = basaloapsaimirate.toDouble()
-        if (rate < 0) rate = 0.0
-        duration = SafeParse.stringToDouble(sp.getString(R.string.key_B30_duration, "30")).toInt()
+        this.rate = 0.0
+        this.duration = 120
 
         this.smb = requestedSMB.toDouble()
         if (requestedSMB > 0) {
@@ -56,7 +50,7 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
 
     override fun toSpanned(): Spanned {
         val result = "$constraintStr<br/><br/>$glucoseStr<br/><br/>$iobStr" +
-            "<br/><br/>$profileStr<br/><br/>$mealStr<br/><br/><br/>$reason"
+            "<br/><br/>$profileStr<br/><br/>$mealStr<br/><br/>$reason"
         return HtmlHelper.fromHtml(result)
     }
 
@@ -68,7 +62,7 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
 
     override fun json(): JSONObject? {
         val result = "$constraintStr<br/><br/>$glucoseStr<br/><br/>$iobStr" +
-            "<br/><br/>$profileStr<br/><br/>$mealStr<br/><br/><br/>$reason"
+            "<br/><br/>$profileStr<br/><br/>$mealStr<br/><br/>$reason"
         val jsonData = JSONObject()
         try {
             // Ajout des données dans l'objet JSON

@@ -90,7 +90,7 @@
             validate:testType="floatNumericRange" />
 
         <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="100"
+            android:defaultValue="120"
             android:enabled="true"
             android:dialogMessage="@string/DynISFAdjust_summary"
             android:inputType="numberDecimal"
@@ -101,7 +101,7 @@
             validate:testType="floatNumericRange" />
 
         <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="100"
+            android:defaultValue="50"
             android:enabled="true"
             android:dialogMessage="@string/oaps_aimi_morning_factor_summary"
             android:inputType="numberDecimal"
@@ -112,7 +112,7 @@
             validate:testType="floatNumericRange" />
 
         <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="100"
+            android:defaultValue="50"
             android:enabled="true"
             android:dialogMessage="@string/oaps_aimi_afternoon_factor_summary"
             android:inputType="numberDecimal"
@@ -123,7 +123,7 @@
             validate:testType="floatNumericRange" />
 
         <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="100"
+            android:defaultValue="50"
             android:enabled="true"
             android:dialogMessage="@string/oaps_aimi_evening_factor_summary"
             android:inputType="numberDecimal"
