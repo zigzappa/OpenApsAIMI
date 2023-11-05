@@ -50,10 +50,10 @@
 
         <app.aaps.core.validators.ValidatingEditTextPreference
             android:defaultValue="30"
-            android:dialogMessage="b30 duration is the duration in minutes of the first basal action after the manual bolus (> iTime_Starting_Bolus)"
+            android:dialogMessage="The duration of the interval between small smb in replacement of the basal action B30 in the previous AIMI plugin. Need to be 30 minutes for Dash and COMBO"
             android:inputType="numberDecimal"
             android:key="@string/key_B30_duration"
-            android:title="first B30 duration after a bolus"
+            android:title="B30 duration "
             validate:floatmaxNumber="100"
             validate:floatminNumber="0"
             validate:testType="floatNumericRange" />
@@ -90,7 +90,7 @@
             validate:testType="floatNumericRange" />
 
         <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="100"
+            android:defaultValue="120"
             android:enabled="true"
             android:dialogMessage="@string/DynISFAdjust_summary"
             android:inputType="numberDecimal"
@@ -101,7 +101,7 @@
             validate:testType="floatNumericRange" />
 
         <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="100"
+            android:defaultValue="50"
             android:enabled="true"
             android:dialogMessage="@string/oaps_aimi_morning_factor_summary"
             android:inputType="numberDecimal"
@@ -112,7 +112,7 @@
             validate:testType="floatNumericRange" />
 
         <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="100"
+            android:defaultValue="50"
             android:enabled="true"
             android:dialogMessage="@string/oaps_aimi_afternoon_factor_summary"
             android:inputType="numberDecimal"
@@ -123,7 +123,7 @@
             validate:testType="floatNumericRange" />
 
         <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="100"
+            android:defaultValue="50"
             android:enabled="true"
             android:dialogMessage="@string/oaps_aimi_evening_factor_summary"
             android:inputType="numberDecimal"
@@ -132,6 +132,35 @@
             validate:floatmaxNumber="300"
             validate:floatminNumber="1"
             validate:testType="floatNumericRange" />
+
+        <androidx.preference.PreferenceScreen
+            android:key="high_BG_settings"
+            android:title="High BG Preferences">
+
+            <app.aaps.core.validators.ValidatingEditTextPreference
+                android:defaultValue="30"
+                android:enabled="true"
+                android:dialogMessage="@string/oaps_aimi_hyper_factor_summary"
+                android:inputType="numberDecimal"
+                android:key="@string/key_oaps_aimi_hyper_factor"
+                android:title="@string/oaps_aimi_hyper_factor_title"
+                validate:floatmaxNumber="300"
+                validate:floatminNumber="1"
+                validate:testType="floatNumericRange" />
+
+            <app.aaps.core.validators.ValidatingEditTextPreference
+                android:defaultValue="150"
+                android:enabled="true"
+                android:dialogMessage="@string/DynISFAdjusthyper_summary"
+                android:inputType="numberDecimal"
+                android:key="@string/key_DynISFAdjusthyper"
+                android:title="@string/DynISFAdjusthyper_title"
+                validate:floatmaxNumber="300"
+                validate:floatminNumber="1"
+                validate:testType="floatNumericRange" />
+
+
+        </androidx.preference.PreferenceScreen>
 
     </PreferenceCategory>
 </androidx.preference.PreferenceScreen>

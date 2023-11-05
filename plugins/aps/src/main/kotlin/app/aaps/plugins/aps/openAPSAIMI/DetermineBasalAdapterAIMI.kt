@@ -42,6 +42,8 @@ import java.text.DecimalFormatSymbols
 import java.time.LocalTime
 import java.util.Locale
 import kotlin.math.ln
+import kotlin.math.pow
+import kotlin.math.round
 
 class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAndroidInjector) : DetermineBasalAdapter {
 
@@ -127,13 +129,15 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         val predictedSMB = calculateSMBFromModel()
         var smbToGive = predictedSMB
-        val morningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_morning_factor, "100")) / 100.0
-        val afternoonfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_afternoon_factor, "100")) / 100.0
-        val eveningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_evening_factor, "100")) / 100.0
+        val morningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_morning_factor, "50")) / 100.0
+        val afternoonfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_afternoon_factor, "50")) / 100.0
+        val eveningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_evening_factor, "50")) / 100.0
+        val hyperfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_hyper_factor, "30")) / 100.0
         smbToGive = when {
             hourOfDay in 1..11 -> smbToGive * morningfactor.toFloat()
             hourOfDay in 12..18 -> smbToGive * afternoonfactor.toFloat()
             hourOfDay in 19..23 -> smbToGive * eveningfactor.toFloat()
+            bg > 180 -> (smbToGive * hyperfactor).toFloat()
             else -> smbToGive
         }
         smbToGive = applySafetyPrecautions(smbToGive)
@@ -158,8 +162,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         mealStr += "tags0to60minAgo: ${tags0to60minAgo}<br/> tags60to120minAgo: $tags60to120minAgo<br/> " +
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-         ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 26 octobre 2023"
-        val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, basaloapsaimirate, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
+         ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 05 novembre 2023"
+        val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
         iobDataParam = iobData.toString()
@@ -238,14 +242,18 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         return smbToGive
     }
 
-    private fun applyMaxLimits(smb: Float): Float {
-        var result = smb
-        if (iob + smb > maxIob) {
-            result = maxIob - iob
-        }
-        if (smb > maxSMB) {
+    private fun applyMaxLimits(smbToGive: Float): Float {
+        var result = smbToGive
+
+        // Vérifiez d'abord si smbToGive dépasse maxSMB
+        if (result > maxSMB) {
             result = maxSMB
         }
+        // Ensuite, vérifiez si la somme de iob et smbToGive dépasse maxIob
+        if (iob + result > maxIob) {
+            result = maxIob - iob
+        }
+
         return result
     }
 
@@ -293,7 +301,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
 
         // Logique finale pour ajuster smbToGive
-        if (result == 0.0f && delta > 6 && bg > 130 && lastsmbtime > 15) {
+        if (result == 0.0f && delta > 2 && bg > 100 && lastsmbtime > 15) {
             result = if ((iob + basalSMB) > maxIob) maxIob - iob else basalSMB
         }
 
@@ -501,7 +509,36 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.delta = glucoseStatus.delta.toFloat()
         this.shortAvgDelta = glucoseStatus.shortAvgDelta.toFloat()
         this.longAvgDelta = glucoseStatus.longAvgDelta.toFloat()
+        var nowMinutes = calendarInstance[Calendar.HOUR_OF_DAY] + calendarInstance[Calendar.MINUTE] / 60.0 + calendarInstance[Calendar.SECOND] / 3600.0
+        nowMinutes = round(nowMinutes * 100) / 100  // Arrondi à 2 décimales
 
+        val circadianSensitivity = (0.00000379 * nowMinutes.pow(5)) -
+            (0.00016422 * nowMinutes.pow(4)) +
+            (0.00128081 * nowMinutes.pow(3)) +
+            (0.02533782 * nowMinutes.pow(2)) -
+            (0.33275556 * nowMinutes) +
+            1.38581503
+
+        val circadianSmb = round(
+            ((0.00000379 * delta * nowMinutes.pow(5)) -
+                (0.00016422 * delta * nowMinutes.pow(4)) +
+                (0.00128081 * delta * nowMinutes.pow(3)) +
+                (0.02533782 * delta * nowMinutes.pow(2)) -
+                (0.33275556 * delta * nowMinutes) +
+                1.38581503) * 100
+        ) / 100  // Arrondi à 2 décimales
+        if (bg >= 110 && delta > 5) {
+            var hyperTarget = kotlin.math.max(72.0, profile.getTargetLowMgdl() - (bg - profile.getTargetLowMgdl()) / 3).roundToInt()
+            hyperTarget = (hyperTarget * kotlin.math.min(circadianSensitivity, 1.0)).toInt()
+            hyperTarget = kotlin.math.max(hyperTarget, 72)
+
+            this.targetBg = hyperTarget.toFloat()
+        }else if (circadianSmb > (0.1) && bg < 150){
+            var hypoTarget = 100 * kotlin.math.max(1.0,circadianSensitivity)
+            this.targetBg = (hypoTarget+circadianSmb).toFloat();
+        }else if (recentSteps5Minutes >= 0 && recentSteps30Minutes >= 500 || recentSteps180Minutes > 1500 && recentSteps5Minutes > 0){
+            this.targetBg = 120.0f
+        }
         this.accelerating_up = if (delta > 2 && delta - longAvgDelta > 2) 1 else 0
         this.deccelerating_up = if (delta > 0 && (delta < shortAvgDelta || delta < longAvgDelta)) 1 else 0
         this.accelerating_down = if (delta < -2 && delta - longAvgDelta < -2) 1 else 0
@@ -533,8 +570,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
         val tddWeightedFromLast8H = ((1.4 * tddLast4H) + (0.6 * tddLast8to4H)) * 3
         var tdd = (tddWeightedFromLast8H * 0.33) + (tdd7Days.toDouble() * 0.34) + (tddDaily.toDouble() * 0.33)
-        val dynISFadjust = SafeParse.stringToDouble(sp.getString(R.string.key_DynISFAdjust, "100")) / 100.0
-        tdd *= dynISFadjust
+        val dynISFadjust = SafeParse.stringToDouble(sp.getString(R.string.key_DynISFAdjust, "120")) / 100.0
+        val dynISFadjusthyper = SafeParse.stringToDouble(sp.getString(R.string.key_DynISFAdjusthyper, "150")) / 100.0
+        tdd = if (bg > 180) tdd * dynISFadjusthyper else tdd * dynISFadjust
+
 
         this.variableSensitivity = Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1).toFloat()
 
@@ -560,9 +599,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         } catch (e: Exception) {
             // Log that watch is not connected
-            //println("Watch is not connected. Using default values for heart rate data.")
-            // Réaffecter les variables à leurs valeurs par défaut
-            beatsPerMinuteValues = listOf(80)
             this.averageBeatsPerMinute = 80.0
         }
         try {
@@ -577,9 +613,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         } catch (e: Exception) {
             // Log that watch is not connected
-            //println("Watch is not connected. Using default values for heart rate data.")
-            // Réaffecter les variables à leurs valeurs par défaut
-            beatsPerMinuteValues180 = listOf(10)
             this.averageBeatsPerMinute180 = 10.0
         }
         if (tdd2Days != null && tdd2Days != 0.0f) {
@@ -603,23 +636,22 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val timenow = LocalTime.now()
         val sixAM = LocalTime.of(6, 0)
         if (averageBeatsPerMinute != 0.0) {
-            if (averageBeatsPerMinute >= averageBeatsPerMinute180 && recentSteps5Minutes > 100 && recentSteps10Minutes > 200) {
-                this.basalaimi = (basalaimi * 0.65).toFloat()
-            } else if (averageBeatsPerMinute180 != 10.0 && averageBeatsPerMinute > averageBeatsPerMinute180 && bg >= 130 && recentSteps10Minutes === 0 && timenow > sixAM) {
-                this.basalaimi = (basalaimi * 1.3).toFloat()
-            } else if (averageBeatsPerMinute180 != 10.0 && averageBeatsPerMinute < averageBeatsPerMinute180 && recentSteps10Minutes === 0 && bg >= 130) {
-                this.basalaimi = (basalaimi * 1.2).toFloat()
+            this.basalaimi = when {
+                averageBeatsPerMinute >= averageBeatsPerMinute180 && recentSteps5Minutes > 100 && recentSteps10Minutes > 200 -> (basalaimi * 0.65).toFloat()
+                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute > averageBeatsPerMinute180 && bg >= 130 && recentSteps10Minutes === 0 && timenow > sixAM -> (basalaimi * 1.3).toFloat()
+                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute < averageBeatsPerMinute180 && recentSteps10Minutes === 0 && bg >= 110 -> (basalaimi * 1.2).toFloat()
+                else -> basalaimi
             }
         }
         this.b30upperbg = SafeParse.stringToDouble(sp.getString(R.string.key_B30_upperBG, "130"))
         this.b30upperdelta = SafeParse.stringToDouble(sp.getString(R.string.key_B30_upperdelta, "10"))
-        val b30duration = SafeParse.stringToDouble(sp.getString(R.string.key_B30_duration, "20"))
+        val b30duration = SafeParse.stringToDouble(sp.getString(R.string.key_B30_duration, "30"))
 
         this.basalSMB = (((basalaimi * delta) / 60) * b30duration).toFloat()
 
-        if (delta < b30upperdelta && delta > 1 && bg < b30upperbg && lastsmbtime > 10) {
+        if (delta < b30upperdelta && delta > 1 && bg < b30upperbg && lastsmbtime > 20) {
             this.basaloapsaimirate = basalSMB
-        }else if (predictedBg > targetBg){
+        }else if (predictedBg > targetBg && bg > targetBg && lastsmbtime > 20){
             this.basaloapsaimirate = basalSMB
         }else{
             this.basaloapsaimirate = 0.0f
