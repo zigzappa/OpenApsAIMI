@@ -130,10 +130,12 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val morningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_morning_factor, "100")) / 100.0
         val afternoonfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_afternoon_factor, "100")) / 100.0
         val eveningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_evening_factor, "100")) / 100.0
+        val hyperfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_hyper_factor, "30")) / 100.0
         smbToGive = when {
             hourOfDay in 1..11 -> smbToGive * morningfactor.toFloat()
             hourOfDay in 12..18 -> smbToGive * afternoonfactor.toFloat()
             hourOfDay in 19..23 -> smbToGive * eveningfactor.toFloat()
+            bg > 180 -> (smbToGive * hyperfactor).toFloat()
             else -> smbToGive
         }
         smbToGive = applySafetyPrecautions(smbToGive)
@@ -158,7 +160,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         mealStr += "tags0to60minAgo: ${tags0to60minAgo}<br/> tags60to120minAgo: $tags60to120minAgo<br/> " +
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-         ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 26 octobre 2023"
+         ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 05 novembre 2023"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, basaloapsaimirate, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -238,14 +240,18 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         return smbToGive
     }
 
-    private fun applyMaxLimits(smb: Float): Float {
-        var result = smb
-        if (iob + smb > maxIob) {
-            result = maxIob - iob
-        }
-        if (smb > maxSMB) {
+    private fun applyMaxLimits(smbToGive: Float): Float {
+        var result = smbToGive
+
+        // Vérifiez d'abord si smbToGive dépasse maxSMB
+        if (result > maxSMB) {
             result = maxSMB
         }
+        // Ensuite, vérifiez si la somme de iob et smbToGive dépasse maxIob
+        if (iob + result > maxIob) {
+            result = maxIob - iob
+        }
+
         return result
     }
 
@@ -293,7 +299,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
 
         // Logique finale pour ajuster smbToGive
-        if (result == 0.0f && delta > 6 && bg > 130 && lastsmbtime > 15) {
+        if (result == 0.0f && delta > 2 && bg > 100 && lastsmbtime > 15) {
             result = if ((iob + basalSMB) > maxIob) maxIob - iob else basalSMB
         }
 
@@ -534,7 +540,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val tddWeightedFromLast8H = ((1.4 * tddLast4H) + (0.6 * tddLast8to4H)) * 3
         var tdd = (tddWeightedFromLast8H * 0.33) + (tdd7Days.toDouble() * 0.34) + (tddDaily.toDouble() * 0.33)
         val dynISFadjust = SafeParse.stringToDouble(sp.getString(R.string.key_DynISFAdjust, "100")) / 100.0
-        tdd *= dynISFadjust
+        val dynISFadjusthyper = SafeParse.stringToDouble(sp.getString(R.string.key_DynISFAdjusthyper, "150")) / 100.0
+        tdd = if (bg > 180) tdd * dynISFadjusthyper else tdd * dynISFadjust
+
 
         this.variableSensitivity = Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1).toFloat()
 
