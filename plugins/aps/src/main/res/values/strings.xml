@@ -182,6 +182,8 @@
     <string name="key_openapsama_use_autosens">key_openapsama_use_autosens</string>
     <string name="key_use_AimiUAM">key_use_AimiUAM</string>
     <string name="key_use_AimiIgnoreCOB">key_use_AimiIgnoreCOB</string>
+    <string name="key_iTime_Starting_Bolus">key_iTime_Starting_Bolus</string>
+    <string name="key_use_newSMB">key_use_newSMB</string>
 
 
 </resources>

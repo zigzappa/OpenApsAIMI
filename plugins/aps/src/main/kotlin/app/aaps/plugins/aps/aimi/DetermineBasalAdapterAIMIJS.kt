@@ -3,6 +3,7 @@ package app.aaps.plugins.aps.aimi
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Environment
+import app.aaps.core.interfaces.aps.AIMIDefaults
 import app.aaps.core.interfaces.aps.DetermineBasalAdapter
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.db.GlucoseUnit
@@ -571,9 +572,9 @@ class DetermineBasalAdapterAIMIJS internal constructor(private val scriptReader:
 //**********************************************************************************************************************************************
         this.profile.put(
             "high_temptarget_raises_sensitivity",
-            sp.getBoolean(info.nightscout.core.utils.R.string.key_high_temptarget_raises_sensitivity, AIMIDefaults.high_temptarget_raises_sensitivity)
+            sp.getBoolean(app.aaps.core.utils.R.string.key_high_temptarget_raises_sensitivity, AIMIDefaults.high_temptarget_raises_sensitivity)
         )
-        this.profile.put("low_temptarget_lowers_sensitivity", sp.getBoolean(info.nightscout.core.utils.R.string.key_low_temptarget_lowers_sensitivity, AIMIDefaults.low_temptarget_lowers_sensitivity))
+        this.profile.put("low_temptarget_lowers_sensitivity", sp.getBoolean(app.aaps.core.utils.R.string.key_low_temptarget_lowers_sensitivity, AIMIDefaults.low_temptarget_lowers_sensitivity))
 
 //**********************************************************************************************************************************************
         this.profile.put("sensitivity_raises_target", sp.getBoolean(R.string.key_sensitivity_raises_target, AIMIDefaults.sensitivity_raises_target))
@@ -600,7 +601,7 @@ class DetermineBasalAdapterAIMIJS internal constructor(private val scriptReader:
         //set the min SMB amount to be the amount set by the pump.
         this.profile.put("bolus_increment", pumpBolusStep)
         this.profile.put("carbsReqThreshold", sp.getInt(R.string.key_carbsReqThreshold, AIMIDefaults.carbsReqThreshold))
-        this.profile.put("autosens_max", SafeParse.stringToDouble(sp.getString(info.nightscout.core.utils.R.string.key_openapsama_autosens_max, "1.2")))
+        this.profile.put("autosens_max", SafeParse.stringToDouble(sp.getString(app.aaps.core.utils.R.string.key_openapsama_autosens_max, "1.2")))
 //**********************************************************************************************************************************************
 
         this.profile.put("b30_upperBG", SafeParse.stringToDouble(sp.getString(R.string.key_iTime_B30_upperBG, "150")))
