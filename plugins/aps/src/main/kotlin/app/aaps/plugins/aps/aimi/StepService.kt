@@ -1,4 +1,4 @@
-package info.nightscout.plugins.aps.aimi
+package app.aaps.plugins.aps.aimi
 
 import android.hardware.Sensor
 import android.hardware.SensorEvent

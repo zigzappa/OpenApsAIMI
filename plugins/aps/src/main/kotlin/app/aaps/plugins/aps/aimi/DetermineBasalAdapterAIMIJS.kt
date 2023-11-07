@@ -1,8 +1,8 @@
 package app.aaps.plugins.aps.aimi
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.os.Environment
+import org.mozilla.javascript.Context
 import app.aaps.core.interfaces.aps.AIMIDefaults
 import app.aaps.core.interfaces.aps.DetermineBasalAdapter
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
@@ -37,26 +37,33 @@ import app.aaps.plugins.aps.loop.LoopVariantPreference
 import app.aaps.plugins.aps.openAPSSMB.DetermineBasalResultSMB
 import app.aaps.plugins.aps.utils.ScriptReader
 import dagger.android.HasAndroidInjector
+import app.aaps.plugins.aps.aimi.StepService
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import org.mozilla.javascript.Function
 import org.mozilla.javascript.NativeJSON
 import org.mozilla.javascript.NativeObject
+import org.mozilla.javascript.RhinoException
 import org.mozilla.javascript.Scriptable
 import org.mozilla.javascript.ScriptableObject
+import org.mozilla.javascript.Undefined
 import java.io.File
 import javax.inject.Inject
 import kotlin.math.roundToInt
 import java.util.Calendar
 import kotlin.math.min
 import org.tensorflow.lite.Interpreter
+import java.io.IOException
 import java.lang.reflect.InvocationTargetException
+import java.nio.charset.StandardCharsets
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.time.LocalTime
 import java.util.Locale
 import kotlin.math.ln
 import kotlin.math.round
+import java.util.*
 
 class DetermineBasalAdapterAIMIJS internal constructor(private val scriptReader: ScriptReader, private val injector: HasAndroidInjector): DetermineBasalAdapter {
 
@@ -245,30 +252,7 @@ class DetermineBasalAdapterAIMIJS internal constructor(private val scriptReader:
         return (number * 1000.0).roundToInt() / 1000.0f
     }
 
-    /*private fun calculateSMBFromModel(): Float {
-        if (!modelFile.exists()) {
-            aapsLogger.error(LTag.APS, "NO Model found at AAPS/ml/model.tflite")
-            return 0.0F
-        }
 
-        val interpreter = Interpreter(modelFile)
-        val modelInputs = floatArrayOf(
-            hourOfDay.toFloat(), weekend.toFloat(),
-            bg, targetBg, iob, delta, shortAvgDelta, longAvgDelta,
-            tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour, averageBeatsPerMinute.toFloat()
-        )
-        val output = arrayOf(floatArrayOf(0.0F))
-        interpreter.run(modelInputs, output)
-        interpreter.close()
-        //var smbToGive = output[0][0]
-        var smbToGive = output[0][0].toString().replace(',', '.').toDouble()
-
-        //smbToGive = "%.4f".format(smbToGive).toDouble()
-        val formatter = DecimalFormat("#.####", DecimalFormatSymbols(Locale.US))
-        smbToGive = formatter.format(smbToGive).toDouble()
-
-        return smbToGive.toFloat()
-    }*/
     private fun calculateSMBFromModel(): Float {
 
         var selectedModelFile: File? = null
