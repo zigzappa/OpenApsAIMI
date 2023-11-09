@@ -147,7 +147,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         logDataToCsvHB(predictedSMB, smbToGive)
 
         val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB"
-        val glucoseStr = " bg: $bg <br/> targetBg: $targetBg <br/> futureBg: $predictedBg <br/>" +
+        val glucoseStr = " bg: $bg <br/> targetBG: $targetBg <br/> futureBg: $predictedBg <br/>" +
             "delta: $delta <br/> short avg delta: $shortAvgDelta <br/> long avg delta: $longAvgDelta <br/>" +
             " accelerating_up: $accelerating_up <br/> deccelerating_up: $deccelerating_up <br/> accelerating_down: $accelerating_down <br/> deccelerating_down: $deccelerating_down <br/> stable: $stable"
         val iobStr = " IOB: $iob <br/> tdd 7d/h: ${roundToPoint05(tdd7DaysPerHour)} <br/> " +
@@ -163,7 +163,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         mealStr += "tags0to60minAgo: ${tags0to60minAgo}<br/> tags60to120minAgo: $tags60to120minAgo<br/> " +
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 04 Novembre 2023"
+            ",<br/> AAPS Master,Version du plugin OpenApsAIMI.1 ML.2, 04 Novembre 2023"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -560,7 +560,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             hyperTarget = kotlin.math.max(hyperTarget, 72)
 
             this.targetBg = hyperTarget.toFloat()
-        }else if (circadianSmb > (0.1) && bg < 150){
+        }else if (circadianSmb > (0.1) && bg < 120){
             var hypoTarget = 100 * kotlin.math.max(1.0,circadianSensitivity)
             this.targetBg = (hypoTarget+circadianSmb).toFloat();
         }else if (recentSteps5Minutes >= 0 && recentSteps30Minutes >= 500 || recentSteps180Minutes > 1500 && recentSteps5Minutes > 0){

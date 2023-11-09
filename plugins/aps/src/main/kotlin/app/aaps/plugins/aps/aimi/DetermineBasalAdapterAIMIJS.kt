@@ -732,8 +732,6 @@ class DetermineBasalAdapterAIMIJS internal constructor(private val scriptReader:
             }
 
         } catch (e: Exception) {
-            // Log that watch is not connected
-            //println("Watch is not connected. Using default values for heart rate data.")
             // Réaffecter les variables à leurs valeurs par défaut
             beatsPerMinuteValues = listOf(80)
             this.averageBeatsPerMinute = 80.0
@@ -749,8 +747,6 @@ class DetermineBasalAdapterAIMIJS internal constructor(private val scriptReader:
             }
 
         } catch (e: Exception) {
-            // Log that watch is not connected
-            //println("Watch is not connected. Using default values for heart rate data.")
             // Réaffecter les variables à leurs valeurs par défaut
             beatsPerMinuteValues180 = listOf(10)
             this.averageBeatsPerMinute180 = 10.0
