@@ -19,6 +19,8 @@ import app.aaps.core.interfaces.utils.HardLimits
 import app.aaps.database.impl.AppRepository
 import app.aaps.plugins.aps.R
 import app.aaps.plugins.aps.openAPSSMB.OpenAPSSMBPlugin
+import app.aaps.plugins.aps.openAPSSMBDynamicISF.DetermineBasalAdapterSMBDynamicISFJS
+import app.aaps.plugins.aps.utils.ScriptReader
 import dagger.android.HasAndroidInjector
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -72,10 +74,8 @@ class AIMIPlugin  @Inject constructor(
             .setDefault(false)
     }
 
-    override fun provideDetermineBasalAdapter(): DetermineBasalAdapter = DetermineBasalAdapterAIMIJS(injector)
-    /*override fun provideDetermineBasalAdapter(): DetermineBasalAdapter =
-        if (tdd1D == null || tdd7D == null || tddLast4H == null || tddLast8to4H == null || tddLast24H == null || !dynIsfEnabled.value())
-            DetermineBasalAdapterSMBJS(ScriptReader(context), injector)
-        else DetermineBasalAdapterAIMI(ScriptReader(context), injector)*/
+    override fun provideDetermineBasalAdapter(): DetermineBasalAdapter =
+         DetermineBasalAdapterSMBDynamicISFJS(ScriptReader(context), injector)
+
 
 }

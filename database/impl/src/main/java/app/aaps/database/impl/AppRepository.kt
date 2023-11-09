@@ -568,6 +568,12 @@ class AppRepository @Inject internal constructor(
         database.carbsDao.getModifiedFrom(lastId)
             .subscribeOn(Schedulers.io())
 
+    fun getMostRecentCarbByDate(): Carbs? = database.carbsDao.getMostRecentCarbByDate()
+
+    fun getUserEntryDataWithNotesFromTime(timestamp: Long): Single<List<UserEntry>> =
+        database.userEntryDao.getUserEntryDataWithNotesFromTime(timestamp)
+            .subscribeOn(Schedulers.io())
+
     fun getLastCarbsRecord(): Carbs? =
         database.carbsDao.getLastCarbsRecord()
 
