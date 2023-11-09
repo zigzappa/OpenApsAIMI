@@ -155,13 +155,9 @@
     <string name="openapsaimi_maxsmb_title">OpenapsAIMI Max SMB</string>
     <string name="description_openapsaimi">Small micro boluses based on Artifical Intelligence and Machine Learning.</string>
     <string name="oaps_aimi_shortname">OpenApsAIMI</string>
-    <string name="key_aimiweight">key_aimiweight</string>
-    <string name="key_tdd7">key_tdd7</string>
-    <string name="key_cho">key_cho</string>
     <string name="key_B30_upperBG">key_B30_upperBG</string>
     <string name="key_B30_upperdelta">key_B30_upperdelta</string>
     <string name="key_B30_duration">key_B30_duration</string>
-    <string name="count_steps_watch">count_steps_watch</string>
     <string name="oaps_aimi_evening_factor_summary">% of Reactivity of the plugin between 6 pm and midnight</string>
     <string name="key_oaps_aimi_evening_factor">key_oaps_aimi_evening_factor</string>
     <string name="oaps_aimi_evening_factor_title">Evening Reactivity Percentage</string>
@@ -177,6 +173,41 @@
     <string name="oaps_aimi_hyper_factor_title"><![CDATA[Reactivity factor BG > 180]]></string>
     <string name="DynISFAdjusthyper_summary"><![CDATA[Increasing this value will increase the velocity to send smb when bg > 180]]></string>
     <string name="DynISFAdjusthyper_title"><![CDATA[Dynisf Adjustment factor % BG > 180]]></string>
+    <string name="aimi">aimi</string>
+    <string name="description_aimi">Automated Insulin Management Interface</string>
+    <string name="aimi_shortname">aimi</string>
+    <string name="key_iTime_B30_upperBG">key_iTime_B30_upperBG</string>
+    <string name="key_iTime_B30_upperdelta">key_iTime_B30_upperdelta</string>
+    <string name="key_iTime_B30_duration">key_iTime_B30_duration</string>
+    <string name="key_aimiweight">key_aimiweight</string>
+    <string name="key_tdd7">key_tdd7</string>
+    <string name="key_UAMpredBG">key_UAMpredBG</string>
+    <string name="key_aimi_aggressive_settings">key_aimi_aggressive_settings</string>
+    <string name="key_use_AimiPower">key_use_AimiPower</string>
+    <string name="key_mbi">key_mbi</string>
+    <string name="key_use_AIMI_CAP">key_use_AIMI_CAP</string>
+    <string name="key_use_enable_mssv">key_use_enable_mssv</string>
+    <string name="key_use_AimiUAM_ISF">key_use_AimiUAM_ISF</string>
+    <string name="key_use_AimiPregnancy">key_use_AimiPregnancy</string>
+    <string name="key_aimi_conservative_settings">key_aimi_conservative_settings</string>
+    <string name="key_cho">key_cho</string>
+    <string name="key_use_noNightsmb">key_use_noNightsmb</string>
+    <string name="key_AIMI_NoSMB_timestart">key_AIMI_NoSMB_timestart</string>
+    <string name="key_AIMI_NoSMB_timeend">key_AIMI_NoSMB_timeend</string>
+    <string name="key_use_AIMI_BreakFastLight">key_use_AIMI_BreakFastLight</string>
+    <string name="key_aimi_activity_settings">key_aimi_activity_settings</string>
+    <string name="key_use_countsteps">key_use_countsteps</string>
+    <string name="count_steps_watch">count_steps_watch</string>
+    <string name="key_aimi_FCL">key_aimi_FCL</string>
+    <string name="key_use_fcl_smb">key_use_fcl_smb</string>
+    <string name="key_fcl_smb">key_fcl_smb</string>
+    <string name="key_use_AIMI_factor">key_use_AIMI_factor</string>
+    <string name="key_use_enable_circadian">key_use_enable_circadian</string>
+    <string name="key_openapsama_use_autosens">key_openapsama_use_autosens</string>
+    <string name="key_use_AimiUAM">key_use_AimiUAM</string>
+    <string name="key_use_AimiIgnoreCOB">key_use_AimiIgnoreCOB</string>
+    <string name="key_iTime_Starting_Bolus">key_iTime_Starting_Bolus</string>
+    <string name="key_use_newSMB">key_use_newSMB</string>
 
 
 </resources>

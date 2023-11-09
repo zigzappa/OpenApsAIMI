@@ -1,6 +1,7 @@
 package app.aaps.di
 
 import app.aaps.core.interfaces.plugin.PluginBase
+import app.aaps.plugins.aps.aimi.AIMIPlugin
 import app.aaps.plugins.aps.autotune.AutotunePlugin
 import app.aaps.plugins.aps.loop.LoopPlugin
 import app.aaps.plugins.aps.openAPSAIMI.OpenAPSAIMIPlugin
@@ -256,6 +257,12 @@ abstract class PluginsListModule {
     @IntoMap
     @IntKey(224)
     abstract fun bindOpenAPSAIMIPlugin(plugin: OpenAPSAIMIPlugin): PluginBase
+
+    @Binds
+    @APS
+    @IntoMap
+    @IntKey(226)
+    abstract fun bindAIMIPlugin(plugin:AIMIPlugin ): PluginBase
 
     @Binds
     @AllConfigs
