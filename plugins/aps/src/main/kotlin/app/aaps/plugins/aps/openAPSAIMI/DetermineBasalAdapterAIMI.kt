@@ -163,7 +163,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         mealStr += "tags0to60minAgo: ${tags0to60minAgo}<br/> tags60to120minAgo: $tags60to120minAgo<br/> " +
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 07 Novembre 2023"
+            ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 10 Novembre 2023"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -560,7 +560,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             hyperTarget = kotlin.math.max(hyperTarget, 72)
 
             this.targetBg = hyperTarget.toFloat()
-        }else if (circadianSmb > (0.1) && bg < 120){
+        }else if (circadianSmb > (0.1) && bg < 110){
             var hypoTarget = 100 * kotlin.math.max(1.0,circadianSensitivity)
             this.targetBg = (hypoTarget+circadianSmb).toFloat();
         }else if (recentSteps5Minutes >= 0 && recentSteps30Minutes >= 500 || recentSteps180Minutes > 1500 && recentSteps5Minutes > 0){
