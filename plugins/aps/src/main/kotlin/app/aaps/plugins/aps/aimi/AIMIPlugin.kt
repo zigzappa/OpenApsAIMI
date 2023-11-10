@@ -75,7 +75,7 @@ class AIMIPlugin  @Inject constructor(
     }
 
     override fun provideDetermineBasalAdapter(): DetermineBasalAdapter =
-         DetermineBasalAdapterSMBDynamicISFJS(ScriptReader(context), injector)
+         DetermineBasalAdapterAIMIJS(ScriptReader(context), injector)
 
 
 }
