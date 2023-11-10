@@ -105,6 +105,7 @@ class OverviewDataImpl @Inject constructor(
         maxTherapyEventValue = 0.0
         therapyEventSeries = PointsWithLabelGraphSeries()
         heartRateGraphSeries = PointsWithLabelGraphSeries()
+        stepsCountGraphSeries = PointsWithLabelGraphSeries()
     }
 
     override fun initRange() {
@@ -312,7 +313,6 @@ class OverviewDataImpl @Inject constructor(
     override var absIobSeries: FixedLineGraphSeries<ScaledDataPoint> = FixedLineGraphSeries()
     override var iobPredictions1Series: PointsWithLabelGraphSeries<DataPointWithLabelInterface> =
         PointsWithLabelGraphSeries()
-    //var iobPredictions2Series: PointsWithLabelGraphSeries<DataPointWithLabelInterface> = PointsWithLabelGraphSeries()
 
     override var maxBGIValue = Double.MIN_VALUE
     override val bgiScale = Scale()
@@ -342,4 +342,6 @@ class OverviewDataImpl @Inject constructor(
     override var dsMinSeries: LineGraphSeries<ScaledDataPoint> = LineGraphSeries()
     override var heartRateScale = Scale()
     override var heartRateGraphSeries: PointsWithLabelGraphSeries<DataPointWithLabelInterface> = PointsWithLabelGraphSeries()
+    override var stepsForScale = Scale()
+    override var stepsCountGraphSeries: PointsWithLabelGraphSeries<DataPointWithLabelInterface> = PointsWithLabelGraphSeries()
 }

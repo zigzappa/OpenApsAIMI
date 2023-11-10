@@ -11,6 +11,7 @@ import app.aaps.database.entities.ExtendedBolus
 import app.aaps.database.entities.Food
 import app.aaps.database.entities.GlucoseValue
 import app.aaps.database.entities.HeartRate
+import app.aaps.database.entities.StepsCount
 import app.aaps.database.entities.OfflineEvent
 import app.aaps.database.entities.ProfileSwitch
 import app.aaps.database.entities.TemporaryBasal
@@ -104,6 +105,7 @@ class AppRepository @Inject internal constructor(
         removed.add(Pair("DeviceStatus", database.deviceStatusDao.deleteOlderThan(than)))
         removed.add(Pair("OfflineEvent", database.offlineEventDao.deleteOlderThan(than)))
         removed.add(Pair("HeartRate", database.heartRateDao.deleteOlderThan(than)))
+        removed.add(Pair("StepsCount", database.stepsCountDao.deleteOlderThan(than)))
 
         if (deleteTrackedChanges) {
             removed.add(Pair("CHANGES GlucoseValue", database.glucoseValueDao.deleteTrackedChanges()))
@@ -123,6 +125,7 @@ class AppRepository @Inject internal constructor(
             // keep food database.foodDao.deleteHistory()
             removed.add(Pair("CHANGES OfflineEvent", database.offlineEventDao.deleteTrackedChanges()))
             removed.add(Pair("CHANGES HeartRate", database.heartRateDao.deleteTrackedChanges()))
+            removed.add(Pair("StepsCount", database.stepsCountDao.deleteTrackedChanges()))
         }
         val ret = StringBuilder()
         removed
@@ -565,6 +568,12 @@ class AppRepository @Inject internal constructor(
         database.carbsDao.getModifiedFrom(lastId)
             .subscribeOn(Schedulers.io())
 
+    fun getMostRecentCarbByDate(): Carbs? = database.carbsDao.getMostRecentCarbByDate()
+
+    fun getUserEntryDataWithNotesFromTime(timestamp: Long): Single<List<UserEntry>> =
+        database.userEntryDao.getUserEntryDataWithNotesFromTime(timestamp)
+            .subscribeOn(Schedulers.io())
+
     fun getLastCarbsRecord(): Carbs? =
         database.carbsDao.getLastCarbsRecord()
 
@@ -853,6 +862,16 @@ class AppRepository @Inject internal constructor(
     fun getHeartRatesFromTimeToTime(startMillis: Long, endMillis: Long) =
         database.heartRateDao.getFromTimeToTime(startMillis, endMillis)
 
+    fun getStepsCountFromTime(timeMillis: Long): Single<List<StepsCount>> =
+        database.stepsCountDao.getFromTime(timeMillis)
+            .subscribeOn(Schedulers.io())
+
+    fun getStepsCountFromTimeToTime(startMillis: Long, endMillis: Long) =
+        database.stepsCountDao.getFromTimeToTime(startMillis, endMillis)
+
+    fun getLastStepsCountFromTimeToTime(startMillis: Long, endMillis: Long) =
+        database.stepsCountDao.getLastStepsCountFromTimeToTime(startMillis, endMillis)
+
     suspend fun collectNewEntriesSince(since: Long, until: Long, limit: Int, offset: Int) = NewEntries(
         apsResults = database.apsResultDao.getNewEntriesSince(since, until, limit, offset),
         apsResultLinks = database.apsResultLinkDao.getNewEntriesSince(since, until, limit, offset),
@@ -872,7 +891,9 @@ class AppRepository @Inject internal constructor(
         totalDailyDoses = database.totalDailyDoseDao.getNewEntriesSince(since, until, limit, offset),
         versionChanges = database.versionChangeDao.getNewEntriesSince(since, until, limit, offset),
         heartRates = database.heartRateDao.getNewEntriesSince(since, until, limit, offset),
+        stepsCount = database.stepsCountDao.getNewEntriesSince(since, until, limit, offset),
     )
+
 }
 
 @Suppress("USELESS_CAST")
