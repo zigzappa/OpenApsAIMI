@@ -774,35 +774,29 @@ class DetermineBasalAdapterAIMIJS internal constructor(private val scriptReader:
         }
         val timenow = LocalTime.now()
         val sixAM = LocalTime.of(6, 0)
-        if (tirbasal3B != null) {
-            if (tirbasal3IR != null) {
-                if (tirbasalhAP != null && tirbasalhAP >= 5 && (sp.getBoolean(R.string.key_use_AimiPregnancy, false) === true)) {
-                    basalaimi = (basalaimi * 2.0).toFloat()
-                } else if (lastHourTIRAbove != null && lastHourTIRAbove >= 2 && (sp.getBoolean(R.string.key_use_AimiPregnancy, false) === true)) {
-                    basalaimi = (basalaimi * 1.8).toFloat()
-                }else if (timenow < sixAM && (sp.getBoolean(R.string.key_use_AimiPregnancy, false) === true)){
-                    basalaimi = (basalaimi * 1.4).toFloat()
-                }else if ((sp.getBoolean(R.string.key_use_AimiPregnancy, false) === true) && timenow > sixAM) {
-                    basalaimi = (basalaimi * 1.6).toFloat()
-                } else if ((tirbasal3B <= 5) && (tirbasal3IR >= 70 && tirbasal3IR <= 80) && (sp.getBoolean(R.string.key_use_AimiPregnancy, false) === false)) {
-                    basalaimi = (basalaimi * 1.1).toFloat()
-                } else if (tirbasal3B <= 5 && tirbasal3IR <= 70 && (sp.getBoolean(R.string.key_use_AimiPregnancy, false) === false)) {
-                    basalaimi = (basalaimi * 1.3).toFloat()
-                } else if (tirbasal3B > 5 && tirbasal3A!! < 5 && (sp.getBoolean(R.string.key_use_AimiPregnancy, false) === false)) {
-                    basalaimi = (basalaimi * 0.85).toFloat()
-                }
+        if (tirbasal3B != null && tirbasal3IR != null) {
+            basalaimi = when {
+                tirbasalhAP != null && tirbasalhAP >= 5 && sp.getBoolean(R.string.key_use_AimiPregnancy, false) -> (basalaimi * 2.0).toFloat()
+                lastHourTIRAbove != null && lastHourTIRAbove >= 2 && sp.getBoolean(R.string.key_use_AimiPregnancy, false) -> (basalaimi * 1.8).toFloat()
+                timenow < sixAM && sp.getBoolean(R.string.key_use_AimiPregnancy, false) -> (basalaimi * 1.4).toFloat()
+                timenow > sixAM && sp.getBoolean(R.string.key_use_AimiPregnancy, false) -> (basalaimi * 1.6).toFloat()
+                tirbasal3B <= 5 && tirbasal3IR >= 70 && tirbasal3IR <= 80 && !sp.getBoolean(R.string.key_use_AimiPregnancy, false) -> (basalaimi * 1.1).toFloat()
+                tirbasal3B <= 5 && tirbasal3IR <= 70 && !sp.getBoolean(R.string.key_use_AimiPregnancy, false) -> (basalaimi * 1.3).toFloat()
+                tirbasal3B > 5 && tirbasal3A!! < 5 && !sp.getBoolean(R.string.key_use_AimiPregnancy, false) -> (basalaimi * 0.85).toFloat()
+                else -> basalaimi // Default case if none of the conditions are met
             }
         }
 
+
         if (averageBeatsPerMinute != 0.0) {
-            if (averageBeatsPerMinute >= averageBeatsPerMinute180 && recentSteps5Minutes > 100 && recentSteps10Minutes > 200) {
-                basalaimi = (basalaimi * 0.65).toFloat()
-            } else if (averageBeatsPerMinute180 != 10.0 && averageBeatsPerMinute > averageBeatsPerMinute180 && bg >= 130 && recentSteps10Minutes === 0 && timenow > sixAM) {
-                basalaimi = (basalaimi * 1.3).toFloat()
-            } else if (averageBeatsPerMinute180 != 10.0 && averageBeatsPerMinute < averageBeatsPerMinute180 && recentSteps10Minutes === 0 && bg >= 130) {
-                basalaimi = (basalaimi * 1.2).toFloat()
+            basalaimi = when {
+                averageBeatsPerMinute >= averageBeatsPerMinute180 && recentSteps5Minutes > 100 && recentSteps10Minutes > 200 -> (basalaimi * 0.65).toFloat()
+                averageBeatsPerMinute180 != 10.0 && averageBeatsPerMinute > averageBeatsPerMinute180 && bg >= 130 && recentSteps10Minutes == 0 && timenow > sixAM -> (basalaimi * 1.3).toFloat()
+                averageBeatsPerMinute180 != 10.0 && averageBeatsPerMinute < averageBeatsPerMinute180 && recentSteps10Minutes == 0 && bg >= 130 -> (basalaimi * 1.2).toFloat()
+                else -> basalaimi // Default case, keeps basalaimi unchanged
             }
         }
+
 
 
         if (timenow > sixAM) {
