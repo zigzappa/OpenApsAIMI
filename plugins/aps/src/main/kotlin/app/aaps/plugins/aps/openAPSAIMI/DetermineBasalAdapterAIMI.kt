@@ -235,10 +235,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         // Ajustements basés sur des conditions spécifiques
         smbToGive = applySpecificAdjustments(smbToGive)
 
+       smbToGive = finalizeSmbToGive(smbToGive)
         // Appliquer les limites maximum
         smbToGive = applyMaxLimits(smbToGive)
-
-        smbToGive = finalizeSmbToGive(smbToGive)
 
         return smbToGive
     }
