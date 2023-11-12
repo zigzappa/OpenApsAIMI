@@ -162,7 +162,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         mealStr += "tags0to60minAgo: ${tags0to60minAgo}<br/> tags60to120minAgo: $tags60to120minAgo<br/> " +
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-         ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 10 novembre 2023"
+         ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 12 novembre 2023"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -233,11 +233,11 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         // Ajustements basés sur des conditions spécifiques
         smbToGive = applySpecificAdjustments(smbToGive)
 
-        // Appliquer les limites maximum
-        smbToGive = applyMaxLimits(smbToGive)
-
         // Assurer que smbToGive n'est pas négatif et appliquer des ajustements finaux
         smbToGive = finalizeSmbToGive(smbToGive)
+
+        // Appliquer les limites maximum
+        smbToGive = applyMaxLimits(smbToGive)
 
         return smbToGive
     }
@@ -527,18 +527,20 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 (0.33275556 * delta * nowMinutes) +
                 1.38581503) * 100
         ) / 100  // Arrondi à 2 décimales
-        if (bg >= 110 && delta > 5) {
-            var hyperTarget = kotlin.math.max(72.0, profile.getTargetLowMgdl() - (bg - profile.getTargetLowMgdl()) / 3).roundToInt()
-            hyperTarget = (hyperTarget * kotlin.math.min(circadianSensitivity, 1.0)).toInt()
-            hyperTarget = kotlin.math.max(hyperTarget, 72)
-
-            this.targetBg = hyperTarget.toFloat()
-        }else if (circadianSmb > (0.1) && bg < 110){
-            var hypoTarget = 100 * kotlin.math.max(1.0,circadianSensitivity)
-            this.targetBg = (hypoTarget+circadianSmb).toFloat();
-        }else if (recentSteps5Minutes >= 0 && recentSteps30Minutes >= 500 || recentSteps180Minutes > 1500 && recentSteps5Minutes > 0){
-            this.targetBg = 120.0f
+        this.targetBg = when {
+            bg >= 110 && delta > 5 -> {
+                var hyperTarget = kotlin.math.max(72.0, profile.getTargetLowMgdl() - (bg - profile.getTargetLowMgdl()) / 3).roundToInt()
+                hyperTarget = (hyperTarget * kotlin.math.min(circadianSensitivity, 1.0)).toInt()
+                kotlin.math.max(hyperTarget, 72).toFloat()
+            }
+            circadianSmb > 0.1 && bg < 110 -> {
+                val hypoTarget = 100 * kotlin.math.max(1.0, circadianSensitivity)
+                (hypoTarget + circadianSmb).toFloat()
+            }
+            recentSteps5Minutes >= 0 && recentSteps30Minutes >= 500 || recentSteps180Minutes > 1500 && recentSteps5Minutes > 0 -> 120.0f
+            else -> this.targetBg // or any default value you want to assign
         }
+
         this.accelerating_up = if (delta > 2 && delta - longAvgDelta > 2) 1 else 0
         this.deccelerating_up = if (delta > 0 && (delta < shortAvgDelta || delta < longAvgDelta)) 1 else 0
         this.accelerating_down = if (delta < -2 && delta - longAvgDelta < -2) 1 else 0
