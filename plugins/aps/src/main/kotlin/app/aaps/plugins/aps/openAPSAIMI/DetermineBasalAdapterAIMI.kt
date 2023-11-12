@@ -15,6 +15,7 @@ import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.stats.TddCalculator
+import app.aaps.core.interfaces.stats.TirCalculator
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.Round
 import app.aaps.core.interfaces.utils.SafeParse
@@ -55,6 +56,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     @Inject lateinit var repository: AppRepository
     @Inject lateinit var dateUtil: DateUtil
     @Inject lateinit var tddCalculator: TddCalculator
+    @Inject lateinit var tirCalculator: TirCalculator
 
     private var iob = 0.0f
     private var cob = 0.0f
@@ -66,6 +68,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var tags60to120minAgo = ""
     private var tags120to180minAgo = ""
     private var tags180to240minAgo = ""
+    private var currentTIRLow: Double = 0.0
+    private var currentTIRRange: Double = 0.0
+    private var currentTIRAbove: Double = 0.0
     private var bg = 0.0f
     private var targetBg = 100.0f
     private var normalBgThreshold = 150.0f
@@ -161,7 +166,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "ISF : $variableSensitivity <br/> Heart Beat per minute(average past 5 minutes) : $averageBeatsPerMinute <br/> Heart Beat per minute(average past 180 minutes) : $averageBeatsPerMinute180"
         var mealStr = " COB: ${cob}g   Future: ${futureCarbs}g <br/> COB Age Min: $lastCarbAgeMin <br/><br/> "
         mealStr += "tags0to60minAgo: ${tags0to60minAgo}<br/> tags60to120minAgo: $tags60to120minAgo<br/> " +
-            "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo"
+            "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
+            "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
             ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 12 Novembre 2023"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
@@ -601,6 +607,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         tdd = if (bg > 180) tdd * dynISFadjusthyper else tdd * dynISFadjust
 
         this.variableSensitivity = Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1).toFloat()
+        this.currentTIRLow = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.belowPct()!!
+        this.currentTIRRange = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.inRangePct()!!
+        this.currentTIRAbove = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.abovePct()!!
+
         val beatsPerMinuteValues: List<Int>
         val beatsPerMinuteValues60: List<Int>
         val beatsPerMinuteValues180: List<Int>
