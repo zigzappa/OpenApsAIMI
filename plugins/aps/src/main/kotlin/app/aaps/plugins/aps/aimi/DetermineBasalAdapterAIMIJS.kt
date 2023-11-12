@@ -34,10 +34,10 @@ import app.aaps.plugins.aps.APSResultObject
 import app.aaps.plugins.aps.R
 import app.aaps.plugins.aps.logger.LoggerCallback
 import app.aaps.plugins.aps.loop.LoopVariantPreference
+import app.aaps.plugins.aps.openAPSAIMI.StepService
 import app.aaps.plugins.aps.openAPSSMB.DetermineBasalResultSMB
 import app.aaps.plugins.aps.utils.ScriptReader
 import dagger.android.HasAndroidInjector
-import app.aaps.plugins.aps.aimi.StepService
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -247,16 +247,10 @@ class DetermineBasalAdapterAIMIJS internal constructor(private val scriptReader:
     private fun roundToPoint05(number: Float): Float {
         return (number * 20.0).roundToInt() / 20.0f
     }
-
-    private fun roundToPoint001(number: Float): Float {
-        return (number * 1000.0).roundToInt() / 1000.0f
-    }
-
-
     private fun calculateSMBFromModel(): Float {
 
-        var selectedModelFile: File? = null
-        var modelInputs: FloatArray
+        var selectedModelFile: File?
+        val modelInputs: FloatArray
 
         when {
             modelHBFile.exists() -> {
@@ -281,7 +275,7 @@ class DetermineBasalAdapterAIMIJS internal constructor(private val scriptReader:
             }
         }
 
-        val interpreter = Interpreter(selectedModelFile!!)
+        val interpreter = Interpreter(selectedModelFile)
         val output = arrayOf(floatArrayOf(0.0F))
         interpreter.run(modelInputs, output)
         interpreter.close()
@@ -305,7 +299,6 @@ class DetermineBasalAdapterAIMIJS internal constructor(private val scriptReader:
         smbToGive = roundToPoint05(smbToGive)
         this.smbToGivetest = round(smbToGive.toDouble() * 100) / 100
 
-        //logDataToCsv(predictedSMB, smbToGive)
         aapsLogger.debug(LTag.APS, ">>> Invoking determine_basal <<<")
         aapsLogger.debug(LTag.APS, "Glucose status: " + mGlucoseStatus.toString().also { glucoseStatusParam = it })
         aapsLogger.debug(LTag.APS, "IOB data:       " + iobData.toString().also { iobDataParam = it })
@@ -425,8 +418,9 @@ class DetermineBasalAdapterAIMIJS internal constructor(private val scriptReader:
         tddLast8to4H: Double?
     ) {
         this.now = System.currentTimeMillis()
-        this.hourOfDay = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-        val dayOfWeek = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+        val calendarInstance = Calendar.getInstance()
+        this.hourOfDay = calendarInstance[Calendar.HOUR_OF_DAY]
+        val dayOfWeek = calendarInstance[Calendar.DAY_OF_WEEK]
         this.weekend = if (dayOfWeek == Calendar.SUNDAY || dayOfWeek == Calendar.SATURDAY) 1 else 0
 
         val iobCalcs = iobCobCalculator.calculateIobFromBolus()
