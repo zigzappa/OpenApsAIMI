@@ -360,7 +360,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         return smbToGive.toFloat()
     }
 
-    fun calculateAdjustedDelayFactor(
+    private fun calculateAdjustedDelayFactor(
         bg: Float, recentSteps180Minutes: Int, averageBeatsPerMinute60: Float, averageBeatsPerMinute180: Float
     ): Float {
         // Seuil pour une activité physique significative basée sur les étapes
@@ -435,7 +435,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         return insulinEffect
     }
-    fun predictFutureBg(
+    private fun predictFutureBg(
         bg: Float,
         iob: Float,  // Insuline active (IOB)
         variableSensitivity: Float,  // Facteur de sensibilité à l'insuline (ISF)
