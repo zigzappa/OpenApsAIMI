@@ -283,11 +283,11 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private fun applySpecificAdjustments(smbToGive: Float): Float {
         var result = smbToGive
 
-        if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime < 15) {
+        /*if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime < 15) {
             result = 0.0f
         } else if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime > 15) {
             result = basalSMB
-        }
+        }*/
 
         val safetysmb = recentSteps180Minutes > 1500 && bg < 130
         if (safetysmb) {
@@ -309,9 +309,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
 
         // Logique finale pour ajuster smbToGive
-        if (result == 0.0f && delta > 2 && bg > 100 && lastsmbtime > 20 && predictedBg > targetBg) {
+        /*if (result == 0.0f && delta > 2 && bg > 100 && lastsmbtime > 20 && predictedBg > targetBg) {
             result = if ((iob + basalSMB) > maxIob) maxIob - iob else basalSMB
-        }
+        }*/
 
         return result
     }
