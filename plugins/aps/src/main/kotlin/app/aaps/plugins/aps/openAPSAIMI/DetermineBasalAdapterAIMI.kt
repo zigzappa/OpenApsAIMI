@@ -105,6 +105,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var CI = 0.0f
     private var sleepTime = false
     private var sportTime = false
+    private var snackTime = false
     private var variableSensitivity = 0.0f
     private var averageBeatsPerMinute = 0.0
     private var averageBeatsPerMinute60 = 0.0
@@ -154,7 +155,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         logDataToCsv(predictedSMB, smbToGive)
         logDataToCsvHB(predictedSMB, smbToGive)
 
-        val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB<br/> sleepTime: $sleepTime<br/> sportTime: $sportTime<br/>"
+        val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB<br/> sleepTime: $sleepTime<br/> sportTime: $sportTime<br/> snackTime: $snackTime<br/>"
         val glucoseStr = " bg: $bg <br/> targetBG: $targetBg <br/> futureBg: $predictedBg <br/>" +
             "delta: $delta <br/> short avg delta: $shortAvgDelta <br/> long avg delta: $longAvgDelta <br/>" +
             " accelerating_up: $accelerating_up <br/> deccelerating_up: $deccelerating_up <br/> accelerating_down: $accelerating_down <br/> deccelerating_down: $deccelerating_down <br/> stable: $stable"
@@ -172,7 +173,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 15 Novembre 2023"
+            ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 16 Novembre 2023"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -298,9 +299,13 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         var result = smbToGive
 
         val safetysmb = recentSteps180Minutes > 1500 && bg < 130
-        if (safetysmb || sleepTime) {
+        if ((safetysmb || sleepTime || snackTime) && lastsmbtime >= 10) {
             result /= 2
+        }else if ((safetysmb || sleepTime || snackTime) && lastsmbtime < 10){
+            result = 0.0f
         }
+
+
 
         if (recentSteps5Minutes > 100 && recentSteps30Minutes > 500 && lastsmbtime < 20) {
             result = 0.0f
@@ -808,6 +813,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("autosens_adjust_targets", sp.getBoolean(R.string.key_openapsama_autosens_adjusttargets, true))
         this.profile.put("sleepTime", sleepTime)
         this.profile.put("sportTime", sportTime)
+        this.profile.put("snackTime", snackTime)
         if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
             this.profile.put("out_units", "mmol/L")
         }
@@ -903,6 +909,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         notes.replace("\\s+"," ")
         val containsSleep = recentNotes2.any { it.lowercase().contains("sleep") }
         val containsSport = recentNotes2.any { it.lowercase().contains("sport") }
+        val containsSnack = recentNotes2.any { it.lowercase().contains("snack") }
 
         if (containsSleep) {
             this.sleepTime = true
@@ -910,6 +917,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         if (containsSport) {
             this.sportTime = true
+        }
+
+        if (containsSport) {
+            this.snackTime = true
         }
         return notes
     }
