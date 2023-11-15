@@ -13,6 +13,7 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.profile.ProfileFunction
+import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.stats.TddCalculator
 import app.aaps.core.interfaces.stats.TirCalculator
@@ -24,6 +25,7 @@ import app.aaps.core.main.extensions.getPassedDurationToTimeInMinutes
 import app.aaps.core.main.extensions.plannedRemainingMinutes
 import app.aaps.database.ValueWrapper
 import app.aaps.database.entities.Bolus
+import app.aaps.database.entities.TemporaryBasal
 import app.aaps.database.entities.TemporaryTarget
 import app.aaps.database.entities.UserEntry
 import app.aaps.database.impl.AppRepository
@@ -816,10 +818,27 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
 
         val tb = iobCobCalculator.getTempBasalIncludingConvertedExtended(now)
+        val newRate = if (bg < 110 && bg > 80 && delta > 0) {
+            basalaimi
+        } else {
+            tb?.convertedToAbsolute(now, profile) ?: 0.0
+        }
+        // Déterminer la durée pour le nouveau basal temporaire
+        val newDuration = tb?.plannedRemainingMinutes ?: 30
+        // Créer ou mettre à jour l'objet TemporaryBasal pour la nouvelle commande
+        val newTempBasal = TemporaryBasal(
+            timestamp = now,
+            duration = newDuration * 60 * 1000L, // Convertir en millisecondes
+            rate = newRate.toDouble(),
+            isAbsolute = true,
+            type = TemporaryBasal.Type.NORMAL
+        )
+
         currentTemp = JSONObject()
         currentTemp.put("temp", "absolute")
-        currentTemp.put("duration", tb?.plannedRemainingMinutes ?: 0)
-        currentTemp.put("rate", tb?.convertedToAbsolute(now, profile) ?: 0.0)
+        currentTemp.put("duration", newTempBasal.duration ?: 0)
+        currentTemp.put("rate", newTempBasal.rate)
+
         // as we have non default temps longer than 30 minutes
         if (tb != null) currentTemp.put("minutesrunning", tb.getPassedDurationToTimeInMinutes(now))
 
