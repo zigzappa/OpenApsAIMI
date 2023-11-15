@@ -13,7 +13,6 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.profile.ProfileFunction
-import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.stats.TddCalculator
 import app.aaps.core.interfaces.stats.TirCalculator
@@ -26,7 +25,6 @@ import app.aaps.core.main.extensions.plannedRemainingMinutes
 import app.aaps.database.ValueWrapper
 import app.aaps.database.entities.Bolus
 import app.aaps.database.entities.TemporaryBasal
-import app.aaps.database.entities.TemporaryTarget
 import app.aaps.database.entities.UserEntry
 import app.aaps.database.impl.AppRepository
 import app.aaps.plugins.aps.APSResultObject
@@ -40,7 +38,6 @@ import javax.inject.Inject
 import kotlin.math.roundToInt
 import java.util.Calendar
 import org.tensorflow.lite.Interpreter
-import org.w3c.dom.Text
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.time.LocalTime
@@ -106,6 +103,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var aimilimit = 0.0f
     private var basaloapsaimirate = 0.0f
     private var CI = 0.0f
+    private var sleepTime = false
+    private var sportTime = false
     private var variableSensitivity = 0.0f
     private var averageBeatsPerMinute = 0.0
     private var averageBeatsPerMinute60 = 0.0
@@ -155,7 +154,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         logDataToCsv(predictedSMB, smbToGive)
         logDataToCsvHB(predictedSMB, smbToGive)
 
-        val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB<br/>"
+        val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB<br/> sleepTime: $sleepTime<br/> sportTime: $sportTime<br/>"
         val glucoseStr = " bg: $bg <br/> targetBG: $targetBg <br/> futureBg: $predictedBg <br/>" +
             "delta: $delta <br/> short avg delta: $shortAvgDelta <br/> long avg delta: $longAvgDelta <br/>" +
             " accelerating_up: $accelerating_up <br/> deccelerating_up: $deccelerating_up <br/> accelerating_down: $accelerating_down <br/> deccelerating_down: $deccelerating_down <br/> stable: $stable"
@@ -289,23 +288,17 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val sport2 = recentSteps5Minutes >= 200 && averageBeatsPerMinute > averageBeatsPerMinute60
         val sport3 = recentSteps5Minutes >= 200 && recentSteps10Minutes >= 500
         val sport4 = targetBg >= 140
+        this.sportTime = true
 
-
-        return sport || sport1 || sport2 || sport3 || sport4
+        return sport || sport1 || sport2 || sport3 || sport4 || sportTime
 
     }
 
     private fun applySpecificAdjustments(smbToGive: Float): Float {
         var result = smbToGive
 
-        /*if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime < 15) {
-            result = 0.0f
-        } else if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime > 15) {
-            result = basalSMB
-        }*/
-
         val safetysmb = recentSteps180Minutes > 1500 && bg < 130
-        if (safetysmb) {
+        if (safetysmb || sleepTime) {
             result /= 2
         }
 
@@ -322,12 +315,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         if (result < 0.0f) {
             result = 0.0f
         }
-
-        // Logique finale pour ajuster smbToGive
-        /*if (result == 0.0f && delta > 2 && bg > 100 && lastsmbtime > 20 && predictedBg > targetBg) {
-            result = if ((iob + basalSMB) > maxIob) maxIob - iob else basalSMB
-        }*/
-
         return result
     }
 
@@ -556,9 +543,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.longAvgDelta = glucoseStatus.longAvgDelta.toFloat()
         var nowMinutes = calendarInstance[Calendar.HOUR_OF_DAY] + calendarInstance[Calendar.MINUTE] / 60.0 + calendarInstance[Calendar.SECOND] / 3600.0
         nowMinutes = round(nowMinutes * 100) / 100  // Arrondi à 2 décimales
-        val logMessage = "nowMinutes = $nowMinutes ; \n"
 
-        //val enableCircadian = profile["key_use_enable_circadian"] ?: false
         val circadianSensitivity = (0.00000379 * nowMinutes.pow(5)) -
             (0.00016422 * nowMinutes.pow(4)) +
             (0.00128081 * nowMinutes.pow(3)) +
@@ -574,18 +559,27 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 (0.33275556 * delta * nowMinutes) +
                 1.38581503) * 100
         ) / 100  // Arrondi à 2 décimales
-        if (!tempTargetSet && bg >= 100 && delta > 5) {
-            var hyperTarget = kotlin.math.max(72.0, profile.getTargetLowMgdl() - (bg - profile.getTargetLowMgdl()) / 3).roundToInt()
-            hyperTarget = (hyperTarget * kotlin.math.min(circadianSensitivity, 1.0)).toInt()
-            hyperTarget = kotlin.math.max(hyperTarget, 72)
+        when {
+            !tempTargetSet && predictedBg >= 120 && delta > 5 -> {
+                var hyperTarget = kotlin.math.max(72.0, profile.getTargetLowMgdl() - (bg - profile.getTargetLowMgdl()) / 3).roundToInt()
+                hyperTarget = (hyperTarget * kotlin.math.min(circadianSensitivity, 1.0)).toInt()
+                hyperTarget = kotlin.math.max(hyperTarget, 72)
 
-            this.targetBg = hyperTarget.toFloat()
-        }else if (!tempTargetSet && circadianSmb > (0.1) && bg < 120){
-            var hypoTarget = 100 * kotlin.math.max(1.0,circadianSensitivity)
-            this.targetBg = (hypoTarget+circadianSmb).toFloat()
-        }else if (recentSteps5Minutes >= 0 && recentSteps30Minutes >= 500 || recentSteps180Minutes > 1500 && recentSteps5Minutes > 0){
-            this.targetBg = 120.0f
+                this.targetBg = hyperTarget.toFloat()
+            }
+            !tempTargetSet && circadianSmb > 0.1 && predictedBg < 120 -> {
+                var hypoTarget = 100 * kotlin.math.max(1.0, circadianSensitivity)
+                this.targetBg = (hypoTarget + circadianSmb).toFloat()
+            }
+            recentSteps5Minutes >= 0 && (recentSteps30Minutes >= 500 || recentSteps180Minutes > 1500) && recentSteps5Minutes > 0 -> {
+                this.targetBg = 120.0f
+            }
+            else -> {
+                val defaultTarget = profile.getTargetLowMgdl()
+                this.targetBg = defaultTarget.toFloat()
+            }
         }
+
         this.accelerating_up = if (delta > 2 && delta - longAvgDelta > 2) 1 else 0
         this.deccelerating_up = if (delta > 0 && (delta < shortAvgDelta || delta < longAvgDelta)) 1 else 0
         this.accelerating_down = if (delta < -2 && delta - longAvgDelta < -2) 1 else 0
@@ -812,7 +806,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("current_basal", basalRate)
         this.profile.put("temptargetSet", tempTargetSet)
         this.profile.put("autosens_adjust_targets", sp.getBoolean(R.string.key_openapsama_autosens_adjusttargets, true))
-
+        this.profile.put("sleepTime", sleepTime)
+        this.profile.put("sportTime", sportTime)
         if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
             this.profile.put("out_units", "mmol/L")
         }
@@ -895,6 +890,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             ) {
                 notes += if(notes.isEmpty()) recentNotes2 else " "
                 notes += note.note
+                recentNotes2.add(note.note)
             }
         }
         notes = notes.lowercase()
@@ -905,6 +901,16 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         notes.replace("an"," ")
         notes.replace("and"," ")
         notes.replace("\\s+"," ")
+        val containsSleep = recentNotes2.any { it.lowercase().contains("sleep") }
+        val containsSport = recentNotes2.any { it.lowercase().contains("sport") }
+
+        if (containsSleep) {
+            this.sleepTime = true
+        }
+
+        if (containsSport) {
+            this.sportTime = true
+        }
         return notes
     }
 
