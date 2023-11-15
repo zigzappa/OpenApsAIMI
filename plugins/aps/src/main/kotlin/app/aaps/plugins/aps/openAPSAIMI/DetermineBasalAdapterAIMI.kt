@@ -37,6 +37,7 @@ import javax.inject.Inject
 import kotlin.math.roundToInt
 import java.util.Calendar
 import org.tensorflow.lite.Interpreter
+import org.w3c.dom.Text
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.time.LocalTime
@@ -151,7 +152,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         logDataToCsv(predictedSMB, smbToGive)
         logDataToCsvHB(predictedSMB, smbToGive)
 
-        val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB"
+        val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB<br/>"
         val glucoseStr = " bg: $bg <br/> targetBG: $targetBg <br/> futureBg: $predictedBg <br/>" +
             "delta: $delta <br/> short avg delta: $shortAvgDelta <br/> long avg delta: $longAvgDelta <br/>" +
             " accelerating_up: $accelerating_up <br/> deccelerating_up: $deccelerating_up <br/> accelerating_down: $accelerating_down <br/> deccelerating_down: $deccelerating_down <br/> stable: $stable"
@@ -169,7 +170,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 14 Novembre 2023"
+            ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 15 Novembre 2023"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -237,6 +238,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         if (isCriticalSafetyCondition()) {
             return 0.0f  // Arrêt immédiat si une condition de sécurité critique est remplie
         }
+        if (isSportSafetyCondition()) return 0.0f // Arrêt immédiat si une condition de sport est remplie
 
         // Ajustements basés sur des conditions spécifiques
         smbToGive = applySpecificAdjustments(smbToGive)
@@ -273,11 +275,20 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val droppingVeryFast = delta < -10
         val prediction = predictedBg < targetBg && delta < 10
         val interval = predictedBg < targetBg && delta > 10 && iob >= maxSMB && lastsmbtime < 10
-        val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB && lastsmbtime < 15
-
+        val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 15
 
         return belowMinThreshold || belowTargetAndDropping || belowTargetAndStableButNoCob ||
             droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval
+    }
+    private fun isSportSafetyCondition(): Boolean {
+        val sport = targetBg >= 140 && recentSteps5Minutes >= 200 && recentSteps10Minutes >= 500
+        val sport1 = targetBg >= 140 && recentSteps5Minutes >= 200 && averageBeatsPerMinute > averageBeatsPerMinute60
+        val sport2 = recentSteps5Minutes >= 200 && averageBeatsPerMinute > averageBeatsPerMinute60
+        val sport3 = recentSteps5Minutes >= 200 && recentSteps10Minutes >= 500
+
+
+        return sport || sport1 || sport2 || sport3
+
     }
 
     private fun applySpecificAdjustments(smbToGive: Float): Float {
@@ -353,7 +364,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             }
         }
 
-        val interpreter = Interpreter(selectedModelFile!!)
+        val interpreter = Interpreter(selectedModelFile)
         val output = arrayOf(floatArrayOf(0.0F))
         interpreter.run(modelInputs, output)
         interpreter.close()
@@ -559,15 +570,15 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 (0.33275556 * delta * nowMinutes) +
                 1.38581503) * 100
         ) / 100  // Arrondi à 2 décimales
-        if (bg >= 110 && delta > 5) {
+        if (!tempTargetSet && bg >= 100 && delta > 5) {
             var hyperTarget = kotlin.math.max(72.0, profile.getTargetLowMgdl() - (bg - profile.getTargetLowMgdl()) / 3).roundToInt()
             hyperTarget = (hyperTarget * kotlin.math.min(circadianSensitivity, 1.0)).toInt()
             hyperTarget = kotlin.math.max(hyperTarget, 72)
 
             this.targetBg = hyperTarget.toFloat()
-        }else if (circadianSmb > (0.1) && bg < 120){
+        }else if (!tempTargetSet && circadianSmb > (0.1) && bg < 120){
             var hypoTarget = 100 * kotlin.math.max(1.0,circadianSensitivity)
-            this.targetBg = (hypoTarget+circadianSmb).toFloat();
+            this.targetBg = (hypoTarget+circadianSmb).toFloat()
         }else if (recentSteps5Minutes >= 0 && recentSteps30Minutes >= 500 || recentSteps180Minutes > 1500 && recentSteps5Minutes > 0){
             this.targetBg = 120.0f
         }
@@ -763,8 +774,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         aapsLogger.debug(LTag.APS, "IOB options : bolus iob: ${iobCalcs.iob} basal iob : ${iobCalcs.basaliob}")
         aapsLogger.debug(LTag.APS, "IOB options : calculateAbsoluteIobFromBaseBasals iob: $absIob net : $absNet basal : $absBasal")
         val tddDouble = tdd.toDoubleSafely()
-        val glucoseDouble = glucoseStatus.glucose?.toDoubleSafely()
-        val insulinDivisorDouble = insulinDivisor?.toDoubleSafely()
+        val glucoseDouble = glucoseStatus.glucose.toDoubleSafely()
+        val insulinDivisorDouble = insulinDivisor.toDoubleSafely()
 
         if (tddDouble != null && glucoseDouble != null && insulinDivisorDouble != null) {
             variableSensitivity = (1800 / (tdd.toDouble() * (ln((glucoseStatus.glucose / insulinDivisor) + 1)))).toFloat()
