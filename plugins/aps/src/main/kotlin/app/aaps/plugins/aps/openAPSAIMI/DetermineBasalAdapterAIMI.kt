@@ -24,6 +24,7 @@ import app.aaps.core.main.extensions.getPassedDurationToTimeInMinutes
 import app.aaps.core.main.extensions.plannedRemainingMinutes
 import app.aaps.database.ValueWrapper
 import app.aaps.database.entities.Bolus
+import app.aaps.database.entities.TemporaryTarget
 import app.aaps.database.entities.UserEntry
 import app.aaps.database.impl.AppRepository
 import app.aaps.plugins.aps.APSResultObject
@@ -164,7 +165,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val profileStr = " Hour of day: $hourOfDay <br/> Weekend: $weekend <br/>" +
             " 5 Min Steps: $recentSteps5Minutes <br/> 10 Min Steps: $recentSteps10Minutes <br/> 15 Min Steps: $recentSteps15Minutes <br/>" +
             " 30 Min Steps: $recentSteps30Minutes <br/> 60 Min Steps: $recentSteps60Minutes <br/> 180 Min Steps: $recentSteps180Minutes <br/>" +
-            "ISF : $variableSensitivity <br/> Heart Beat per minute(average past 5 minutes) : $averageBeatsPerMinute <br/> Heart Beat per minute(average past 180 minutes) : $averageBeatsPerMinute180"
+            "ISF : $variableSensitivity <br/> Heart Beat(average past 5 minutes) : $averageBeatsPerMinute <br/> Heart Beat(average past 180 minutes) : $averageBeatsPerMinute180"
         var mealStr = " COB: ${cob}g   Future: ${futureCarbs}g <br/> COB Age Min: $lastCarbAgeMin <br/><br/> "
         mealStr += "tags0to60minAgo: ${tags0to60minAgo}<br/> tags60to120minAgo: $tags60to120minAgo<br/> " +
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
@@ -285,9 +286,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val sport1 = targetBg >= 140 && recentSteps5Minutes >= 200 && averageBeatsPerMinute > averageBeatsPerMinute60
         val sport2 = recentSteps5Minutes >= 200 && averageBeatsPerMinute > averageBeatsPerMinute60
         val sport3 = recentSteps5Minutes >= 200 && recentSteps10Minutes >= 500
+        val sport4 = targetBg >= 140
 
 
-        return sport || sport1 || sport2 || sport3
+        return sport || sport1 || sport2 || sport3 || sport4
 
     }
 
@@ -676,7 +678,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         } catch (e: Exception) {
             // Log that watch is not connected
             //beatsPerMinuteValues = listOf(80)
-            this.averageBeatsPerMinute = 80.0
+            averageBeatsPerMinute = 80.0
         }
         try {
             val heartRates = repository.getHeartRatesFromTimeToTime(timeMillis60,timeMillisNow)
@@ -690,7 +692,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         } catch (e: Exception) {
             // Log that watch is not connected
             //beatsPerMinuteValues = listOf(80)
-            this.averageBeatsPerMinute = 80.0
+            averageBeatsPerMinute60 = 80.0
         }
         try {
 
@@ -705,7 +707,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         } catch (e: Exception) {
             // Log that watch is not connected
             //beatsPerMinuteValues180 = listOf(80)
-            this.averageBeatsPerMinute180 = 80.0
+            averageBeatsPerMinute180 = 80.0
         }
         if (tdd2Days != null && tdd2Days != 0.0f) {
             this.basalaimi = (tdd2Days / SafeParse.stringToDouble(sp.getString(R.string.key_aimiweight, "50"))).toFloat()
@@ -790,7 +792,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             variableSensitivity = profile.getIsfMgdl().toFloat()
         }
         this.predictedBg = predictFutureBg(bg, iob, variableSensitivity, cob, CI)
-
         this.profile = JSONObject()
         this.profile.put("max_iob", maxIob)
         this.profile.put("dia", kotlin.math.min(profile.dia, 3.0))
@@ -865,7 +866,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         val autoNote = determineNoteBasedOnBg(bg.toDouble())
         recentNotes2.add(autoNote)
-
         recentNotes?.forEach { note ->
             if(note.timestamp > olderTimeStamp
                 && note.timestamp <= moreRecentTimeStamp
