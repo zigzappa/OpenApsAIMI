@@ -926,7 +926,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             this.sportTime = true
         }
 
-        if (containsSport) {
+        if (containsSnack) {
             this.snackTime = true
         }
         return notes
