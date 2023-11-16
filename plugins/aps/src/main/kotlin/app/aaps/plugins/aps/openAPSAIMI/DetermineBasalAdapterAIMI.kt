@@ -824,11 +824,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         val tb = iobCobCalculator.getTempBasalIncludingConvertedExtended(now)
         val newRate = when {
-            bg > 80 && delta > 0 -> basalaimi.toDouble()
             bg > 80 && delta <= 0 || isSportSafetyCondition() -> 0.0
-            else -> {
-                tb?.convertedToAbsolute(now, profile) ?: 0.0
-            }
+            bg > 80 && delta > 0 -> basalaimi.toDouble()
+            else -> tb?.convertedToAbsolute(now, profile) ?: 0.0
         }
 
         // Déterminer la durée pour le nouveau basal temporaire
