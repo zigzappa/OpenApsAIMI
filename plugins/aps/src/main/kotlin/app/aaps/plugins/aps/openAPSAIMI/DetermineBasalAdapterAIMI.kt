@@ -175,7 +175,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
             ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 16 Novembre 2023"
-        val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
+        val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, bg, delta, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
         iobDataParam = iobData.toString()
@@ -822,43 +822,32 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             this.profile.put("out_units", "mmol/L")
         }
 
-        //val tb = iobCobCalculator.getTempBasalIncludingConvertedExtended(now)
-        /*val newRate = when {
-            bg > 80 && delta <= 0 || isSportSafetyCondition() -> 0.0
-            bg > 80 && delta > 0 -> basalaimi.toDouble()
-            else -> tb?.convertedToAbsolute(now, profile) ?: 0.0
-        }*/
-        if (delta <= 0 || isSportSafetyCondition()){
-            val tb = iobCobCalculator.getTempBasalIncludingConvertedExtended(now)
-            currentTemp = JSONObject()
-            currentTemp.put("temp", "absolute")
-            currentTemp.put("duration", tb?.plannedRemainingMinutes ?: 0)
-            currentTemp.put("rate", tb?.convertedToAbsolute(now, profile) ?: 0.0)
-            // as we have non default temps longer than 30 minutes
-            if (tb != null) currentTemp.put("minutesrunning", tb.getPassedDurationToTimeInMinutes(now))
-        }else if (bg > 80 && delta >= 0) {
-            val tb = iobCobCalculator.getTempBasalIncludingConvertedExtended(now)
-            val newRate = tb?.convertedToAbsolute(now, profile) ?: 0.0
+        val tb = iobCobCalculator.getTempBasalIncludingConvertedExtended(now)
+        val newRate = if ( bg > 80 && delta > 0 && isSportSafetyCondition() === false) {
+            basalaimi
 
-            // Déterminer la durée pour le nouveau basal temporaire
-            val newDuration = tb?.plannedRemainingMinutes ?: 30
-            // Créer ou mettre à jour l'objet TemporaryBasal pour la nouvelle commande
-            val newTempBasal = TemporaryBasal(
-                timestamp = now,
-                duration = newDuration * 60 * 1000L, // Convertir en millisecondes
-                rate = newRate,
-                isAbsolute = true,
-                type = TemporaryBasal.Type.NORMAL
-            )
-
-            currentTemp = JSONObject()
-            currentTemp.put("temp", "absolute")
-            currentTemp.put("duration", newTempBasal.duration ?: 0)
-            currentTemp.put("rate", newTempBasal.rate)
-
-            // as we have non default temps longer than 30 minutes
-            if (tb != null) currentTemp.put("minutesrunning", tb.getPassedDurationToTimeInMinutes(now))
+        } else {
+            tb?.convertedToAbsolute(now, profile) ?: 0.0
         }
+        // Déterminer la durée pour le nouveau basal temporaire
+        //val newDuration = tb?.plannedRemainingMinutes ?: 30
+        // Créer ou mettre à jour l'objet TemporaryBasal pour la nouvelle commande
+        val newTempBasal = TemporaryBasal(
+            timestamp = now,
+            duration = 30,//newDuration * 60 * 1000L, // Convertir en millisecondes
+            rate = if(bg > 80 && delta > 0 && isSportSafetyCondition() === false) newRate.toDouble() else 0.0,
+            isAbsolute = true,
+            type = TemporaryBasal.Type.NORMAL
+        )
+
+        currentTemp = JSONObject()
+        currentTemp.put("temp", "absolute")
+        currentTemp.put("duration", newTempBasal.duration)
+        currentTemp.put("rate", newTempBasal.rate)
+
+        // as we have non default temps longer than 30 minutes
+        if (tb != null) currentTemp.put("minutesrunning", tb.getPassedDurationToTimeInMinutes(now))
+
         iobData = iobCobCalculator.convertToJSONArray(iobArray)
         this.glucoseStatus = JSONObject()
         this.glucoseStatus.put("glucose", glucoseStatus.glucose)

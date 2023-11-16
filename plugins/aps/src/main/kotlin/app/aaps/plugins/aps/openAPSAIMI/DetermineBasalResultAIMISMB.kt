@@ -16,13 +16,16 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
     var iobStr: String = ""
     var profileStr: String = ""
     var mealStr: String = ""
-
+    var delta = 0.0f
+    var bg = 0.0f
 
     override var variableSens: Double? = null
 
     internal constructor(
         injector: HasAndroidInjector,
         requestedSMB: Float,
+        delta: Float,
+        bg: Float,
         constraintStr: String,
         glucoseStr: String,
         iobStr: String,
@@ -35,13 +38,14 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
         this.iobStr = iobStr
         this.profileStr = profileStr
         this.mealStr = mealStr
-
+        this.bg = bg
+        this.delta = delta
 
         this.date = dateUtil.now()
 
-        this.isTempBasalRequested = true
-        this.rate = rate
-        this.duration = duration
+            this.isTempBasalRequested = true
+            //this.rate = 0.35
+            //this.duration = 30
 
         this.smb = requestedSMB.toDouble()
         if (requestedSMB > 0) {
