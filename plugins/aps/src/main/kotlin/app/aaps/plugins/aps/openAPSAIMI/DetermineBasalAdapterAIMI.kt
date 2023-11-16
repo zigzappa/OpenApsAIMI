@@ -822,18 +822,21 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
 
         val tb = iobCobCalculator.getTempBasalIncludingConvertedExtended(now)
-        val newRate = if (bg < 110 && bg > 80 && delta > 0) {
-            basalaimi
-        } else {
-            tb?.convertedToAbsolute(now, profile) ?: 0.0
+        val newRate = when {
+            bg > 80 && delta > 0 -> basalaimi.toDouble()
+            bg > 80 && delta <= 0 || isSportSafetyCondition() -> 0.0
+            else -> {
+                tb?.convertedToAbsolute(now, profile) ?: 0.0
+            }
         }
+
         // Déterminer la durée pour le nouveau basal temporaire
         val newDuration = tb?.plannedRemainingMinutes ?: 30
         // Créer ou mettre à jour l'objet TemporaryBasal pour la nouvelle commande
         val newTempBasal = TemporaryBasal(
             timestamp = now,
             duration = newDuration * 60 * 1000L, // Convertir en millisecondes
-            rate = newRate.toDouble(),
+            rate = newRate,
             isAbsolute = true,
             type = TemporaryBasal.Type.NORMAL
         )
