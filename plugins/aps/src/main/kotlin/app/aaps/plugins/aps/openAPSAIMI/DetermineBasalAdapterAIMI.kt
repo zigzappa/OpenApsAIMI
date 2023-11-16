@@ -290,9 +290,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val sport2 = recentSteps5Minutes >= 200 && averageBeatsPerMinute > averageBeatsPerMinute60
         val sport3 = recentSteps5Minutes >= 200 && recentSteps10Minutes >= 500
         val sport4 = targetBg >= 140
-        this.sportTime = true
+        val sport5= sportTime
 
-        return sport || sport1 || sport2 || sport3 || sport4 || sportTime
+        return sport || sport1 || sport2 || sport3 || sport4 || sport5
 
     }
 
