@@ -106,6 +106,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var sleepTime = false
     private var sportTime = false
     private var snackTime = false
+    private var intervalsmb = 5
     private var variableSensitivity = 0.0f
     private var averageBeatsPerMinute = 0.0
     private var averageBeatsPerMinute60 = 0.0
@@ -155,7 +156,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         logDataToCsv(predictedSMB, smbToGive)
         logDataToCsvHB(predictedSMB, smbToGive)
 
-        val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB<br/> sleepTime: $sleepTime<br/> sportTime: $sportTime<br/> snackTime: $snackTime<br/>"
+        val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB<br/> sleepTime: $sleepTime<br/> sportTime: $sportTime<br/> snackTime: $snackTime<br/> intervalsmb: $intervalsmb<br/>"
         val glucoseStr = " bg: $bg <br/> targetBG: $targetBg <br/> futureBg: $predictedBg <br/>" +
             "delta: $delta <br/> short avg delta: $shortAvgDelta <br/> long avg delta: $longAvgDelta <br/>" +
             " accelerating_up: $accelerating_up <br/> deccelerating_up: $deccelerating_up <br/> accelerating_down: $accelerating_down <br/> deccelerating_down: $deccelerating_down <br/> stable: $stable"
@@ -301,8 +302,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val safetysmb = recentSteps180Minutes > 1500 && bg < 130
         if ((safetysmb || sleepTime || snackTime) && lastsmbtime >= 10) {
             result /= 2
+            this.intervalsmb = 10
         }else if ((safetysmb || sleepTime || snackTime) && lastsmbtime < 10){
             result = 0.0f
+            this.intervalsmb = 10
         }
 
 
