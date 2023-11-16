@@ -40,8 +40,8 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
         this.date = dateUtil.now()
 
         this.isTempBasalRequested = true
-        this.rate = 0.0
-        this.duration = 30
+        this.rate = rate
+        this.duration = duration
 
         this.smb = requestedSMB.toDouble()
         if (requestedSMB > 0) {
