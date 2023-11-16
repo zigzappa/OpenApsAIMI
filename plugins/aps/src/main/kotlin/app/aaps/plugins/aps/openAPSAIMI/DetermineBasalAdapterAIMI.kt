@@ -883,7 +883,94 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val doubleValue = this.toDouble()
         return doubleValue.takeIf { !it.isNaN() && !it.isInfinite() }
     }
+    data class TimedState(var isActive: Boolean, var activationTime: Long, var duration: Int)
+
+    private var sleepState = TimedState(false, 0, 0)
+    private var sportState = TimedState(false, 0, 0)
+    private var snackState = TimedState(false, 0, 0)
+
     private fun parseNotes(startMinAgo: Int, endMinAgo: Int): String {
+        val olderTimeStamp = now - endMinAgo * 60 * 1000
+        val moreRecentTimeStamp = now - startMinAgo * 60 * 1000
+        var notes = ""
+        var recentNotes2: MutableList<String> = mutableListOf()
+
+        val autoNote = determineNoteBasedOnBg(bg.toDouble())
+        recentNotes2.add(autoNote)
+        recentNotes?.forEach { note ->
+            if (note.timestamp > olderTimeStamp && note.timestamp <= moreRecentTimeStamp) {
+                val noteText = note.note.lowercase()
+                if (!noteText.contains("low treatment") && !noteText.contains("less aggressive") &&
+                    !noteText.contains("more aggressive") && !noteText.contains("too aggressive")) {
+                    if (notes.isNotEmpty()) notes += " "
+                    notes += noteText
+                    recentNotes2.add(noteText)
+
+                    if (noteText.contains("sleep") || noteText.contains("sport") || noteText.contains("snack")) {
+                        val (activity, duration) = extractActivityAndDuration(noteText)
+                        updateTimedState(activity, note.timestamp, duration)
+                    }
+                }
+            }
+        }
+
+        return processNotesAndCleanUp(notes)
+    }
+
+    private fun extractActivityAndDuration(noteText: String): Pair<String, Int> {
+        val parts = noteText.split(":")
+        val activity = parts[0]
+        val duration = parts.getOrNull(1)?.trim()?.toIntOrNull() ?: 0
+        return Pair(activity, duration)
+    }
+
+    private fun updateTimedState(activity: String, timestamp: Long, duration: Int) {
+        when (activity) {
+            "sleep" -> {
+                sleepState.isActive = true
+                sleepState.activationTime = timestamp
+                sleepState.duration = duration
+            }
+            "sport" -> {
+                sportState.isActive = true
+                sportState.activationTime = timestamp
+                sportState.duration = duration
+            }
+            "snack" -> {
+                snackState.isActive = true
+                snackState.activationTime = timestamp
+                snackState.duration = duration
+            }
+        }
+    }
+
+    private fun processNotesAndCleanUp(notes: String): String {
+        return notes.lowercase()
+            .replace(",", " ")
+            .replace(".", " ")
+            .replace("!", " ")
+            .replace("a", " ")
+            .replace("an", " ")
+            .replace("and", " ")
+            .replace("\\s+", " ")
+    }
+
+    private fun checkState() {
+        val currentTime = System.currentTimeMillis()
+
+        if (sleepState.isActive && currentTime - sleepState.activationTime > sleepState.duration * 60 * 1000) {
+            sleepState.isActive = false
+        }
+
+        if (sportState.isActive && currentTime - sportState.activationTime > sportState.duration * 60 * 1000) {
+            sportState.isActive = false
+        }
+
+        if (snackState.isActive && currentTime - snackState.activationTime > snackState.duration * 60 * 1000) {
+            snackState.isActive = false
+        }
+    }
+    /*private fun parseNotes(startMinAgo: Int, endMinAgo: Int): String {
         val olderTimeStamp = now - endMinAgo * 60 * 1000
         val moreRecentTimeStamp = now - startMinAgo * 60 * 1000
         var notes = ""
@@ -928,7 +1015,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             this.snackTime = true
         }
         return notes
-    }
+    }*/
 
     init {
         injector.androidInjector().inject(this)
