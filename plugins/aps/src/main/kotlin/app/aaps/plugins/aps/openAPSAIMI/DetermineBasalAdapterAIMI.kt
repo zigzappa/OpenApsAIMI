@@ -890,6 +890,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var snackState = TimedState(false, 0, 0)
 
     private fun parseNotes(startMinAgo: Int, endMinAgo: Int): String {
+        checkState()
         val olderTimeStamp = now - endMinAgo * 60 * 1000
         val moreRecentTimeStamp = now - startMinAgo * 60 * 1000
         var notes = ""
@@ -958,15 +959,15 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private fun checkState() {
         val currentTime = System.currentTimeMillis()
 
-        if (sleepState.isActive && currentTime - sleepState.activationTime > sleepState.duration * 60 * 1000) {
+        if (sleepState.isActive && now - sleepState.activationTime > sleepState.duration * 60 * 1000) {
             sleepState.isActive = false
         }
 
-        if (sportState.isActive && currentTime - sportState.activationTime > sportState.duration * 60 * 1000) {
+        if (sportState.isActive && now - sportState.activationTime > sportState.duration * 60 * 1000) {
             sportState.isActive = false
         }
 
-        if (snackState.isActive && currentTime - snackState.activationTime > snackState.duration * 60 * 1000) {
+        if (snackState.isActive && now - snackState.activationTime > snackState.duration * 60 * 1000) {
             snackState.isActive = false
         }
     }
