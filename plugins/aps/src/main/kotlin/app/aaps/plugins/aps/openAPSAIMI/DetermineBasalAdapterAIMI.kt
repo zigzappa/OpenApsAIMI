@@ -45,6 +45,7 @@ import java.util.Locale
 import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.math.round
+import app.aaps.plugins.aps.openAPSAIMI.therapy
 
 class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAndroidInjector) : DetermineBasalAdapter {
 
@@ -58,6 +59,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     @Inject lateinit var dateUtil: DateUtil
     @Inject lateinit var tddCalculator: TddCalculator
     @Inject lateinit var tirCalculator: TirCalculator
+
 
     private var iob = 0.0f
     private var cob = 0.0f
@@ -106,6 +108,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var sleepTime = false
     private var sportTime = false
     private var snackTime = false
+    private var lowCarbTime = false
+    private var highCarbTime = false
     private var intervalsmb = 5
     private var variableSensitivity = 0.0f
     private var averageBeatsPerMinute = 0.0
@@ -143,6 +147,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val eveningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_evening_factor, "50")) / 100.0
         val hyperfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_hyper_factor, "50")) / 100.0
         smbToGive = when {
+            highCarbTime -> smbToGive * 130.0f
             hourOfDay in 1..11 -> smbToGive * morningfactor.toFloat()
             hourOfDay in 12..18 -> smbToGive * afternoonfactor.toFloat()
             hourOfDay in 19..23 -> smbToGive * eveningfactor.toFloat()
@@ -156,7 +161,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         logDataToCsv(predictedSMB, smbToGive)
         logDataToCsvHB(predictedSMB, smbToGive)
 
-        val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB<br/> sleepTime: $sleepTime<br/> sportTime: $sportTime<br/> snackTime: $snackTime<br/> intervalsmb: $intervalsmb<br/>"
+        val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB<br/> sleep: $sleepTime<br/> sport: $sportTime<br/> snack: $snackTime<br/>" +
+            "lowcarb: $lowCarbTime<br/> highcarb: $highCarbTime<br/> intervalsmb: $intervalsmb<br/>"
         val glucoseStr = " bg: $bg <br/> targetBG: $targetBg <br/> futureBg: $predictedBg <br/>" +
             "delta: $delta <br/> short avg delta: $shortAvgDelta <br/> long avg delta: $longAvgDelta <br/>" +
             " accelerating_up: $accelerating_up <br/> deccelerating_up: $deccelerating_up <br/> accelerating_down: $accelerating_down <br/> deccelerating_down: $deccelerating_down <br/> stable: $stable"
@@ -175,7 +181,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
             ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 16 Novembre 2023"
-        val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, bg, delta, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
+        val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
         iobDataParam = iobData.toString()
@@ -300,7 +306,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         var result = smbToGive
 
         val safetysmb = recentSteps180Minutes > 1500 && bg < 130
-        if ((safetysmb || sleepTime || snackTime) && lastsmbtime >= 10) {
+        if ((safetysmb || sleepTime || snackTime || lowCarbTime ) && lastsmbtime >= 10) {
             result /= 2
             this.intervalsmb = 10
         }else if ((safetysmb || sleepTime || snackTime) && lastsmbtime < 10){
@@ -587,6 +593,13 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 this.targetBg = defaultTarget.toFloat()
             }
         }
+        val therapy = therapy(appRepository = repository)
+        therapy.updateStatesBasedOnTherapyEvents()
+        this.sleepTime = therapy.sleepTime
+        this.snackTime = therapy.snackTime
+        this.sportTime = therapy.sportTime
+        this.lowCarbTime = therapy.lowCarbTime
+        this.highCarbTime = therapy.highCarbTime
 
         this.accelerating_up = if (delta > 2 && delta - longAvgDelta > 2) 1 else 0
         this.deccelerating_up = if (delta > 0 && (delta < shortAvgDelta || delta < longAvgDelta)) 1 else 0
@@ -621,8 +634,16 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         var tdd = (tddWeightedFromLast8H * 0.33) + (tdd7Days.toDouble() * 0.34) + (tddDaily.toDouble() * 0.33)
         val dynISFadjust = SafeParse.stringToDouble(sp.getString(R.string.key_DynISFAdjust, "120")) / 100.0
         val dynISFadjusthyper = SafeParse.stringToDouble(sp.getString(R.string.key_DynISFAdjusthyper, "150")) / 100.0
-        tdd = if (bg > 180) tdd * dynISFadjusthyper else tdd * dynISFadjust
 
+        tdd = when{
+            sportTime -> tdd * 50.0
+            sleepTime -> tdd * 80.0
+            lowCarbTime -> tdd * 85.0
+            snackTime -> tdd * 65.0
+            highCarbTime -> tdd * 500.0
+            bg > 180 -> tdd * dynISFadjusthyper
+            else -> tdd * dynISFadjust
+        }
         this.variableSensitivity = Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1).toFloat()
         this.currentTIRLow = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.belowPct()!!
         this.currentTIRRange = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.inRangePct()!!
@@ -745,16 +766,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.b30upperbg = SafeParse.stringToDouble(sp.getString(R.string.key_B30_upperBG, "130"))
         this.b30upperdelta = SafeParse.stringToDouble(sp.getString(R.string.key_B30_upperdelta, "10"))
         val b30duration = SafeParse.stringToDouble(sp.getString(R.string.key_B30_duration, "20"))
-
-        /*this.basalSMB = (((basalaimi * delta) / 60) * b30duration).toFloat()
-
-        if (delta < b30upperdelta && delta > 1 && bg < b30upperbg && lastsmbtime > 20) {
-            this.basaloapsaimirate = basalSMB
-        }else if (predictedBg > targetBg && bg > targetBg && lastsmbtime > 20){
-            this.basaloapsaimirate = basalSMB
-        }else{
-            this.basaloapsaimirate = 0.0f
-        }*/
 
         val variableSensitivityDouble = variableSensitivity.toDoubleSafely()
         if (variableSensitivityDouble != null) {
@@ -883,141 +894,46 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val doubleValue = this.toDouble()
         return doubleValue.takeIf { !it.isNaN() && !it.isInfinite() }
     }
-    data class TimedState(var isActive: Boolean, var activationTime: Long, var duration: Int)
-
-    private var sleepState = TimedState(false, 0, 0)
-    private var sportState = TimedState(false, 0, 0)
-    private var snackState = TimedState(false, 0, 0)
-
-    private fun parseNotes(startMinAgo: Int, endMinAgo: Int): String {
-        checkState()
-        val olderTimeStamp = now - endMinAgo * 60 * 1000
-        val moreRecentTimeStamp = now - startMinAgo * 60 * 1000
-        var notes = ""
-        var recentNotes2: MutableList<String> = mutableListOf()
-
-        val autoNote = determineNoteBasedOnBg(bg.toDouble())
-        recentNotes2.add(autoNote)
-        recentNotes?.forEach { note ->
-            if (note.timestamp > olderTimeStamp && note.timestamp <= moreRecentTimeStamp) {
-                val noteText = note.note.lowercase()
-                if (!noteText.contains("low treatment") && !noteText.contains("less aggressive") &&
-                    !noteText.contains("more aggressive") && !noteText.contains("too aggressive")) {
-                    if (notes.isNotEmpty()) notes += " "
-                    notes += noteText
-                    recentNotes2.add(noteText)
-
-                    if (noteText.contains("sleep") || noteText.contains("sport") || noteText.contains("snack")) {
-                        val (activity, duration) = extractActivityAndDuration(noteText)
-                        updateTimedState(activity, note.timestamp, duration)
-                    }
-                }
-            }
-        }
-
-        return processNotesAndCleanUp(notes)
-    }
-
-    private fun extractActivityAndDuration(noteText: String): Pair<String, Int> {
-        val parts = noteText.split(":")
-        val activity = parts[0]
-        val duration = parts.getOrNull(1)?.trim()?.toIntOrNull() ?: 0
-        return Pair(activity, duration)
-    }
-
-    private fun updateTimedState(activity: String, timestamp: Long, duration: Int) {
-        when (activity) {
-            "sleep" -> {
-                sleepState.isActive = true
-                sleepState.activationTime = timestamp
-                sleepState.duration = duration
-            }
-            "sport" -> {
-                sportState.isActive = true
-                sportState.activationTime = timestamp
-                sportState.duration = duration
-            }
-            "snack" -> {
-                snackState.isActive = true
-                snackState.activationTime = timestamp
-                snackState.duration = duration
-            }
-        }
-    }
 
     private fun processNotesAndCleanUp(notes: String): String {
         return notes.lowercase()
             .replace(",", " ")
             .replace(".", " ")
             .replace("!", " ")
-            .replace("a", " ")
+            //.replace("a", " ")
             .replace("an", " ")
             .replace("and", " ")
             .replace("\\s+", " ")
     }
 
-    private fun checkState() {
-        val currentTime = System.currentTimeMillis()
-
-        if (sleepState.isActive && now - sleepState.activationTime > sleepState.duration * 60 * 1000) {
-            sleepState.isActive = false
-        }
-
-        if (sportState.isActive && now - sportState.activationTime > sportState.duration * 60 * 1000) {
-            sportState.isActive = false
-        }
-
-        if (snackState.isActive && now - snackState.activationTime > snackState.duration * 60 * 1000) {
-            snackState.isActive = false
-        }
-    }
-    /*private fun parseNotes(startMinAgo: Int, endMinAgo: Int): String {
+    private fun parseNotes(startMinAgo: Int, endMinAgo: Int): String {
         val olderTimeStamp = now - endMinAgo * 60 * 1000
         val moreRecentTimeStamp = now - startMinAgo * 60 * 1000
         var notes = ""
         var recentNotes2: MutableList<String> = mutableListOf()
-
         val autoNote = determineNoteBasedOnBg(bg.toDouble())
         recentNotes2.add(autoNote)
+        notes += autoNote  // Ajout de la note auto générée
+
         recentNotes?.forEach { note ->
-            if(note.timestamp > olderTimeStamp
-                && note.timestamp <= moreRecentTimeStamp
-                && !note.note.lowercase().contains("low treatment")
-                && !note.note.lowercase().contains("less aggressive")
-                && !note.note.lowercase().contains("more aggressive")
-                && !note.note.lowercase().contains("too aggressive")
-            ) {
-                notes += if(notes.isEmpty()) recentNotes2 else " "
-                notes += note.note
-                recentNotes2.add(note.note)
+            if(note.timestamp > olderTimeStamp && note.timestamp <= moreRecentTimeStamp) {
+                val noteText = note.note.lowercase()
+                if (noteText.contains("sleep") || noteText.contains("sport") || noteText.contains("snack") ||
+                    noteText.contains("lowcarb") || noteText.contains("highcarb") ||
+                    noteText.contains("low treatment") || noteText.contains("less aggressive") ||
+                    noteText.contains("more aggressive") || noteText.contains("too aggressive") ||
+                    noteText.contains("normal")) {
+
+                    notes += if (notes.isEmpty()) recentNotes2 else " "
+                    notes += note.note
+                    recentNotes2.add(note.note)
+                }
             }
         }
-        notes = notes.lowercase()
-        notes.replace(","," ")
-        notes.replace("."," ")
-        notes.replace("!"," ")
-        notes.replace("a"," ")
-        notes.replace("an"," ")
-        notes.replace("and"," ")
-        notes.replace("\\s+"," ")
-        val containsSleep = recentNotes2.any { it.lowercase().contains("sleep") }
-        val containsSport = recentNotes2.any { it.lowercase().contains("sport") }
-        val containsSnack = recentNotes2.any { it.lowercase().contains("snack") }
 
-        if (containsSleep) {
-            this.sleepTime = true
-        }
-
-        if (containsSport) {
-            this.sportTime = true
-        }
-
-        if (containsSnack) {
-            this.snackTime = true
-        }
+        notes = processNotesAndCleanUp(notes)
         return notes
-    }*/
-
+    }
     init {
         injector.androidInjector().inject(this)
     }
