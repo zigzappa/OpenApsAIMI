@@ -71,6 +71,7 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
 
         //updateAPSResult(apsResultObject)
             this.isTempBasalRequested = true
+            this.usePercent = true
 
             if (this.delta <= 0.0f && this.bg <= 140.0f) {
                 this.rate = 0.0
@@ -78,7 +79,7 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
                 //this.deliverAt = dateUtil.now()
                 //this.isChangeRequested
             }else if(this.delta > 0.0f && this.bg > 80 && enablebasal){
-                this.rate = basalaimi.toDouble()
+                this.rate = basalaimi.toDouble() * this.delta
                 this.duration = 30
                 //this.deliverAt = dateUtil.now()
                 //this.isChangeRequested
