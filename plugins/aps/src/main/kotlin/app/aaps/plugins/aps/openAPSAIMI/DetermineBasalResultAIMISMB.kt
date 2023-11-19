@@ -92,9 +92,9 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
     override fun newAndClone(injector: HasAndroidInjector): DetermineBasalResultSMB {
         val newResult = DetermineBasalResultAIMISMB(injector)
         doClone(newResult)
-        newResult.rate = rate
-        newResult.duration = duration
-        newResult.targetBG = targetBG
+        newResult.rate = this.rate
+        newResult.duration = this.duration
+        newResult.targetBG = this.targetBG
         return newResult
     }
 
