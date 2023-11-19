@@ -66,6 +66,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var predictedBg = 0.0f
     private var lastCarbAgeMin: Int = 0
     private var futureCarbs = 0.0f
+    private var enablebasal: Boolean = false
     private var recentNotes: List<UserEntry>? = null
     private var tags0to60minAgo = ""
     private var tags60to120minAgo = ""
@@ -170,7 +171,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tdd 2d/h : ${roundToPoint05(tdd2DaysPerHour)} <br/> " +
             "tdd daily/h : ${roundToPoint05(tddPerHour)} <br/> " +
             "tdd 24h/h : ${roundToPoint05(tdd24HrsPerHour)}<br/>" +
-            "basalaimi : $basalaimi <br/> basalsmb : $basalSMB <br/>"
+            "enablebasal : $enablebasal <br/> basalaimi : $basalaimi <br/> basalsmb : $basalSMB <br/>"
         val profileStr = " Hour of day: $hourOfDay <br/> Weekend: $weekend <br/>" +
             " 5 Min Steps: $recentSteps5Minutes <br/> 10 Min Steps: $recentSteps10Minutes <br/> 15 Min Steps: $recentSteps15Minutes <br/>" +
             " 30 Min Steps: $recentSteps30Minutes <br/> 60 Min Steps: $recentSteps60Minutes <br/> 180 Min Steps: $recentSteps180Minutes <br/>" +
@@ -593,6 +594,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 this.targetBg = defaultTarget.toFloat()
             }
         }
+        this.enablebasal = sp.getBoolean(R.string.key_enable_basal, false)
         val therapy = therapy(appRepository = repository)
         therapy.updateStatesBasedOnTherapyEvents()
         this.sleepTime = therapy.sleepTime

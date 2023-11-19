@@ -22,8 +22,9 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
     var bg:Float = 0.0f
     override var targetBG: Double = 0.0
     var basalaimi:Float = 0.0f
+    var enablebasal:Boolean = false
     override var variableSens: Double? = null
-    val apsResultObject = APSResultObject(injector)
+    //val apsResultObject = APSResultObject(injector)
 
 
     internal constructor(
@@ -43,28 +44,51 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
         this.mealStr = mealStr
 
 
+        fun extractGlucoseValues() {
+            val lines = glucoseStr.split("<br/>")
+            lines.forEach { line ->
+                when {
+                    line.startsWith("bg: ") -> this.bg = line.substringAfter("bg: ").toFloatOrNull() ?: 0.0f
+                    line.startsWith("delta: ") -> this.delta = line.substringAfter("delta: ").toFloatOrNull() ?: 0.0f
+                    line.startsWith("targetBG: ") -> this.targetBG = (line.substringAfter("targetBg: ").toFloatOrNull() ?: 0.0f).toDouble()
+                }
+            }
+        }
+        fun extractIobValues() {
+            val lines = iobStr.split("<br/>")
+            lines.forEach { line ->
+                when {
+                    line.startsWith("basalaimi: ") -> this.basalaimi= line.substringAfter("basalaimi: ").toFloatOrNull() ?: 0.0f
+                    line.startsWith("enablebasal: ") -> this.enablebasal= line.substringAfter("enablebasal: ").toBoolean()
+                }
+            }
+        }
 
 
-
-        //this.date = dateUtil.now()
-        //extractGlucoseValues()
-        //extractIobValues()
+        this.date = dateUtil.now()
+        extractGlucoseValues()
+        extractIobValues()
 
         //updateAPSResult(apsResultObject)
             this.isTempBasalRequested = true
+
             if (this.delta <= 0.0f && this.bg <= 140.0f) {
                 this.rate = 0.0
                 this.duration = 120
-            }else if(this.delta > 0.0f && this.bg > 80){
-                this.rate = round(this.basalaimi.toDouble() * this.delta)
+                //this.deliverAt = dateUtil.now()
+                //this.isChangeRequested
+            }else if(this.delta > 0.0f && this.bg > 80 && enablebasal){
+                this.rate = basalaimi.toDouble()
                 this.duration = 30
+                //this.deliverAt = dateUtil.now()
+                //this.isChangeRequested
             }
 
         this.smb = requestedSMB.toDouble()
         if (requestedSMB > 0) {
             this.deliverAt = dateUtil.now()
         }
-
+        //updateAPSResult(apsResultObject)
         this.reason = reason
     }
 
@@ -73,7 +97,7 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
             "<br/><br/>$profileStr<br/><br/>$mealStr<br/><br/>$reason"
         return HtmlHelper.fromHtml(result)
     }
-    private fun updateAPSResult(apsResult: APSResultObject) {
+    /*private fun updateAPSResult(apsResult: APSResultObject) {
 
         val newRate = round(this.basalaimi.toDouble() * this.delta)
         val newDuration = 30
@@ -81,13 +105,17 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
         if (this.delta <= 0.0f && this.bg <= 140.0f) {
             apsResult.rate = 0.0
             apsResult.duration = newDuration
+            this.isTempBasalRequested
+            this.isChangeRequested
         }else if(this.delta > 0.0f && this.bg > 80){
             apsResult.rate = newRate.toDouble()
             apsResult.duration = newDuration
+            this.isTempBasalRequested
+            this.isChangeRequested
         }
         apsResult.targetBG = newtargetBG.toDouble()
 
-    }
+    }*/
 
     override fun newAndClone(injector: HasAndroidInjector): DetermineBasalResultSMB {
         val newResult = DetermineBasalResultAIMISMB(injector)
@@ -101,43 +129,29 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
     override fun json(): JSONObject? {
         val result = "$constraintStr<br/><br/>$glucoseStr<br/><br/>$iobStr" +
             "<br/><br/>$profileStr<br/><br/>$mealStr<br/><br/>$reason"
-        val jsonData = JSONObject()
+        val json = JSONObject()
         try {
             // Ajout des données dans l'objet JSON
-            jsonData.put("reason", result)
+            //jsonData.put("reason", result)
+            if (isChangeRequested) {
+                //json.put("rate", rate)
+                //json.put("duration", duration)
+                json.put("reason", result)
+            }
 
         } catch (e: JSONException) {
             aapsLogger.error(LTag.APS, "Error creating JSON object", e)
             return null
         }
-        return jsonData
+        return json
     }
 
 
     init {
         this.date = dateUtil.now()
-        extractGlucoseValues()
-        extractIobValues()
-        updateAPSResult(apsResultObject)
+        //updateAPSResult(apsResultObject)
         hasPredictions = true
     }
-    private fun extractGlucoseValues() {
-        val lines = glucoseStr.split("<br/>")
-        lines.forEach { line ->
-            when {
-                line.startsWith("bg: ") -> this.bg = line.substringAfter("bg: ").toFloatOrNull() ?: 0.0f
-                line.startsWith("delta: ") -> this.delta = line.substringAfter("delta: ").toFloatOrNull() ?: 0.0f
-                line.startsWith("targetBG: ") -> this.targetBG = (line.substringAfter("targetBg: ").toFloatOrNull() ?: 0.0f).toDouble()
-            }
-        }
-    }
-    private fun extractIobValues() {
-        val lines = iobStr.split("<br/>")
-        lines.forEach { line ->
-            when {
-                line.startsWith("basalaimi: ") -> this.basalaimi= line.substringAfter("basalaimi: ").toFloatOrNull() ?: 0.0f
-            }
-        }
-    }
+
 
 }
