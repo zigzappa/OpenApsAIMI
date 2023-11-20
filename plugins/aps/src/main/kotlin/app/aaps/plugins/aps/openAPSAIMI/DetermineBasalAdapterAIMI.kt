@@ -24,6 +24,7 @@ import app.aaps.core.main.extensions.getPassedDurationToTimeInMinutes
 import app.aaps.core.main.extensions.plannedRemainingMinutes
 import app.aaps.database.ValueWrapper
 import app.aaps.database.entities.Bolus
+import app.aaps.database.entities.TemporaryBasal
 import app.aaps.database.entities.UserEntry
 import app.aaps.database.impl.AppRepository
 import app.aaps.plugins.aps.APSResultObject
@@ -44,6 +45,7 @@ import java.util.Locale
 import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.math.round
+import app.aaps.plugins.aps.openAPSAIMI.therapy
 
 class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAndroidInjector) : DetermineBasalAdapter {
 
@@ -58,16 +60,21 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     @Inject lateinit var tddCalculator: TddCalculator
     @Inject lateinit var tirCalculator: TirCalculator
 
+
     private var iob = 0.0f
     private var cob = 0.0f
     private var predictedBg = 0.0f
     private var lastCarbAgeMin: Int = 0
     private var futureCarbs = 0.0f
+    private var enablebasal: Boolean = false
     private var recentNotes: List<UserEntry>? = null
     private var tags0to60minAgo = ""
     private var tags60to120minAgo = ""
     private var tags120to180minAgo = ""
     private var tags180to240minAgo = ""
+    private var currentTIRLow: Double = 0.0
+    private var currentTIRRange: Double = 0.0
+    private var currentTIRAbove: Double = 0.0
     private var bg = 0.0f
     private var targetBg = 100.0f
     private var normalBgThreshold = 150.0f
@@ -79,9 +86,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var deccelerating_up: Int = 0
     private var accelerating_down: Int = 0
     private var deccelerating_down: Int = 0
-    private var currentTIRLow: Double = 0.0
-    private var currentTIRRange: Double = 0.0
-    private var currentTIRAbove: Double = 0.0
     private var stable: Int = 0
     private var maxIob = 0.0f
     private var maxSMB = 1.0f
@@ -100,8 +104,14 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var basalaimi = 0.0f
     private var basalSMB = 0.0f
     private var aimilimit = 0.0f
-    private var basaloapsaimirate = 0.0f
+    //private var basaloapsaimirate = 0.0f
     private var CI = 0.0f
+    private var sleepTime = false
+    private var sportTime = false
+    private var snackTime = false
+    private var lowCarbTime = false
+    private var highCarbTime = false
+    private var intervalsmb = 5
     private var variableSensitivity = 0.0f
     private var averageBeatsPerMinute = 0.0
     private var averageBeatsPerMinute60 = 0.0
@@ -138,6 +148,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val eveningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_evening_factor, "50")) / 100.0
         val hyperfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_hyper_factor, "50")) / 100.0
         smbToGive = when {
+            highCarbTime -> smbToGive * 130.0f
             hourOfDay in 1..11 -> smbToGive * morningfactor.toFloat()
             hourOfDay in 12..18 -> smbToGive * afternoonfactor.toFloat()
             hourOfDay in 19..23 -> smbToGive * eveningfactor.toFloat()
@@ -151,7 +162,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         logDataToCsv(predictedSMB, smbToGive)
         logDataToCsvHB(predictedSMB, smbToGive)
 
-        val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB"
+        val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB<br/> sleep: $sleepTime<br/> sport: $sportTime<br/> snack: $snackTime<br/>" +
+            "lowcarb: $lowCarbTime<br/> highcarb: $highCarbTime<br/> intervalsmb: $intervalsmb<br/>"
         val glucoseStr = " bg: $bg <br/> targetBG: $targetBg <br/> futureBg: $predictedBg <br/>" +
             "delta: $delta <br/> short avg delta: $shortAvgDelta <br/> long avg delta: $longAvgDelta <br/>" +
             " accelerating_up: $accelerating_up <br/> deccelerating_up: $deccelerating_up <br/> accelerating_down: $accelerating_down <br/> deccelerating_down: $deccelerating_down <br/> stable: $stable"
@@ -159,17 +171,17 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tdd 2d/h : ${roundToPoint05(tdd2DaysPerHour)} <br/> " +
             "tdd daily/h : ${roundToPoint05(tddPerHour)} <br/> " +
             "tdd 24h/h : ${roundToPoint05(tdd24HrsPerHour)}<br/>" +
-            "basalaimi : $basalaimi <br/> basalsmb : $basalSMB <br/>"
+            "enablebasal : $enablebasal <br/> basalaimi : $basalaimi <br/> basalsmb : $basalSMB <br/>"
         val profileStr = " Hour of day: $hourOfDay <br/> Weekend: $weekend <br/>" +
             " 5 Min Steps: $recentSteps5Minutes <br/> 10 Min Steps: $recentSteps10Minutes <br/> 15 Min Steps: $recentSteps15Minutes <br/>" +
             " 30 Min Steps: $recentSteps30Minutes <br/> 60 Min Steps: $recentSteps60Minutes <br/> 180 Min Steps: $recentSteps180Minutes <br/>" +
-            "ISF : $variableSensitivity <br/> Heart Beat per minute(average past 5 minutes) : $averageBeatsPerMinute <br/> Heart Beat per minute(average past 180 minutes) : $averageBeatsPerMinute180"
+            "ISF : $variableSensitivity <br/> Heart Beat(average past 5 minutes) : $averageBeatsPerMinute <br/> Heart Beat(average past 180 minutes) : $averageBeatsPerMinute180"
         var mealStr = " COB: ${cob}g   Future: ${futureCarbs}g <br/> COB Age Min: $lastCarbAgeMin <br/><br/> "
         mealStr += "tags0to60minAgo: ${tags0to60minAgo}<br/> tags60to120minAgo: $tags60to120minAgo<br/> " +
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 10 Novembre 2023"
+            ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 19 Novembre 2023"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -237,14 +249,14 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         if (isCriticalSafetyCondition()) {
             return 0.0f  // Arrêt immédiat si une condition de sécurité critique est remplie
         }
+        if (isSportSafetyCondition()) return 0.0f // Arrêt immédiat si une condition de sport est remplie
 
         // Ajustements basés sur des conditions spécifiques
         smbToGive = applySpecificAdjustments(smbToGive)
 
+        smbToGive = finalizeSmbToGive(smbToGive)
         // Appliquer les limites maximum
         smbToGive = applyMaxLimits(smbToGive)
-
-        smbToGive = finalizeSmbToGive(smbToGive)
 
         return smbToGive
     }
@@ -273,27 +285,37 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val droppingFastAtHigh = bg < 200 && delta < -7
         val droppingVeryFast = delta < -10
         val prediction = predictedBg < targetBg && delta < 10
-        val interval = predictedBg < targetBg && delta > 10 && iob >= maxSMB && lastsmbtime < 10
-        val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB && lastsmbtime < 15
-
+        val interval = predictedBg < targetBg && delta > 10 && iob >= maxSMB/2 && lastsmbtime < 10
+        val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 15
 
         return belowMinThreshold || belowTargetAndDropping || belowTargetAndStableButNoCob ||
             droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval
+    }
+    private fun isSportSafetyCondition(): Boolean {
+        val sport = targetBg >= 140 && recentSteps5Minutes >= 200 && recentSteps10Minutes >= 500
+        val sport1 = targetBg >= 140 && recentSteps5Minutes >= 200 && averageBeatsPerMinute > averageBeatsPerMinute60
+        val sport2 = recentSteps5Minutes >= 200 && averageBeatsPerMinute > averageBeatsPerMinute60
+        val sport3 = recentSteps5Minutes >= 200 && recentSteps10Minutes >= 500
+        val sport4 = targetBg >= 140
+        val sport5= sportTime
+
+        return sport || sport1 || sport2 || sport3 || sport4 || sport5
+
     }
 
     private fun applySpecificAdjustments(smbToGive: Float): Float {
         var result = smbToGive
 
-        if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime < 15) {
+        val safetysmb = recentSteps180Minutes > 1500 && bg < 130
+        if ((safetysmb || sleepTime || snackTime || lowCarbTime ) && lastsmbtime >= 10) {
+            result /= 2
+            this.intervalsmb = 10
+        }else if ((safetysmb || sleepTime || snackTime) && lastsmbtime < 10){
             result = 0.0f
-        } else if (delta < b30upperdelta && delta > 2 && bg < b30upperbg && lastsmbtime > 15) {
-            result = basalSMB
+            this.intervalsmb = 10
         }
 
-        val safetysmb = recentSteps180Minutes > 1500 && bg < 130
-        if (safetysmb) {
-            result /= 2
-        }
+
 
         if (recentSteps5Minutes > 100 && recentSteps30Minutes > 500 && lastsmbtime < 20) {
             result = 0.0f
@@ -308,12 +330,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         if (result < 0.0f) {
             result = 0.0f
         }
-
-        // Logique finale pour ajuster smbToGive
-        if (result == 0.0f && delta > 2 && bg > 100 && lastsmbtime > 20 && predictedBg > targetBg) {
-            result = if ((iob + basalSMB) > maxIob) maxIob - iob else basalSMB
-        }
-
         return result
     }
 
@@ -354,7 +370,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             }
         }
 
-        val interpreter = Interpreter(selectedModelFile!!)
+        val interpreter = Interpreter(selectedModelFile)
         val output = arrayOf(floatArrayOf(0.0F))
         interpreter.run(modelInputs, output)
         interpreter.close()
@@ -542,9 +558,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.longAvgDelta = glucoseStatus.longAvgDelta.toFloat()
         var nowMinutes = calendarInstance[Calendar.HOUR_OF_DAY] + calendarInstance[Calendar.MINUTE] / 60.0 + calendarInstance[Calendar.SECOND] / 3600.0
         nowMinutes = round(nowMinutes * 100) / 100  // Arrondi à 2 décimales
-        val logMessage = "nowMinutes = $nowMinutes ; \n"
 
-        //val enableCircadian = profile["key_use_enable_circadian"] ?: false
         val circadianSensitivity = (0.00000379 * nowMinutes.pow(5)) -
             (0.00016422 * nowMinutes.pow(4)) +
             (0.00128081 * nowMinutes.pow(3)) +
@@ -560,18 +574,35 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 (0.33275556 * delta * nowMinutes) +
                 1.38581503) * 100
         ) / 100  // Arrondi à 2 décimales
-        if (bg >= 110 && delta > 5) {
-            var hyperTarget = kotlin.math.max(72.0, profile.getTargetLowMgdl() - (bg - profile.getTargetLowMgdl()) / 3).roundToInt()
-            hyperTarget = (hyperTarget * kotlin.math.min(circadianSensitivity, 1.0)).toInt()
-            hyperTarget = kotlin.math.max(hyperTarget, 72)
+        when {
+            !tempTargetSet && predictedBg >= 120 && delta > 5 -> {
+                var hyperTarget = kotlin.math.max(72.0, profile.getTargetLowMgdl() - (bg - profile.getTargetLowMgdl()) / 3).roundToInt()
+                hyperTarget = (hyperTarget * kotlin.math.min(circadianSensitivity, 1.0)).toInt()
+                hyperTarget = kotlin.math.max(hyperTarget, 72)
 
-            this.targetBg = hyperTarget.toFloat()
-        }else if (circadianSmb > (0.1) && bg < 110){
-            var hypoTarget = 100 * kotlin.math.max(1.0,circadianSensitivity)
-            this.targetBg = (hypoTarget+circadianSmb).toFloat();
-        }else if (recentSteps5Minutes >= 0 && recentSteps30Minutes >= 500 || recentSteps180Minutes > 1500 && recentSteps5Minutes > 0){
-            this.targetBg = 120.0f
+                this.targetBg = hyperTarget.toFloat()
+            }
+            !tempTargetSet && circadianSmb > 0.1 && predictedBg < 120 -> {
+                var hypoTarget = 100 * kotlin.math.max(1.0, circadianSensitivity)
+                this.targetBg = (hypoTarget + circadianSmb).toFloat()
+            }
+            recentSteps5Minutes >= 0 && (recentSteps30Minutes >= 500 || recentSteps180Minutes > 1500) && recentSteps5Minutes > 0 -> {
+                this.targetBg = 120.0f
+            }
+            else -> {
+                val defaultTarget = profile.getTargetLowMgdl()
+                this.targetBg = defaultTarget.toFloat()
+            }
         }
+        this.enablebasal = sp.getBoolean(R.string.key_enable_basal, false)
+        val therapy = therapy(appRepository = repository)
+        therapy.updateStatesBasedOnTherapyEvents()
+        this.sleepTime = therapy.sleepTime
+        this.snackTime = therapy.snackTime
+        this.sportTime = therapy.sportTime
+        this.lowCarbTime = therapy.lowCarbTime
+        this.highCarbTime = therapy.highCarbTime
+
         this.accelerating_up = if (delta > 2 && delta - longAvgDelta > 2) 1 else 0
         this.deccelerating_up = if (delta > 0 && (delta < shortAvgDelta || delta < longAvgDelta)) 1 else 0
         this.accelerating_down = if (delta < -2 && delta - longAvgDelta < -2) 1 else 0
@@ -605,8 +636,16 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         var tdd = (tddWeightedFromLast8H * 0.33) + (tdd7Days.toDouble() * 0.34) + (tddDaily.toDouble() * 0.33)
         val dynISFadjust = SafeParse.stringToDouble(sp.getString(R.string.key_DynISFAdjust, "120")) / 100.0
         val dynISFadjusthyper = SafeParse.stringToDouble(sp.getString(R.string.key_DynISFAdjusthyper, "150")) / 100.0
-        tdd = if (bg > 180) tdd * dynISFadjusthyper else tdd * dynISFadjust
 
+        tdd = when{
+            sportTime -> tdd * 50.0
+            sleepTime -> tdd * 80.0
+            lowCarbTime -> tdd * 85.0
+            snackTime -> tdd * 65.0
+            highCarbTime -> tdd * 500.0
+            bg > 180 -> tdd * dynISFadjusthyper
+            else -> tdd * dynISFadjust
+        }
         this.variableSensitivity = Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1).toFloat()
         this.currentTIRLow = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.belowPct()!!
         this.currentTIRRange = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.inRangePct()!!
@@ -666,7 +705,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         } catch (e: Exception) {
             // Log that watch is not connected
             //beatsPerMinuteValues = listOf(80)
-            this.averageBeatsPerMinute = 80.0
+            averageBeatsPerMinute = 80.0
         }
         try {
             val heartRates = repository.getHeartRatesFromTimeToTime(timeMillis60,timeMillisNow)
@@ -680,7 +719,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         } catch (e: Exception) {
             // Log that watch is not connected
             //beatsPerMinuteValues = listOf(80)
-            this.averageBeatsPerMinute = 80.0
+            averageBeatsPerMinute60 = 80.0
         }
         try {
 
@@ -695,7 +734,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         } catch (e: Exception) {
             // Log that watch is not connected
             //beatsPerMinuteValues180 = listOf(80)
-            this.averageBeatsPerMinute180 = 80.0
+            averageBeatsPerMinute180 = 80.0
         }
         if (tdd2Days != null && tdd2Days != 0.0f) {
             this.basalaimi = (tdd2Days / SafeParse.stringToDouble(sp.getString(R.string.key_aimiweight, "50"))).toFloat()
@@ -730,16 +769,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.b30upperdelta = SafeParse.stringToDouble(sp.getString(R.string.key_B30_upperdelta, "10"))
         val b30duration = SafeParse.stringToDouble(sp.getString(R.string.key_B30_duration, "20"))
 
-        this.basalSMB = (((basalaimi * delta) / 60) * b30duration).toFloat()
-
-        if (delta < b30upperdelta && delta > 1 && bg < b30upperbg && lastsmbtime > 20) {
-            this.basaloapsaimirate = basalSMB
-        }else if (predictedBg > targetBg && bg > targetBg && lastsmbtime > 20){
-            this.basaloapsaimirate = basalSMB
-        }else{
-            this.basaloapsaimirate = 0.0f
-        }
-
         val variableSensitivityDouble = variableSensitivity.toDoubleSafely()
         if (variableSensitivityDouble != null) {
             if (recentSteps5Minutes > 100 && recentSteps10Minutes > 200 && bg < 130 && delta < 10|| recentSteps180Minutes > 1500 && bg < 130 && delta < 10) variableSensitivity *= 1.5f
@@ -764,8 +793,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         aapsLogger.debug(LTag.APS, "IOB options : bolus iob: ${iobCalcs.iob} basal iob : ${iobCalcs.basaliob}")
         aapsLogger.debug(LTag.APS, "IOB options : calculateAbsoluteIobFromBaseBasals iob: $absIob net : $absNet basal : $absBasal")
         val tddDouble = tdd.toDoubleSafely()
-        val glucoseDouble = glucoseStatus.glucose?.toDoubleSafely()
-        val insulinDivisorDouble = insulinDivisor?.toDoubleSafely()
+        val glucoseDouble = glucoseStatus.glucose.toDoubleSafely()
+        val insulinDivisorDouble = insulinDivisor.toDoubleSafely()
 
         if (tddDouble != null && glucoseDouble != null && insulinDivisorDouble != null) {
             variableSensitivity = (1800 / (tdd.toDouble() * (ln((glucoseStatus.glucose / insulinDivisor) + 1)))).toFloat()
@@ -780,7 +809,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             variableSensitivity = profile.getIsfMgdl().toFloat()
         }
         this.predictedBg = predictFutureBg(bg, iob, variableSensitivity, cob, CI)
-
         this.profile = JSONObject()
         this.profile.put("max_iob", maxIob)
         this.profile.put("dia", kotlin.math.min(profile.dia, 3.0))
@@ -799,16 +827,37 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("current_basal", basalRate)
         this.profile.put("temptargetSet", tempTargetSet)
         this.profile.put("autosens_adjust_targets", sp.getBoolean(R.string.key_openapsama_autosens_adjusttargets, true))
-
+        this.profile.put("sleepTime", sleepTime)
+        this.profile.put("sportTime", sportTime)
+        this.profile.put("snackTime", snackTime)
+        this.profile.put("Sport0SMB", isSportSafetyCondition())
         if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
             this.profile.put("out_units", "mmol/L")
         }
 
         val tb = iobCobCalculator.getTempBasalIncludingConvertedExtended(now)
+        val newRate = if ( bg > 80 && delta > 0 && isSportSafetyCondition() === false) {
+            basalaimi
+
+        } else {
+            tb?.convertedToAbsolute(now, profile) ?: 0.0
+        }
+        // Déterminer la durée pour le nouveau basal temporaire
+        //val newDuration = tb?.plannedRemainingMinutes ?: 30
+        // Créer ou mettre à jour l'objet TemporaryBasal pour la nouvelle commande
+        val newTempBasal = TemporaryBasal(
+            timestamp = now,
+            duration = 30,//newDuration * 60 * 1000L, // Convertir en millisecondes
+            rate = if(bg > 80 && delta > 0 && isSportSafetyCondition() === false) newRate.toDouble() else 0.0,
+            isAbsolute = true,
+            type = TemporaryBasal.Type.NORMAL
+        )
+
         currentTemp = JSONObject()
         currentTemp.put("temp", "absolute")
-        currentTemp.put("duration", tb?.plannedRemainingMinutes ?: 0)
-        currentTemp.put("rate", tb?.convertedToAbsolute(now, profile) ?: 0.0)
+        currentTemp.put("duration", newTempBasal.duration)
+        currentTemp.put("rate", newTempBasal.rate)
+
         // as we have non default temps longer than 30 minutes
         if (tb != null) currentTemp.put("minutesrunning", tb.getPassedDurationToTimeInMinutes(now))
 
@@ -847,38 +896,46 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val doubleValue = this.toDouble()
         return doubleValue.takeIf { !it.isNaN() && !it.isInfinite() }
     }
+
+    private fun processNotesAndCleanUp(notes: String): String {
+        return notes.lowercase()
+            .replace(",", " ")
+            .replace(".", " ")
+            .replace("!", " ")
+            //.replace("a", " ")
+            .replace("an", " ")
+            .replace("and", " ")
+            .replace("\\s+", " ")
+    }
+
     private fun parseNotes(startMinAgo: Int, endMinAgo: Int): String {
         val olderTimeStamp = now - endMinAgo * 60 * 1000
         val moreRecentTimeStamp = now - startMinAgo * 60 * 1000
         var notes = ""
         var recentNotes2: MutableList<String> = mutableListOf()
-
         val autoNote = determineNoteBasedOnBg(bg.toDouble())
         recentNotes2.add(autoNote)
+        notes += autoNote  // Ajout de la note auto générée
 
         recentNotes?.forEach { note ->
-            if(note.timestamp > olderTimeStamp
-                && note.timestamp <= moreRecentTimeStamp
-                && !note.note.lowercase().contains("low treatment")
-                && !note.note.lowercase().contains("less aggressive")
-                && !note.note.lowercase().contains("more aggressive")
-                && !note.note.lowercase().contains("too aggressive")
-            ) {
-                notes += if(notes.isEmpty()) recentNotes2 else " "
-                notes += note.note
+            if(note.timestamp > olderTimeStamp && note.timestamp <= moreRecentTimeStamp) {
+                val noteText = note.note.lowercase()
+                if (noteText.contains("sleep") || noteText.contains("sport") || noteText.contains("snack") ||
+                    noteText.contains("lowcarb") || noteText.contains("highcarb") ||
+                    noteText.contains("low treatment") || noteText.contains("less aggressive") ||
+                    noteText.contains("more aggressive") || noteText.contains("too aggressive") ||
+                    noteText.contains("normal")) {
+
+                    notes += if (notes.isEmpty()) recentNotes2 else " "
+                    notes += note.note
+                    recentNotes2.add(note.note)
+                }
             }
         }
-        notes = notes.lowercase()
-        notes.replace(","," ")
-        notes.replace("."," ")
-        notes.replace("!"," ")
-        notes.replace("a"," ")
-        notes.replace("an"," ")
-        notes.replace("and"," ")
-        notes.replace("\\s+"," ")
+
+        notes = processNotesAndCleanUp(notes)
         return notes
     }
-
     init {
         injector.androidInjector().inject(this)
     }

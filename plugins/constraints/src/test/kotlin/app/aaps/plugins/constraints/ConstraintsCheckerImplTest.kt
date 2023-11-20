@@ -190,7 +190,9 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
                 repository,
                 glucoseStatusProvider,
                 bgQualityCheck,
-                tddCalculator
+                tddCalculator,
+                uiInteraction,
+                objectivesPlugin
             )
         aimiPlugin =
             AIMIPlugin(
@@ -246,7 +248,6 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
         constraintsPluginsList.add(openAPSAMAPlugin)
         constraintsPluginsList.add(openAPSSMBPlugin)
         `when`(activePlugin.getSpecificPluginsListByInterface(PluginConstraints::class.java)).thenReturn(constraintsPluginsList)
-        objectivesPlugin.onStart()
     }
 
     // Combo & Objectives

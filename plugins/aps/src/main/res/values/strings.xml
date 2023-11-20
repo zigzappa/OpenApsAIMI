@@ -23,8 +23,8 @@
     <string name="key_DynISFAdjust" translatable="false">DynISFAdjust</string>
     <string name="key_adjust_sensitivity" translatable="false">dynisf_adjust_sensitivity</string>
 
-    <string name="dynisf_adjust_sensitivity">Adjust sensitivity and basal</string>
-    <string name="dynisf_adjust_sensitivity_summary">If activated DynISF uses the last 24h TDD/7D TDD as the basis for adjusting calculated ISF and also for increasing and decreasing basal rate, in the same way that standard Autosens does</string>
+    <string name="dynisf_adjust_sensitivity">Enable TDD based sensitivity ratio for basal and glucose target modification</string>
+    <string name="dynisf_adjust_sensitivity_summary">Uses the last 24h TDD/7D TDD to calculate sensitivity ratio used for increasing or decreasing basal rate, and also adjust glucose target if these options are enabled, in the same way Autosens does. It is recommended to start with this option turned off</string>
     <string name="DynISFAdjust_title" formatted="false">DynamicISF Adjustment Factor %</string>
     <string name="DynISFAdjust_summary" formatted="false">Adjustment factor for DynamicISF. Set more than 100% for more aggressive correction doses, and less than 100% for less aggressive corrections.</string>
     <string name="high_temptarget_raises_sensitivity_title">High temptarget raises sensitivity</string>
@@ -156,9 +156,13 @@
     <string name="openapsaimi_maxsmb_title">OpenapsAIMI Max SMB</string>
     <string name="description_openapsaimi">Small micro boluses based on Artifical Intelligence and Machine Learning.</string>
     <string name="oaps_aimi_shortname">OpenApsAIMI</string>
+    <string name="key_aimiweight">key_aimiweight</string>
+    <string name="key_tdd7">key_tdd7</string>
+    <string name="key_cho">key_cho</string>
     <string name="key_B30_upperBG">key_B30_upperBG</string>
     <string name="key_B30_upperdelta">key_B30_upperdelta</string>
     <string name="key_B30_duration">key_B30_duration</string>
+    <string name="count_steps_watch">count_steps_watch</string>
     <string name="oaps_aimi_evening_factor_summary">% of Reactivity of the plugin between 6 pm and midnight</string>
     <string name="key_oaps_aimi_evening_factor">key_oaps_aimi_evening_factor</string>
     <string name="oaps_aimi_evening_factor_title">Evening Reactivity Percentage</string>
@@ -174,14 +178,13 @@
     <string name="oaps_aimi_hyper_factor_title"><![CDATA[Reactivity factor BG > 180]]></string>
     <string name="DynISFAdjusthyper_summary"><![CDATA[Increasing this value will increase the velocity to send smb when bg > 180]]></string>
     <string name="DynISFAdjusthyper_title"><![CDATA[Dynisf Adjustment factor % BG > 180]]></string>
+    <string name="key_enable_basal">key_enable_basal</string>
     <string name="aimi">aimi</string>
     <string name="description_aimi">Automated Insulin Management Interface</string>
     <string name="aimi_shortname">aimi</string>
     <string name="key_iTime_B30_upperBG">key_iTime_B30_upperBG</string>
     <string name="key_iTime_B30_upperdelta">key_iTime_B30_upperdelta</string>
     <string name="key_iTime_B30_duration">key_iTime_B30_duration</string>
-    <string name="key_aimiweight">key_aimiweight</string>
-    <string name="key_tdd7">key_tdd7</string>
     <string name="key_UAMpredBG">key_UAMpredBG</string>
     <string name="key_aimi_aggressive_settings">key_aimi_aggressive_settings</string>
     <string name="key_use_AimiPower">key_use_AimiPower</string>
@@ -191,14 +194,12 @@
     <string name="key_use_AimiUAM_ISF">key_use_AimiUAM_ISF</string>
     <string name="key_use_AimiPregnancy">key_use_AimiPregnancy</string>
     <string name="key_aimi_conservative_settings">key_aimi_conservative_settings</string>
-    <string name="key_cho">key_cho</string>
     <string name="key_use_noNightsmb">key_use_noNightsmb</string>
     <string name="key_AIMI_NoSMB_timestart">key_AIMI_NoSMB_timestart</string>
     <string name="key_AIMI_NoSMB_timeend">key_AIMI_NoSMB_timeend</string>
     <string name="key_use_AIMI_BreakFastLight">key_use_AIMI_BreakFastLight</string>
     <string name="key_aimi_activity_settings">key_aimi_activity_settings</string>
     <string name="key_use_countsteps">key_use_countsteps</string>
-    <string name="count_steps_watch">count_steps_watch</string>
     <string name="key_aimi_FCL">key_aimi_FCL</string>
     <string name="key_use_fcl_smb">key_use_fcl_smb</string>
     <string name="key_fcl_smb">key_fcl_smb</string>

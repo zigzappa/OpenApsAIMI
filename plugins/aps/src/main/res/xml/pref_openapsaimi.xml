@@ -14,6 +14,12 @@
             android:title="Enable Counting from the watch"
             android:summary="This option will use the hardware from the watch instead of the phone." />
 
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="@string/key_enable_basal"
+            android:title="Enable basal"
+            android:summary="This option will enable basal from the profile when bg is greater than 80 and delta not negative." />
+
         <app.aaps.core.validators.ValidatingEditTextPreference
             android:defaultValue="5"
             android:dialogMessage="@string/openapssmb_max_iob_summary"
@@ -102,7 +108,7 @@
             android:inputType="numberDecimal"
             android:key="@string/key_DynISFAdjust"
             android:title="@string/DynISFAdjust_title"
-            validate:floatmaxNumber="300"
+            validate:floatmaxNumber="500"
             validate:floatminNumber="1"
             validate:testType="floatNumericRange" />
 
@@ -162,7 +168,7 @@
                 android:inputType="numberDecimal"
                 android:key="@string/key_DynISFAdjusthyper"
                 android:title="@string/DynISFAdjusthyper_title"
-                validate:floatmaxNumber="300"
+                validate:floatmaxNumber="500"
                 validate:floatminNumber="1"
                 validate:testType="floatNumericRange" />
 
