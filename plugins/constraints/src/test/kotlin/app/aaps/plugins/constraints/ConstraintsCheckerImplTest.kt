@@ -19,6 +19,7 @@ import app.aaps.core.interfaces.stats.TddCalculator
 import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.database.impl.AppRepository
 import app.aaps.implementation.iob.GlucoseStatusProviderImpl
+import app.aaps.plugins.aps.aimi.AIMIPlugin
 import app.aaps.plugins.aps.openAPSAMA.OpenAPSAMAPlugin
 import app.aaps.plugins.aps.openAPSSMB.OpenAPSSMBPlugin
 import app.aaps.plugins.aps.openAPSSMBDynamicISF.OpenAPSSMBDynamicISFPlugin
@@ -81,6 +82,7 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
     private lateinit var openAPSSMBPlugin: OpenAPSSMBPlugin
     private lateinit var openAPSAMAPlugin: OpenAPSAMAPlugin
     private lateinit var openAPSSMBDynamicISFPlugin: OpenAPSSMBDynamicISFPlugin
+    private lateinit var aimiPlugin: AIMIPlugin
 
     private val injector = HasAndroidInjector {
         AndroidInjector {
@@ -172,6 +174,26 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
             )
         openAPSSMBDynamicISFPlugin =
             OpenAPSSMBDynamicISFPlugin(
+                injector,
+                aapsLogger,
+                rxBus,
+                constraintChecker,
+                rh,
+                profileFunction,
+                context,
+                activePlugin,
+                iobCobCalculator,
+                hardLimits,
+                profiler,
+                sp,
+                dateUtil,
+                repository,
+                glucoseStatusProvider,
+                bgQualityCheck,
+                tddCalculator
+            )
+        aimiPlugin =
+            AIMIPlugin(
                 injector,
                 aapsLogger,
                 rxBus,
@@ -316,7 +338,7 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
 //        insightPlugin.setStatusResult(result);
 
         // No limit by default
-        `when`(sp.getDouble(app.aaps.plugins.aps.R.string.key_openapsma_max_basal, 1.0)).thenReturn(1.0)
+        `when`(sp.getDouble(app.aaps.core.utils.R.string.key_openapsma_max_basal, 1.0)).thenReturn(1.0)
         `when`(sp.getDouble(app.aaps.plugins.aps.R.string.key_openapsama_current_basal_safety_multiplier, 4.0)).thenReturn(4.0)
         `when`(sp.getDouble(app.aaps.plugins.aps.R.string.key_openapsama_max_daily_safety_multiplier, 3.0)).thenReturn(3.0)
         `when`(sp.getString(app.aaps.core.utils.R.string.key_age, "")).thenReturn("child")
@@ -343,7 +365,7 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
 //        insightPlugin.setStatusResult(result);
 
         // No limit by default
-        `when`(sp.getDouble(app.aaps.plugins.aps.R.string.key_openapsma_max_basal, 1.0)).thenReturn(1.0)
+        `when`(sp.getDouble(app.aaps.core.utils.R.string.key_openapsma_max_basal, 1.0)).thenReturn(1.0)
         `when`(sp.getDouble(app.aaps.plugins.aps.R.string.key_openapsama_current_basal_safety_multiplier, 4.0)).thenReturn(4.0)
         `when`(sp.getDouble(app.aaps.plugins.aps.R.string.key_openapsama_max_daily_safety_multiplier, 3.0)).thenReturn(3.0)
         `when`(sp.getString(app.aaps.core.utils.R.string.key_age, "")).thenReturn("child")
