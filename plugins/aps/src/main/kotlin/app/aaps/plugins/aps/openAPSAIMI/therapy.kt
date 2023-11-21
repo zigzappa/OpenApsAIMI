@@ -12,6 +12,7 @@ class therapy (private val appRepository: AppRepository){
     var snackTime = false
     var lowCarbTime = false
     var highCarbTime = false
+    var mealTime = false
 
     @SuppressLint("CheckResult")
     fun updateStatesBasedOnTherapyEvents() {
@@ -21,6 +22,7 @@ class therapy (private val appRepository: AppRepository){
         snackTime = findActiveSnackEvents(System.currentTimeMillis()).blockingGet()
         lowCarbTime = findActiveLowCarbEvents(System.currentTimeMillis()).blockingGet()
         highCarbTime = findActiveHighCarbEvents(System.currentTimeMillis()).blockingGet()
+        mealTime = findActiveMealEvents(System.currentTimeMillis()).blockingGet()
     }
 
     private fun findActiveSleepEvents(timestamp: Long): Single<Boolean> {
@@ -72,6 +74,16 @@ class therapy (private val appRepository: AppRepository){
             .map { events ->
                 events.any { event ->
                     event.note?.contains("highcarb", ignoreCase = true) == true &&
+                        System.currentTimeMillis() <= (event.timestamp + event.duration)
+                }
+            }
+    }
+    private fun findActiveMealEvents(timestamp: Long): Single<Boolean> {
+        val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
+        return appRepository.getTherapyEventDataFromTime(fromTime, TherapyEvent.Type.NOTE, true)
+            .map { events ->
+                events.any { event ->
+                    event.note?.contains("meal", ignoreCase = true) == true &&
                         System.currentTimeMillis() <= (event.timestamp + event.duration)
                 }
             }
