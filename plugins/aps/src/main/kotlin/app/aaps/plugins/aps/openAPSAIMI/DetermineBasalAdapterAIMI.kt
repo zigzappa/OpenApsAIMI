@@ -104,13 +104,13 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var basalaimi = 0.0f
     private var basalSMB = 0.0f
     private var aimilimit = 0.0f
-    //private var basaloapsaimirate = 0.0f
     private var CI = 0.0f
     private var sleepTime = false
     private var sportTime = false
     private var snackTime = false
     private var lowCarbTime = false
     private var highCarbTime = false
+    private var mealTime = false
     private var intervalsmb = 5
     private var variableSensitivity = 0.0f
     private var averageBeatsPerMinute = 0.0
@@ -149,6 +149,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val hyperfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_hyper_factor, "50")) / 100.0
         smbToGive = when {
             highCarbTime -> smbToGive * 130.0f
+            mealTime -> smbToGive * 200.0f
             hourOfDay in 1..11 -> smbToGive * morningfactor.toFloat()
             hourOfDay in 12..18 -> smbToGive * afternoonfactor.toFloat()
             hourOfDay in 19..23 -> smbToGive * eveningfactor.toFloat()
@@ -163,25 +164,25 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         logDataToCsvHB(predictedSMB, smbToGive)
 
         val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB<br/> sleep: $sleepTime<br/> sport: $sportTime<br/> snack: $snackTime<br/>" +
-            "lowcarb: $lowCarbTime<br/> highcarb: $highCarbTime<br/> intervalsmb: $intervalsmb<br/>"
+            "lowcarb: $lowCarbTime<br/> highcarb: $highCarbTime<br/> meal: $mealTime<br/> intervalsmb: $intervalsmb<br/>"
         val glucoseStr = " bg: $bg <br/> targetBG: $targetBg <br/> futureBg: $predictedBg <br/>" +
-            "delta: $delta <br/> short avg delta: $shortAvgDelta <br/> long avg delta: $longAvgDelta <br/>" +
+            " delta: $delta <br/> short avg delta: $shortAvgDelta <br/> long avg delta: $longAvgDelta <br/>" +
             " accelerating_up: $accelerating_up <br/> deccelerating_up: $deccelerating_up <br/> accelerating_down: $accelerating_down <br/> deccelerating_down: $deccelerating_down <br/> stable: $stable"
         val iobStr = " IOB: $iob <br/> tdd 7d/h: ${roundToPoint05(tdd7DaysPerHour)} <br/> " +
             "tdd 2d/h : ${roundToPoint05(tdd2DaysPerHour)} <br/> " +
             "tdd daily/h : ${roundToPoint05(tddPerHour)} <br/> " +
             "tdd 24h/h : ${roundToPoint05(tdd24HrsPerHour)}<br/>" +
-            "enablebasal : $enablebasal <br/> basalaimi : $basalaimi <br/> basalsmb : $basalSMB <br/>"
+            " enablebasal: $enablebasal <br/> basalaimi: $basalaimi <br/> basalsmb: $basalSMB <br/> ISF: $variableSensitivity <br/> "
         val profileStr = " Hour of day: $hourOfDay <br/> Weekend: $weekend <br/>" +
             " 5 Min Steps: $recentSteps5Minutes <br/> 10 Min Steps: $recentSteps10Minutes <br/> 15 Min Steps: $recentSteps15Minutes <br/>" +
             " 30 Min Steps: $recentSteps30Minutes <br/> 60 Min Steps: $recentSteps60Minutes <br/> 180 Min Steps: $recentSteps180Minutes <br/>" +
-            "ISF : $variableSensitivity <br/> Heart Beat(average past 5 minutes) : $averageBeatsPerMinute <br/> Heart Beat(average past 180 minutes) : $averageBeatsPerMinute180"
+            "Heart Beat(average past 5 minutes) : $averageBeatsPerMinute <br/> Heart Beat(average past 180 minutes) : $averageBeatsPerMinute180"
         var mealStr = " COB: ${cob}g   Future: ${futureCarbs}g <br/> COB Age Min: $lastCarbAgeMin <br/><br/> "
         mealStr += "tags0to60minAgo: ${tags0to60minAgo}<br/> tags60to120minAgo: $tags60to120minAgo<br/> " +
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 19 Novembre 2023"
+            ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 21 Novembre 2023"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -602,6 +603,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.sportTime = therapy.sportTime
         this.lowCarbTime = therapy.lowCarbTime
         this.highCarbTime = therapy.highCarbTime
+        this.mealTime = therapy.mealTime
 
         this.accelerating_up = if (delta > 2 && delta - longAvgDelta > 2) 1 else 0
         this.deccelerating_up = if (delta > 0 && (delta < shortAvgDelta || delta < longAvgDelta)) 1 else 0
@@ -643,6 +645,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             lowCarbTime -> tdd * 85.0
             snackTime -> tdd * 65.0
             highCarbTime -> tdd * 500.0
+            mealTime -> tdd * 300.0
             bg > 180 -> tdd * dynISFadjusthyper
             else -> tdd * dynISFadjust
         }
@@ -830,6 +833,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("sleepTime", sleepTime)
         this.profile.put("sportTime", sportTime)
         this.profile.put("snackTime", snackTime)
+        this.profile.put("highCarbTime", highCarbTime)
+        this.profile.put("mealTime", mealTime)
         this.profile.put("Sport0SMB", isSportSafetyCondition())
         if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
             this.profile.put("out_units", "mmol/L")
@@ -921,7 +926,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             if(note.timestamp > olderTimeStamp && note.timestamp <= moreRecentTimeStamp) {
                 val noteText = note.note.lowercase()
                 if (noteText.contains("sleep") || noteText.contains("sport") || noteText.contains("snack") ||
-                    noteText.contains("lowcarb") || noteText.contains("highcarb") ||
+                    noteText.contains("lowcarb") || noteText.contains("highcarb") || noteText.contains("meal") ||
                     noteText.contains("low treatment") || noteText.contains("less aggressive") ||
                     noteText.contains("more aggressive") || noteText.contains("too aggressive") ||
                     noteText.contains("normal")) {
