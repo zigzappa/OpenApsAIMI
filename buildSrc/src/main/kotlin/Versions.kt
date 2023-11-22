@@ -2,7 +2,7 @@ import org.gradle.api.JavaVersion
 
 object Versions {
 
-    const val appVersion = "3.2.0.1-Master-OpenApsAIMI_AIMI-AI"
+    const val appVersion = "3.2.0.2-Master-OpenApsAIMI_AIMI-AI"
     const val versionCode = 1500
 
     const val ndkVersion = "21.1.6352462"
