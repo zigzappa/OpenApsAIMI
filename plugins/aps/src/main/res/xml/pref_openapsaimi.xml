@@ -184,6 +184,34 @@
 
 
         </androidx.preference.PreferenceScreen>
+        <androidx.preference.PreferenceScreen
+            android:key="MT_testing_ideas"
+            android:title="MT Test Idea Preferences">
+
+            <app.aaps.core.validators.ValidatingEditTextPreference
+                android:defaultValue="2"
+                android:enabled="true"
+                android:dialogMessage="@string/prebolus_meal_mode_summary"
+                android:inputType="numberDecimal"
+                android:key="@string/key_prebolus_meal_mode"
+                android:title="@string/prebolus_meal_mode_title"
+                validate:floatmaxNumber="5"
+                validate:floatminNumber="1"
+                validate:testType="floatNumericRange" />
+
+            <app.aaps.core.validators.ValidatingEditTextPreference
+                android:defaultValue="2"
+                android:enabled="true"
+                android:dialogMessage="@string/prebolus_highcarb_mode_summary"
+                android:inputType="numberDecimal"
+                android:key="@string/key_prebolus_highcarb_mode"
+                android:title="@string/prebolus_highcarb_mode_title"
+                validate:floatmaxNumber="5"
+                validate:floatminNumber="1"
+                validate:testType="floatNumericRange" />
+
+
+        </androidx.preference.PreferenceScreen>
 
     </PreferenceCategory>
 </androidx.preference.PreferenceScreen>
