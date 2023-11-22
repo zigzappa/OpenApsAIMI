@@ -51,6 +51,7 @@
     <string name="closed_loop_disabled_on_dev_branch">Running dev version. Closed loop is disabled.</string>
     <string name="closed_loop_disabled_with_eb">Closed loop disabled because of running Extended bolus</string>
     <string name="smbalwaysdisabled">SMB always and after carbs disabled because active BG source doesn\'t support advanced filtering</string>
+    <string name="disable_Libre_smb_restrictions">SMB always  without filtering the source</string>
     <string name="smbnotallowedinopenloopmode">SMB not allowed in open loop mode</string>
     <string name="maxvalueinpreferences">max value in preferences</string>
     <string name="hardlimit">hard limit</string>
