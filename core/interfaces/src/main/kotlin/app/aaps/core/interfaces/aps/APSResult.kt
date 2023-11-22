@@ -41,4 +41,5 @@ interface APSResult {
     fun toSpanned(): Spanned
     fun newAndClone(injector: HasAndroidInjector): APSResult
     fun json(): JSONObject?
+
 }
