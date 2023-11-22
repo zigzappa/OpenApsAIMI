@@ -178,7 +178,7 @@
     <string name="oaps_aimi_hyper_factor_title"><![CDATA[Reactivity factor BG > 180]]></string>
     <string name="DynISFAdjusthyper_summary"><![CDATA[Increasing this value will increase the velocity to send smb when bg > 180]]></string>
     <string name="DynISFAdjusthyper_title"><![CDATA[Dynisf Adjustment factor % BG > 180]]></string>
-
+    <string name="key_enable_basal">key_enable_basal</string>
 
 
 </resources>
