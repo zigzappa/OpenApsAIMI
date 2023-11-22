@@ -184,7 +184,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 21 Novembre 2023"
+            ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 22 Novembre 2023"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -249,10 +249,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         var smbToGive = smbToGiveParam
 
         // Vérifier les conditions de sécurité critiques
-        if (isCriticalSafetyCondition()) {
-            return 0.0f  // Arrêt immédiat si une condition de sécurité critique est remplie
-        }
-        if (isSportSafetyCondition()) return 0.0f // Arrêt immédiat si une condition de sport est remplie
+        if (isCriticalSafetyCondition()) return 0.0f
+        if (isSportSafetyCondition()) return 0.0f
 
         // Ajustements basés sur des conditions spécifiques
         smbToGive = applySpecificAdjustments(smbToGive)
@@ -281,6 +279,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
 
     private fun isCriticalSafetyCondition(): Boolean {
+        val fasting = fastingTime
         val belowMinThreshold = bg < 80
         val belowTargetAndDropping = bg < targetBg && delta < -2
         val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 5
@@ -292,7 +291,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 15
 
         return belowMinThreshold || belowTargetAndDropping || belowTargetAndStableButNoCob ||
-            droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval
+            droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval || fasting
     }
     private fun isSportSafetyCondition(): Boolean {
         val sport = targetBg >= 140 && recentSteps5Minutes >= 200 && recentSteps10Minutes >= 500
