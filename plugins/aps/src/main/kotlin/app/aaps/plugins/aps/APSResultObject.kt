@@ -55,6 +55,8 @@ open class APSResultObject @Inject constructor(val injector: HasAndroidInjector)
     override var hasPredictions = false
     override var smb = 0.0 // super micro bolus in units
     override var deliverAt: Long = 0
+
+
     override var targetBG = 0.0
     override var carbsReq = 0
     override var carbsReqWithin = 0

@@ -15,6 +15,23 @@
             android:summary="This option will use the hardware from the watch instead of the phone." />
 
         <app.aaps.core.validators.ValidatingEditTextPreference
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="@string/key_enable_basal"
+            android:title="Enable basal"
+            android:summary="This option will enable basal from the profile when bg is greater than 80 and delta not negative." />
+
+        <app.aaps.core.validators.ValidatingEditTextPreference
+            android:defaultValue="1"
+            android:dialogMessage="@string/openapsma_max_basal_summary"
+            android:inputType="numberDecimal"
+            android:key="@string/key_openapsma_max_basal"
+            android:title="@string/openapsma_max_basal_title"
+            validate:floatmaxNumber="25.0"
+            validate:floatminNumber="0.1"
+            validate:testType="floatNumericRange" />
+
+        <app.aaps.core.validators.ValidatingEditTextPreference
             android:defaultValue="5"
             android:dialogMessage="@string/openapssmb_max_iob_summary"
             android:inputType="numberDecimal"
