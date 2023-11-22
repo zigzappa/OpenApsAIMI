@@ -289,9 +289,11 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val prediction = predictedBg < targetBg && delta < 10
         val interval = predictedBg < targetBg && delta > 10 && iob >= maxSMB/2 && lastsmbtime < 10
         val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 15
+        val nosmb = iob >= 2*maxSMB && bg < 100 && delta < 10
 
         return belowMinThreshold || belowTargetAndDropping || belowTargetAndStableButNoCob ||
-            droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval || fasting
+            droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval ||
+            fasting || nosmb
     }
     private fun isSportSafetyCondition(): Boolean {
         val sport = targetBg >= 140 && recentSteps5Minutes >= 200 && recentSteps10Minutes >= 500
