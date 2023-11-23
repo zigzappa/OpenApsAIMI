@@ -102,7 +102,7 @@ class therapy (private val appRepository: AppRepository){
     }
 
     fun getTimeElapsedSinceLastEvent(keyword: String): Long {
-        val fromTime = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(1) // Les dernières 24 heures
+        val fromTime = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(60)
         val events = appRepository.getTherapyEventDataFromTime(fromTime, TherapyEvent.Type.NOTE, true).blockingGet()
 
         val lastEvent = events.filter { it.note?.contains(keyword, ignoreCase = true) == true }

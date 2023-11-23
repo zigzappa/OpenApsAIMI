@@ -166,7 +166,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         logDataToCsvHB(predictedSMB, smbToGive)
 
         val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB<br/> sleep: $sleepTime<br/> sport: $sportTime<br/> snack: $snackTime<br/>" +
-            "lowcarb: $lowCarbTime<br/> highcarb: $highCarbTime<br/> meal: $mealTime<br/> fastingtime: $fastingTime<br/> intervalsmb: $intervalsmb<br/> +" +
+            "lowcarb: $lowCarbTime<br/> highcarb: $highCarbTime<br/> meal: $mealTime<br/> fastingtime: $fastingTime<br/> intervalsmb: $intervalsmb<br/>" +
             "mealruntime: $mealruntime<br/> highCarbrunTime: $highCarbrunTime<br/>"
         val glucoseStr = " bg: $bg <br/> targetBG: $targetBg <br/> futureBg: $predictedBg <br/>" +
             " delta: $delta <br/> short avg delta: $shortAvgDelta <br/> long avg delta: $longAvgDelta <br/>" +
@@ -180,8 +180,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             " 5 Min Steps: $recentSteps5Minutes <br/> 10 Min Steps: $recentSteps10Minutes <br/> 15 Min Steps: $recentSteps15Minutes <br/>" +
             " 30 Min Steps: $recentSteps30Minutes <br/> 60 Min Steps: $recentSteps60Minutes <br/> 180 Min Steps: $recentSteps180Minutes <br/>" +
             "Heart Beat(average past 5 minutes) : $averageBeatsPerMinute <br/> Heart Beat(average past 180 minutes) : $averageBeatsPerMinute180"
-        var mealStr = " COB: ${cob}g   Future: ${futureCarbs}g <br/> COB Age Min: $lastCarbAgeMin <br/><br/> "
-        mealStr += "tags0to60minAgo: ${tags0to60minAgo}<br/> tags60to120minAgo: $tags60to120minAgo<br/> " +
+        var mealStr = " COB: ${cob}g   Future: ${futureCarbs}g <br/> COB Age Min: $lastCarbAgeMin <br/><br/> " +
+            "tags0to60minAgo: ${tags0to60minAgo}<br/> tags60to120minAgo: $tags60to120minAgo<br/> " +
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
@@ -282,12 +282,12 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
     private fun isMealModeCondition(): Boolean{
         val pbolusM = SafeParse.stringToDouble(sp.getString(R.string.key_prebolus_meal_mode, "2"))
-        val modeMealPB = mealruntime <= 7 && lastBolusSMBUnit != pbolusM.toFloat() && mealTime
+        val modeMealPB = mealruntime in 0..7 && lastBolusSMBUnit != pbolusM.toFloat() && mealTime
         return modeMealPB
     }
     private fun isHighCarbModeCondition(): Boolean{
         val pbolusHC = SafeParse.stringToDouble(sp.getString(R.string.key_prebolus_highcarb_mode, "2"))
-        val modeHcPB = highCarbrunTime <= 7 && lastBolusSMBUnit != pbolusHC.toFloat() && highCarbTime
+        val modeHcPB = highCarbrunTime in 0..7 && lastBolusSMBUnit != pbolusHC.toFloat() && highCarbTime
         return modeHcPB
     }
 
