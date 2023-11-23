@@ -282,12 +282,12 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
     private fun isMealModeCondition(): Boolean{
         val pbolusM = SafeParse.stringToDouble(sp.getString(R.string.key_prebolus_meal_mode, "2"))
-        val modeMealPB = mealruntime <= 7 && lastBolusSMBUnit != pbolusM.toFloat()
+        val modeMealPB = mealruntime <= 7 && lastBolusSMBUnit != pbolusM.toFloat() && mealTime
         return modeMealPB
     }
     private fun isHighCarbModeCondition(): Boolean{
         val pbolusHC = SafeParse.stringToDouble(sp.getString(R.string.key_prebolus_highcarb_mode, "2"))
-        val modeHcPB = highCarbrunTime <= 7 && lastBolusSMBUnit != pbolusHC.toFloat()
+        val modeHcPB = highCarbrunTime <= 7 && lastBolusSMBUnit != pbolusHC.toFloat() && highCarbTime
         return modeHcPB
     }
 
