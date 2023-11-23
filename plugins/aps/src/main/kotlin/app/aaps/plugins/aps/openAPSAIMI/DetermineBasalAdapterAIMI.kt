@@ -21,7 +21,6 @@ import app.aaps.core.interfaces.utils.Round
 import app.aaps.core.interfaces.utils.SafeParse
 import app.aaps.core.main.extensions.convertedToAbsolute
 import app.aaps.core.main.extensions.getPassedDurationToTimeInMinutes
-import app.aaps.core.main.extensions.plannedRemainingMinutes
 import app.aaps.database.ValueWrapper
 import app.aaps.database.entities.Bolus
 import app.aaps.database.entities.TemporaryBasal
@@ -45,7 +44,6 @@ import java.util.Locale
 import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.math.round
-import app.aaps.plugins.aps.openAPSAIMI.therapy
 
 class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAndroidInjector) : DetermineBasalAdapter {
 
@@ -290,7 +288,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     }
     private fun isHighCarbModeCondition(): Boolean{
         val pbolusHC = SafeParse.stringToDouble(sp.getString(R.string.key_prebolus_highcarb_mode, "2"))
-        val modeHcPB = mealruntime <= 6 && lastBolusSMBUnit != pbolusHC.toFloat()
+        val modeHcPB = highCarbrunTime <= 6 && lastBolusSMBUnit != pbolusHC.toFloat()
         return modeHcPB
     }
 
@@ -941,7 +939,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val olderTimeStamp = now - endMinAgo * 60 * 1000
         val moreRecentTimeStamp = now - startMinAgo * 60 * 1000
         var notes = ""
-        var recentNotes2: MutableList<String> = mutableListOf()
+        val recentNotes2: MutableList<String> = mutableListOf()
         val autoNote = determineNoteBasedOnBg(bg.toDouble())
         recentNotes2.add(autoNote)
         notes += autoNote  // Ajout de la note auto générée
