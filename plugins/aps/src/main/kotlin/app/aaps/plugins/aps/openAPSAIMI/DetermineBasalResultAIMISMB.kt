@@ -76,7 +76,7 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
             this.isTempBasalRequested = true
             this.usePercent = true
         if (enablebasal === true) {
-            if (delta <= 0 && bg <= 140) {
+            if (delta <= 0 && bg <= 150) {
                 this.percent = 0
                 this.rate = 0.0
                 this.duration = 120

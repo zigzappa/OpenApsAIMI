@@ -376,8 +376,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 selectedModelFile = modelFile
                 modelInputs = floatArrayOf(
                     hourOfDay.toFloat(), weekend.toFloat(),
-                    bg, targetBg, iob, delta, shortAvgDelta, longAvgDelta,
-                    tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour
+                    bg, targetBg, iob, cob, lastCarbAgeMin.toFloat(), futureCarbs, delta, shortAvgDelta, longAvgDelta,
+                    //tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour
                 )
             }
 
@@ -436,7 +436,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
     }
 
-    fun calculateInsulinEffect(
+    private fun calculateInsulinEffect(
         bg: Float,
         iob: Float,
         variableSensitivity: Float,
@@ -465,26 +465,21 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         // Appliquer le facteur de retard ajusté à l'effet de l'insuline
         insulinEffect *= adjustedDelayFactor
-
-        // En fonction de la glycémie actuelle, nous pourrions vouloir faire d'autres ajustements.
         if (bg > normalBgThreshold) {
-            // Si la glycémie est élevée, l'effet de l'insuline peut être différent. Ajustez selon la logique métier/test.
             insulinEffect *= 1.1f
         }
 
         return insulinEffect
     }
-    fun predictFutureBg(
+    private fun predictFutureBg(
         bg: Float,
-        iob: Float,  // Insuline active (IOB)
-        variableSensitivity: Float,  // Facteur de sensibilité à l'insuline (ISF)
-        cob: Float,  // Glucides à bord (COB)
-        CI: Float,  // Rapport insuline/glucides (ICR)
+        iob: Float,
+        variableSensitivity: Float,
+        cob: Float,
+        CI: Float,
     ): Float {
         // Temps moyen d'absorption des glucides en heures
         val averageCarbAbsorptionTime = 2.5f
-
-        // Convertir le temps d'absorption en minutes pour le calcul
         val absorptionTimeInMinutes = averageCarbAbsorptionTime * 60
 
         // Calculer l'effet de l'insuline sur la baisse de la glycémie
@@ -508,11 +503,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         return futureBg
     }
-
-
-
-
-
 
     @Suppress("SpellCheckingInspection")
     @Throws(JSONException::class)
@@ -592,19 +582,19 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 1.38581503) * 100
         ) / 100  // Arrondi à 2 décimales
         when {
+            !tempTargetSet && recentSteps5Minutes >= 0 && (recentSteps30Minutes >= 500 || recentSteps180Minutes > 1500) && recentSteps10Minutes > 0 -> {
+                this.targetBg = 130.0f
+            }
             !tempTargetSet && predictedBg >= 120 && delta > 5 -> {
-                var hyperTarget = kotlin.math.max(72.0, profile.getTargetLowMgdl() - (bg - profile.getTargetLowMgdl()) / 3).roundToInt()
+                var hyperTarget = kotlin.math.max(65.0, profile.getTargetLowMgdl() - (bg - profile.getTargetLowMgdl()) / 3).roundToInt()
                 hyperTarget = (hyperTarget * kotlin.math.min(circadianSensitivity, 1.0)).toInt()
-                hyperTarget = kotlin.math.max(hyperTarget, 72)
+                hyperTarget = kotlin.math.max(hyperTarget, 65)
 
                 this.targetBg = hyperTarget.toFloat()
             }
-            !tempTargetSet && circadianSmb > 0.1 && predictedBg < 120 -> {
+            !tempTargetSet && circadianSmb > 0.1 && predictedBg < 130 -> {
                 var hypoTarget = 100 * kotlin.math.max(1.0, circadianSensitivity)
                 this.targetBg = (hypoTarget + circadianSmb).toFloat()
-            }
-            recentSteps5Minutes >= 0 && (recentSteps30Minutes >= 500 || recentSteps180Minutes > 1500) && recentSteps5Minutes > 0 -> {
-                this.targetBg = 120.0f
             }
             else -> {
                 val defaultTarget = profile.getTargetLowMgdl()
@@ -841,6 +831,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("min_bg", minBg)
         this.profile.put("max_bg", maxBg)
         this.profile.put("target_bg", targetBg)
+        this.profile.put("circadianSmb", circadianSmb)
         this.profile.put("predictedBg", predictedBg)
         this.profile.put("carb_ratio", CI)
         this.profile.put("sens", variableSensitivity)
