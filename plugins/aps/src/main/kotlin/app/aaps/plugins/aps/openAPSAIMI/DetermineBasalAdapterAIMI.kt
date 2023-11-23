@@ -105,6 +105,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var lowCarbTime = false
     private var highCarbTime = false
     private var mealTime = false
+    private var fastingTime = false
+    private var mealruntime: Long = 0
     private var intervalsmb = 5
     private var variableSensitivity = 0.0f
     private var averageBeatsPerMinute = 0.0
@@ -156,7 +158,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         logDataToCsvHB(predictedSMB, smbToGive)
 
         val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB<br/> sleep: $sleepTime<br/> sport: $sportTime<br/> snack: $snackTime<br/>" +
-            "lowcarb: $lowCarbTime<br/> highcarb: $highCarbTime<br/> meal: $mealTime<br/> intervalsmb: $intervalsmb<br/>"
+            "lowcarb: $lowCarbTime<br/> highcarb: $highCarbTime<br/> meal: $mealTime<br/> fastingtime: $fastingTime<br/> intervalsmb: $intervalsmb<br/> mealruntime: $mealruntime<br/>"
         val glucoseStr = " bg: $bg <br/> targetBg: $targetBg <br/> futureBg: $predictedBg <br/>" +
             " delta: $delta <br/> short avg delta: $shortAvgDelta <br/> long avg delta: $longAvgDelta <br/>" +
             " accelerating_up: $accelerating_up <br/> deccelerating_up: $deccelerating_up <br/> accelerating_down: $accelerating_down <br/> deccelerating_down: $deccelerating_down <br/> stable: $stable"
@@ -573,6 +575,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.lowCarbTime = therapy.lowCarbTime
         this.highCarbTime = therapy.highCarbTime
         this.mealTime = therapy.mealTime
+        this.fastingTime = therapy.fastingTime
+        this.mealruntime = therapy.getTimeElapsedSinceLastEvent("meal")
 
         this.accelerating_up = if (delta > 2 && delta - longAvgDelta > 2) 1 else 0
         this.deccelerating_up = if (delta > 0 && (delta < shortAvgDelta || delta < longAvgDelta)) 1 else 0
@@ -764,6 +768,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("snackTime", snackTime)
         this.profile.put("highCarbTime", highCarbTime)
         this.profile.put("mealTime", mealTime)
+        this.profile.put("fastingTime", fastingTime)
         this.profile.put("Sport0SMB", isSportSafetyCondition())
 
         if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
@@ -837,7 +842,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             if(note.timestamp > olderTimeStamp && note.timestamp <= moreRecentTimeStamp) {
                 val noteText = note.note.lowercase()
                 if (noteText.contains("sleep") || noteText.contains("sport") || noteText.contains("snack") ||
-                    noteText.contains("lowcarb") || noteText.contains("highcarb") || noteText.contains("meal") ||
+                    noteText.contains("lowcarb") || noteText.contains("highcarb") ||
+                    noteText.contains("meal") || noteText.contains("fasting") ||
                     noteText.contains("low treatment") || noteText.contains("less aggressive") ||
                     noteText.contains("more aggressive") || noteText.contains("too aggressive") ||
                     noteText.contains("normal")) {
