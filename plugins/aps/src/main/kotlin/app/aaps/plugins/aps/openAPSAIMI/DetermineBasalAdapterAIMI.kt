@@ -185,7 +185,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI.1 ML.2, 22 Novembre 2023"
+            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 23 Novembre 2023"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -251,11 +251,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val pbolusM = SafeParse.stringToDouble(sp.getString(R.string.key_prebolus_meal_mode, "2"))
         val pbolusHC = SafeParse.stringToDouble(sp.getString(R.string.key_prebolus_highcarb_mode, "2"))
         // Vérifier les conditions de sécurité critiques
-        if (isCriticalSafetyCondition()) return 0.0f
-        if (isSportSafetyCondition()) return 0.0f
         if (isMealModeCondition()) return pbolusM.toFloat()
         if (isHighCarbModeCondition()) return pbolusHC.toFloat()
-
+        if (isCriticalSafetyCondition()) return 0.0f
+        if (isSportSafetyCondition()) return 0.0f
         // Ajustements basés sur des conditions spécifiques
         smbToGive = applySpecificAdjustments(smbToGive)
 
@@ -283,12 +282,12 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
     private fun isMealModeCondition(): Boolean{
         val pbolusM = SafeParse.stringToDouble(sp.getString(R.string.key_prebolus_meal_mode, "2"))
-        val modeMealPB = mealruntime <= 6 && lastBolusSMBUnit != pbolusM.toFloat()
-            return modeMealPB
+        val modeMealPB = mealruntime <= 7 && lastBolusSMBUnit != pbolusM.toFloat()
+        return modeMealPB
     }
     private fun isHighCarbModeCondition(): Boolean{
         val pbolusHC = SafeParse.stringToDouble(sp.getString(R.string.key_prebolus_highcarb_mode, "2"))
-        val modeHcPB = highCarbrunTime <= 6 && lastBolusSMBUnit != pbolusHC.toFloat()
+        val modeHcPB = highCarbrunTime <= 7 && lastBolusSMBUnit != pbolusHC.toFloat()
         return modeHcPB
     }
 
