@@ -103,7 +103,7 @@ class MainApp : DaggerApplication() {
 
         aapsLogger.debug("onCreate")
         aapsLogger.debug("onCreate - début")
-        copyModelToInternalStorage()
+        copyModelToInternalStorage(this)
         aapsLogger.debug("onCreate - après copyModelToFileSystem")
         ProcessLifecycleOwner.get().lifecycle.addObserver(processLifecycleListener.get())
         scope.launch {
