@@ -11,6 +11,7 @@ import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
+import android.util.Log
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -99,8 +100,11 @@ class MainApp : DaggerApplication() {
 
     override fun onCreate() {
         super.onCreate()
-        copyModelToFileSystem()
+
         aapsLogger.debug("onCreate")
+        aapsLogger.debug("onCreate - début")
+        copyModelToInternalStorage()
+        aapsLogger.debug("onCreate - après copyModelToFileSystem")
         ProcessLifecycleOwner.get().lifecycle.addObserver(processLifecycleListener.get())
         scope.launch {
             RxDogTag.install()
@@ -176,23 +180,24 @@ class MainApp : DaggerApplication() {
         }
     }
 
-    private fun copyModelToFileSystem() {
+    fun copyModelToInternalStorage(context: Context) {
         try {
-            val inputStream = assets.open("model.tflite")
-            val outputFile = File(filesDir, "AAPS/ml/model.tflite")
+            val assetManager = context.assets
+            val inputStream = assetManager.open("model.tflite")
+            val file = File(context.filesDir, "AAPS/ml/model.tflite")
 
-            if (!outputFile.parentFile.exists()) {
-                outputFile.parentFile.mkdirs() // Crée le dossier 'ml' s'il n'existe pas
-            }
+            // Crée le dossier 'aaps/ml' s'il n'existe pas
+            file.parentFile?.mkdirs()
 
-            val outputStream = FileOutputStream(outputFile)
+            val outputStream = FileOutputStream(file)
             inputStream.copyTo(outputStream)
+
             inputStream.close()
             outputStream.close()
 
-            println("Fichier 'model.tflite' copié dans ${outputFile.absolutePath}")
+            Log.d("ModelCopy", "Fichier 'model.tflite' copié dans ${file.absolutePath}")
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("ModelCopyError", "Erreur lors de la copie: ${e.message}")
         }
     }
     private fun setRxErrorHandler() {
