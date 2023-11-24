@@ -1,5 +1,6 @@
 package app.aaps.plugins.aps.openAPSAIMI
 
+import android.content.Context
 import android.os.Environment
 import app.aaps.core.interfaces.aps.DetermineBasalAdapter
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
@@ -37,6 +38,13 @@ import javax.inject.Inject
 import kotlin.math.roundToInt
 import java.util.Calendar
 import org.tensorflow.lite.Interpreter
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.nio.MappedByteBuffer
+import java.nio.channels.FileChannel
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.time.LocalTime
@@ -195,7 +203,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         mealDataParam = mealData.toString()
         return determineBasalResultAIMISMB
     }
-
     private fun logDataToCsv(predictedSMB: Float, smbToGive: Float) {
         val dateStr = dateUtil.dateAndTimeString(dateUtil.now())
 

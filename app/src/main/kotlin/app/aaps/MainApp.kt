@@ -62,6 +62,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import rxdogtag2.RxDogTag
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -97,6 +99,7 @@ class MainApp : DaggerApplication() {
 
     override fun onCreate() {
         super.onCreate()
+        copyModelToFileSystem()
         aapsLogger.debug("onCreate")
         ProcessLifecycleOwner.get().lifecycle.addObserver(processLifecycleListener.get())
         scope.launch {
@@ -173,6 +176,25 @@ class MainApp : DaggerApplication() {
         }
     }
 
+    private fun copyModelToFileSystem() {
+        try {
+            val inputStream = assets.open("model.tflite")
+            val outputFile = File(filesDir, "AAPS/ml/model.tflite")
+
+            if (!outputFile.parentFile.exists()) {
+                outputFile.parentFile.mkdirs() // Crée le dossier 'ml' s'il n'existe pas
+            }
+
+            val outputStream = FileOutputStream(outputFile)
+            inputStream.copyTo(outputStream)
+            inputStream.close()
+            outputStream.close()
+
+            println("Fichier 'model.tflite' copié dans ${outputFile.absolutePath}")
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
     private fun setRxErrorHandler() {
         RxJavaPlugins.setErrorHandler { t: Throwable ->
             var e = t
