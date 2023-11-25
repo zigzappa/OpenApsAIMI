@@ -855,6 +855,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("mealTime", mealTime)
         this.profile.put("fastingTime", fastingTime)
         this.profile.put("Sport0SMB", isSportSafetyCondition())
+        this.profile.put("modelHBFile", modelHBFile.exists())
+        this.profile.put("modelFile",  modelFile.exists())
         if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
             this.profile.put("out_units", "mmol/L")
         }

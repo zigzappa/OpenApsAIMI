@@ -9,6 +9,7 @@ import android.hardware.SensorManager
 import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import android.os.Build
+import android.os.Environment
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Log
@@ -180,22 +181,26 @@ class MainApp : DaggerApplication() {
         }
     }
 
-    fun copyModelToInternalStorage(context: Context) {
+    private fun copyModelToInternalStorage(context: Context) {
+        aapsLogger.debug("copyModelToInternalStorage - début")
         try {
             val assetManager = context.assets
+            aapsLogger.debug("copyModelToInternalStorage - assetManager : $assetManager")
             val inputStream = assetManager.open("model.tflite")
-            val file = File(context.filesDir, "AAPS/ml/model.tflite")
-
+            aapsLogger.debug("copyModelToInternalStorage - inputStream : $inputStream")
+            val externalFile = File(Environment.getExternalStorageDirectory().absolutePath + "/AAPS/ml", "model.tflite")
+            val assetsList = context.assets.list("") // "" pour le dossier racine de assets
+            aapsLogger.debug("copyModelToInternalStorage - assetsList : $assetsList")
             // Crée le dossier 'aaps/ml' s'il n'existe pas
-            file.parentFile?.mkdirs()
-
-            val outputStream = FileOutputStream(file)
+            externalFile.parentFile?.mkdirs()
+            val outputStream = FileOutputStream(externalFile)
+            aapsLogger.debug("copyModelToInternalStorage - outputStream : $outputStream")
             inputStream.copyTo(outputStream)
 
             inputStream.close()
             outputStream.close()
-
-            Log.d("ModelCopy", "Fichier 'model.tflite' copié dans ${file.absolutePath}")
+            aapsLogger.debug("copyModelToInternalStorage - file.absolutePath : ${externalFile.absolutePath}")
+            Log.d("ModelCopy", "Fichier 'model.tflite' copié dans ${externalFile.absolutePath}")
         } catch (e: Exception) {
             Log.e("ModelCopyError", "Erreur lors de la copie: ${e.message}")
         }
