@@ -38,13 +38,6 @@ import javax.inject.Inject
 import kotlin.math.roundToInt
 import java.util.Calendar
 import org.tensorflow.lite.Interpreter
-import java.io.FileInputStream
-import java.io.FileOutputStream
-import java.nio.MappedByteBuffer
-import java.nio.channels.FileChannel
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.nio.file.StandardCopyOption
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.time.LocalTime
@@ -383,7 +376,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 selectedModelFile = modelFile
                 modelInputs = floatArrayOf(
                     hourOfDay.toFloat(), weekend.toFloat(),
-                    bg, targetBg, iob, cob, lastCarbAgeMin.toFloat(), futureCarbs, delta, shortAvgDelta, longAvgDelta,
+                    bg, targetBg, iob, cob, lastCarbAgeMin.toFloat(), futureCarbs, delta, shortAvgDelta, longAvgDelta
                     //tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour
                 )
             }
