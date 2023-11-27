@@ -180,8 +180,42 @@ class MainApp : DaggerApplication() {
             config.appInitialized = true
         }
     }
-
     private fun copyModelToInternalStorage(context: Context) {
+        aapsLogger.debug("copyModelToInternalStorage - début")
+        try {
+            val assetManager = context.assets
+            aapsLogger.debug("copyModelToInternalStorage - assetManager : $assetManager")
+
+            // Copie de model.tflite
+            val inputStreamModel = assetManager.open("model.tflite")
+            aapsLogger.debug("copyModelToInternalStorage - inputStreamModel : $inputStreamModel")
+            val externalFileModel = File(Environment.getExternalStorageDirectory().absolutePath + "/AAPS/ml", "model.tflite")
+            externalFileModel.parentFile?.mkdirs() // Crée le dossier s'il n'existe pas
+            val outputStreamModel = FileOutputStream(externalFileModel)
+            inputStreamModel.copyTo(outputStreamModel)
+            inputStreamModel.close()
+            outputStreamModel.close()
+            aapsLogger.debug("copyModelToInternalStorage - file.absolutePath : ${externalFileModel.absolutePath}")
+            Log.d("ModelCopy", "Fichier 'model.tflite' copié dans ${externalFileModel.absolutePath}")
+
+            // Copie de modelUAM.tflite
+            val inputStreamUAM = assetManager.open("modelUAM.tflite")
+            aapsLogger.debug("copyModelToInternalStorage - inputStreamUAM : $inputStreamUAM")
+            val externalFileUAM = File(Environment.getExternalStorageDirectory().absolutePath + "/AAPS/ml", "modelUAM.tflite")
+            externalFileUAM.parentFile?.mkdirs() // Crée le dossier s'il n'existe pas
+            val outputStreamUAM = FileOutputStream(externalFileUAM)
+            inputStreamUAM.copyTo(outputStreamUAM)
+            inputStreamUAM.close()
+            outputStreamUAM.close()
+            aapsLogger.debug("copyModelToInternalStorage - file.absolutePath : ${externalFileUAM.absolutePath}")
+            Log.d("ModelCopy", "Fichier 'modelUAM.tflite' copié dans ${externalFileUAM.absolutePath}")
+
+        } catch (e: Exception) {
+            Log.e("ModelCopyError", "Erreur lors de la copie: ${e.message}")
+        }
+    }
+
+    /*private fun copyModelToInternalStorage(context: Context) {
         aapsLogger.debug("copyModelToInternalStorage - début")
         try {
             val assetManager = context.assets
@@ -204,7 +238,7 @@ class MainApp : DaggerApplication() {
         } catch (e: Exception) {
             Log.e("ModelCopyError", "Erreur lors de la copie: ${e.message}")
         }
-    }
+    }*/
     private fun setRxErrorHandler() {
         RxJavaPlugins.setErrorHandler { t: Throwable ->
             var e = t

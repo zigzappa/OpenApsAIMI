@@ -129,7 +129,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var autosensData = JSONObject()
     private val path = File(Environment.getExternalStorageDirectory().toString())
     private val modelFile = File(path, "AAPS/ml/model.tflite")
-    private val modelHBFile = File(path, "AAPS/ml/modelHB.tflite")
+    private val modelFileUAM = File(path, "AAPS/ml/modelUAM.tflite")
 
     override var currentTempParam: String? = null
     override var iobDataParam: String? = null
@@ -186,7 +186,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 23 Novembre 2023"
+            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 27 Novembre 2023"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -363,17 +363,16 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val modelInputs: FloatArray
 
         when {
-            modelHBFile.exists() -> {
-                selectedModelFile = modelHBFile
+            cob > 0 && lastCarbAgeMin < 240 && modelFile.exists() -> {
+                selectedModelFile = modelFile
                 modelInputs = floatArrayOf(
                     hourOfDay.toFloat(), weekend.toFloat(),
-                    bg, targetBg, iob, delta, shortAvgDelta, longAvgDelta,
-                    tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour, averageBeatsPerMinute.toFloat()
+                    bg, targetBg, iob, cob, lastCarbAgeMin.toFloat(), futureCarbs, delta, shortAvgDelta, longAvgDelta
                 )
             }
 
-            modelFile.exists()   -> {
-                selectedModelFile = modelFile
+            modelFileUAM.exists()   -> {
+                selectedModelFile = modelFileUAM
                 modelInputs = floatArrayOf(
                     hourOfDay.toFloat(), weekend.toFloat(),
                     bg, targetBg, iob, cob, lastCarbAgeMin.toFloat(), futureCarbs, delta, shortAvgDelta, longAvgDelta
@@ -848,7 +847,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("mealTime", mealTime)
         this.profile.put("fastingTime", fastingTime)
         this.profile.put("Sport0SMB", isSportSafetyCondition())
-        this.profile.put("modelHBFile", modelHBFile.exists())
+        this.profile.put("modelFileUAM", modelFileUAM.exists())
         this.profile.put("modelFile",  modelFile.exists())
         if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
             this.profile.put("out_units", "mmol/L")
