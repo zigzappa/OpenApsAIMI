@@ -15,6 +15,7 @@ import app.aaps.core.interfaces.stats.TIR
 import app.aaps.core.interfaces.stats.TirCalculator
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.MidnightTime
+import app.aaps.core.interfaces.utils.T
 import app.aaps.database.impl.AppRepository
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -54,6 +55,27 @@ class TirCalculatorImpl @Inject constructor(
         if (lowMgdl < 39) throw RuntimeException("Low below 39")
         if (lowMgdl > highMgdl) throw RuntimeException("Low > High")
         val startTime = dateUtil.now() - T.hours(hour = 1).msecs()
+        val endTime = dateUtil.now()
+        val bgReadings = repository.compatGetBgReadingsDataFromTime(startTime, endTime, true).blockingGet()
+
+        val result = LongSparseArray<TIR>()
+        for (bg in bgReadings) {
+            var tir = result[startTime]
+            if (tir == null) {
+                tir = TirImpl(startTime, lowMgdl, highMgdl)
+                result.append(startTime, tir)
+            }
+            if (bg.value < 39) tir.error()
+            if (bg.value >= 39 && bg.value < lowMgdl) tir.below()
+            if (bg.value in lowMgdl..highMgdl) tir.inRange()
+            if (bg.value > highMgdl) tir.above()
+        }
+        return result
+    }
+    override fun calculateDaily(lowMgdl: Double, highMgdl: Double): LongSparseArray<TIR> {
+        if (lowMgdl < 39) throw RuntimeException("Low below 39")
+        if (lowMgdl > highMgdl) throw RuntimeException("Low > High")
+        val startTime = MidnightTime.calc(dateUtil.now())
         val endTime = dateUtil.now()
         val bgReadings = repository.compatGetBgReadingsDataFromTime(startTime, endTime, true).blockingGet()
 
