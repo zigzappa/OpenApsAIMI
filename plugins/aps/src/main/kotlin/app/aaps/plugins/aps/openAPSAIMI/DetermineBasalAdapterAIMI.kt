@@ -401,7 +401,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     }
     private fun neuralnetwork(): Float {
         // Création du réseau de neurones avec 18 entrées, 5 neurones cachés, 1 sortie
-        val neuralNet = aimiNeuralNetwork(13, 5, 1)
+        val neuralNet = aimiNeuralNetwork(14, 5, 1)
         var smb = predictedSMB
         // Préparation de l'entrée pour le réseau de neurones
         val input = floatArrayOf(
@@ -416,7 +416,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     }
     private fun neuralnetwork2(): Float {
         // Création du réseau de neurones avec 18 entrées, 5 neurones cachés, 1 sortie
-        val neuralNet = aimiNeuralNetwork(8, 5, 1)
+        val neuralNet = aimiNeuralNetwork(9, 5, 1)
         var smb = predictedSMB
         // Préparation de l'entrée pour le réseau de neurones
         val input = floatArrayOf(
@@ -432,7 +432,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
     private fun neuralnetwork3(): Float {
         // Création du réseau de neurones avec 18 entrées, 5 neurones cachés, 1 sortie
-        val neuralNet = aimiNeuralNetwork(11, 5, 1)
+        val neuralNet = aimiNeuralNetwork(12, 5, 1)
         var smb = predictedSMB
         // Préparation de l'entrée pour le réseau de neurones
         val input = floatArrayOf(
@@ -448,7 +448,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     }
     private fun neuralnetwork4(): Float {
         // Création du réseau de neurones avec 18 entrées, 5 neurones cachés, 1 sortie
-        val neuralNet = aimiNeuralNetwork(7, 5, 1)
+        val neuralNet = aimiNeuralNetwork(8, 5, 1)
         var smb = predictedSMB
         // Préparation de l'entrée pour le réseau de neurones
         val input = floatArrayOf(
