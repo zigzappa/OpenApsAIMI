@@ -1,6 +1,5 @@
 package app.aaps.plugins.aps.openAPSAIMI
 
-import android.content.Context
 import android.os.Environment
 import app.aaps.core.interfaces.aps.DetermineBasalAdapter
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
@@ -130,6 +129,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private val path = File(Environment.getExternalStorageDirectory().toString())
     private val modelFile = File(path, "AAPS/ml/model.tflite")
     private val modelFileUAM = File(path, "AAPS/ml/modelUAM.tflite")
+    private var predictedSMB = 0.0f
 
     override var currentTempParam: String? = null
     override var iobDataParam: String? = null
@@ -144,7 +144,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     override operator fun invoke(): APSResultObject {
         aapsLogger.debug(LTag.APS, ">>> Invoking determine_basal <<<")
 
-        val predictedSMB = calculateSMBFromModel()
+        predictedSMB = calculateSMBFromModel()
         var smbToGive = predictedSMB
         val morningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_morning_factor, "50")) / 100.0
         val afternoonfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_afternoon_factor, "50")) / 100.0
@@ -375,8 +375,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 selectedModelFile = modelFileUAM
                 modelInputs = floatArrayOf(
                     hourOfDay.toFloat(), weekend.toFloat(),
-                    bg, targetBg, iob, cob, lastCarbAgeMin.toFloat(), futureCarbs, delta, shortAvgDelta, longAvgDelta
-                    //tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour
+                    bg, targetBg, iob, delta, shortAvgDelta, longAvgDelta,
+                    tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour,
+                    recentSteps5Minutes.toFloat(),recentSteps10Minutes.toFloat(),recentSteps15Minutes.toFloat(),recentSteps30Minutes.toFloat(),recentSteps60Minutes.toFloat(),recentSteps180Minutes.toFloat()
                 )
             }
 
@@ -396,6 +397,24 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         smbToGive = formatter.format(smbToGive).toDouble()
 
         return smbToGive.toFloat()
+    }
+    private fun neuralnetwork(): Float {
+        // Création du réseau de neurones avec 18 entrées, 5 neurones cachés, 1 sortie
+        val neuralNet = aimiNeuralNetwork(13, 40, 20)
+        var smb = predictedSMB
+        // Préparation de l'entrée pour le réseau de neurones
+        val input = floatArrayOf(
+            hourOfDay.toFloat(), weekend.toFloat(), bg, targetBg, iob, delta, shortAvgDelta, longAvgDelta,
+            tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour,
+            //recentSteps5Minutes.toFloat(), recentSteps10Minutes.toFloat(), recentSteps15Minutes.toFloat(),
+            //recentSteps30Minutes.toFloat(), recentSteps60Minutes.toFloat(), recentSteps180Minutes.toFloat(),
+            predictedSMB
+        )
+
+        // Prédiction à partir du réseau de neurones
+        //val output = neuralNet.predict(input)
+        smb = refineSMB(smb, neuralNet,input)
+        return smb
     }
 
     private fun calculateAdjustedDelayFactor(
@@ -849,6 +868,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("Sport0SMB", isSportSafetyCondition())
         this.profile.put("modelFileUAM", modelFileUAM.exists())
         this.profile.put("modelFile",  modelFile.exists())
+        this.profile.put("neuralnetwork",  neuralnetwork())
         if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
             this.profile.put("out_units", "mmol/L")
         }
