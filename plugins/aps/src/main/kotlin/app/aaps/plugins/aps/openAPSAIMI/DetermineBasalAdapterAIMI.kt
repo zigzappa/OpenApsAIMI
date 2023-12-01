@@ -171,7 +171,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "mealruntime: $mealruntime<br/> highCarbrunTime: $highCarbrunTime<br/>"
         val glucoseStr = " bg: $bg <br/> targetBG: $targetBg <br/> futureBg: $predictedBg <br/>" +
             " delta: $delta <br/> short avg delta: $shortAvgDelta <br/> long avg delta: $longAvgDelta <br/>" +
-            " accelerating_up: $accelerating_up <br/> deccelerating_up: $deccelerating_up <br/> accelerating_down: $accelerating_down <br/> deccelerating_down: $deccelerating_down <br/> stable: $stable"
+            " accelerating_up: $accelerating_up <br/> deccelerating_up: $deccelerating_up <br/> accelerating_down: $accelerating_down <br/> deccelerating_down: $deccelerating_down <br/> stable: $stable <br/>" +
+            " neuralnetwork: ${neuralnetwork()} <br/> neuralnetwork2: ${neuralnetwork2()} <br/> neuralnetwork3: ${neuralnetwork3()} <br/> neuralnetwork4: ${neuralnetwork4()}<br/> "
         val iobStr = " IOB: $iob <br/> tdd 7d/h: ${roundToPoint05(tdd7DaysPerHour)} <br/> " +
             "tdd 2d/h : ${roundToPoint05(tdd2DaysPerHour)} <br/> " +
             "tdd daily/h : ${roundToPoint05(tddPerHour)} <br/> " +
@@ -400,17 +401,60 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     }
     private fun neuralnetwork(): Float {
         // Création du réseau de neurones avec 18 entrées, 5 neurones cachés, 1 sortie
-        val neuralNet = aimiNeuralNetwork(13, 40, 20)
+        val neuralNet = aimiNeuralNetwork(13, 5, 1)
         var smb = predictedSMB
         // Préparation de l'entrée pour le réseau de neurones
         val input = floatArrayOf(
-            hourOfDay.toFloat(), weekend.toFloat(), bg, targetBg, iob, delta, shortAvgDelta, longAvgDelta,
-            tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour,
-            //recentSteps5Minutes.toFloat(), recentSteps10Minutes.toFloat(), recentSteps15Minutes.toFloat(),
-            //recentSteps30Minutes.toFloat(), recentSteps60Minutes.toFloat(), recentSteps180Minutes.toFloat(),
-            predictedSMB
+            hourOfDay.toFloat(), weekend.toFloat(), bg, targetBg, iob, cob, delta, shortAvgDelta, longAvgDelta,
+            tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour, predictedSMB
         )
 
+        // Prédiction à partir du réseau de neurones
+        //val output = neuralNet.predict(input)
+        smb = refineSMB(smb, neuralNet,input)
+        return smb
+    }
+    private fun neuralnetwork2(): Float {
+        // Création du réseau de neurones avec 18 entrées, 5 neurones cachés, 1 sortie
+        val neuralNet = aimiNeuralNetwork(8, 5, 1)
+        var smb = predictedSMB
+        // Préparation de l'entrée pour le réseau de neurones
+        val input = floatArrayOf(
+            hourOfDay.toFloat(), weekend.toFloat(), bg, cob, delta, shortAvgDelta, longAvgDelta,
+            tdd24HrsPerHour, predictedSMB
+        )
+
+        // Prédiction à partir du réseau de neurones
+        //val output = neuralNet.predict(input)
+        smb = refineSMB(smb, neuralNet,input)
+        return smb
+    }
+
+    private fun neuralnetwork3(): Float {
+        // Création du réseau de neurones avec 18 entrées, 5 neurones cachés, 1 sortie
+        val neuralNet = aimiNeuralNetwork(11, 5, 1)
+        var smb = predictedSMB
+        // Préparation de l'entrée pour le réseau de neurones
+        val input = floatArrayOf(
+            //hourOfDay.toFloat(), weekend.toFloat(),
+            bg, targetBg, cob, iob, delta, shortAvgDelta, longAvgDelta,
+            tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour, predictedSMB
+        )
+
+        // Prédiction à partir du réseau de neurones
+        //val output = neuralNet.predict(input)
+        smb = refineSMB(smb, neuralNet,input)
+        return smb
+    }
+    private fun neuralnetwork4(): Float {
+        // Création du réseau de neurones avec 18 entrées, 5 neurones cachés, 1 sortie
+        val neuralNet = aimiNeuralNetwork(7, 5, 1)
+        var smb = predictedSMB
+        // Préparation de l'entrée pour le réseau de neurones
+        val input = floatArrayOf(
+            //hourOfDay.toFloat(), weekend.toFloat(),
+            bg, cob, iob, delta, shortAvgDelta, longAvgDelta,variableSensitivity,predictedSMB
+        )
         // Prédiction à partir du réseau de neurones
         //val output = neuralNet.predict(input)
         smb = refineSMB(smb, neuralNet,input)
@@ -869,6 +913,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("modelFileUAM", modelFileUAM.exists())
         this.profile.put("modelFile",  modelFile.exists())
         this.profile.put("neuralnetwork",  neuralnetwork())
+        this.profile.put("neuralnetwork2",  neuralnetwork2())
+        this.profile.put("neuralnetwork3",  neuralnetwork3())
+        this.profile.put("neuralnetwork4",  neuralnetwork4())
         if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
             this.profile.put("out_units", "mmol/L")
         }
