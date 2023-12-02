@@ -172,7 +172,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val glucoseStr = " bg: $bg <br/> targetBG: $targetBg <br/> futureBg: $predictedBg <br/>" +
             " delta: $delta <br/> short avg delta: $shortAvgDelta <br/> long avg delta: $longAvgDelta <br/>" +
             " accelerating_up: $accelerating_up <br/> deccelerating_up: $deccelerating_up <br/> accelerating_down: $accelerating_down <br/> deccelerating_down: $deccelerating_down <br/> stable: $stable <br/>" +
-            " neuralnetwork: ${neuralnetwork()} <br/> neuralnetwork2: ${neuralnetwork2()} <br/> neuralnetwork3: ${neuralnetwork3()} <br/> neuralnetwork4: ${neuralnetwork4()}<br/> "
+            " neuralnetwork5: " + "${neuralnetwork5()}<br/>"
         val iobStr = " IOB: $iob <br/> tdd 7d/h: ${roundToPoint05(tdd7DaysPerHour)} <br/> " +
             "tdd 2d/h : ${roundToPoint05(tdd2DaysPerHour)} <br/> " +
             "tdd daily/h : ${roundToPoint05(tddPerHour)} <br/> " +
@@ -399,7 +399,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         return smbToGive.toFloat()
     }
-    private fun neuralnetwork(): Float {
+    /*private fun neuralnetwork(): Float {
         // Création du réseau de neurones avec 18 entrées, 5 neurones cachés, 1 sortie
         val neuralNet = aimiNeuralNetwork(14, 5, 1)
         var smb = predictedSMB
@@ -432,13 +432,12 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
     private fun neuralnetwork3(): Float {
         // Création du réseau de neurones avec 18 entrées, 5 neurones cachés, 1 sortie
-        val neuralNet = aimiNeuralNetwork(12, 5, 1)
+        val neuralNet = aimiNeuralNetwork(7, 10, 3)
         var smb = predictedSMB
         // Préparation de l'entrée pour le réseau de neurones
         val input = floatArrayOf(
             //hourOfDay.toFloat(), weekend.toFloat(),
-            bg, targetBg, cob, iob, delta, shortAvgDelta, longAvgDelta,
-            tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour, predictedSMB
+            bg, targetBg, cob, iob, delta, shortAvgDelta, predictedSMB
         )
 
         // Prédiction à partir du réseau de neurones
@@ -459,8 +458,32 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         //val output = neuralNet.predict(input)
         smb = refineSMB(smb, neuralNet,input)
         return smb
-    }
+    }*/
+    fun neuralnetwork5(): Double {
+        // Tailles pour le réseau de neurones
+        val inputSize = 8   // Par exemple, 10 caractéristiques en entrée
+        val hiddenSize = 5   // Taille de la couche cachée
+        val outputSize = 1   // Par exemple, 1 valeur en sortie pour une tâche de régression
 
+        // Créer une instance du réseau de neurones
+        val neuralNetwork = aimiNeuralNetwork(inputSize, hiddenSize, outputSize)
+
+        // Préparer les données d'entraînement
+        val inputs: List<FloatArray> = listOf(
+            floatArrayOf(bg, cob, iob, delta, shortAvgDelta, longAvgDelta, variableSensitivity, predictedSMB)
+        )
+        val targets: List<DoubleArray> = listOf(doubleArrayOf(predictedSMB.toDouble()))
+
+        // Paramètres d'entraînement
+        val epochs = 10  // Nombre d'époques pour l'entraînement
+        val learningRate = 0.01  // Taux d'apprentissage
+
+        // Appeler la méthode train
+        neuralNetwork.train(inputs, targets, epochs, learningRate)
+        val inputForPrediction = floatArrayOf(bg, cob, iob, delta, shortAvgDelta, longAvgDelta, variableSensitivity, predictedSMB)
+        val prediction = neuralNetwork.predict(inputForPrediction)
+        return prediction[0]
+    }
     private fun calculateAdjustedDelayFactor(
         bg: Float, recentSteps180Minutes: Int, averageBeatsPerMinute60: Float, averageBeatsPerMinute180: Float
     ): Float {
@@ -912,10 +935,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("Sport0SMB", isSportSafetyCondition())
         this.profile.put("modelFileUAM", modelFileUAM.exists())
         this.profile.put("modelFile",  modelFile.exists())
-        this.profile.put("neuralnetwork",  neuralnetwork())
-        this.profile.put("neuralnetwork2",  neuralnetwork2())
-        this.profile.put("neuralnetwork3",  neuralnetwork3())
-        this.profile.put("neuralnetwork4",  neuralnetwork4())
+        //this.profile.put("neuralnetwork",  neuralnetwork())
+        //this.profile.put("neuralnetwork2",  neuralnetwork2())
+        //this.profile.put("neuralnetwork3",  neuralnetwork3())
+        //this.profile.put("neuralnetwork4",  neuralnetwork4())
         if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
             this.profile.put("out_units", "mmol/L")
         }
