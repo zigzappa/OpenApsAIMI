@@ -459,7 +459,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         smb = refineSMB(smb, neuralNet,input)
         return smb
     }*/
-    fun neuralnetwork5(): Double {
+    fun neuralnetwork5(): Float {
         // Tailles pour le réseau de neurones
         val inputSize = 8   // Par exemple, 10 caractéristiques en entrée
         val hiddenSize = 5   // Taille de la couche cachée
@@ -476,13 +476,23 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         // Paramètres d'entraînement
         val epochs = 10  // Nombre d'époques pour l'entraînement
-        val learningRate = 0.01  // Taux d'apprentissage
+        val learningRate = 0.0001  // Taux d'apprentissage
+        val smbValue = predictedSMB
 
         // Appeler la méthode train
         neuralNetwork.train(inputs, targets, epochs, learningRate)
+
+        neuralNetwork.lastTrainingException?.let { exception ->
+            this.profile.put("training_exception", exception.message ?: "Unknown exception")
+        }
+
+        // Enregistrement de l'historique de perte
+        this.profile.put("training_loss_history", neuralNetwork.trainingLossHistory)
         val inputForPrediction = floatArrayOf(bg, cob, iob, delta, shortAvgDelta, longAvgDelta, variableSensitivity, predictedSMB)
-        val prediction = neuralNetwork.predict(inputForPrediction)
-        return prediction[0]
+        //val prediction = neuralNetwork.predict(inputForPrediction)
+        val adjustedSMB = refineSMB(smbValue, neuralNetwork, inputForPrediction)
+
+        return adjustedSMB
     }
     private fun calculateAdjustedDelayFactor(
         bg: Float, recentSteps180Minutes: Int, averageBeatsPerMinute60: Float, averageBeatsPerMinute180: Float

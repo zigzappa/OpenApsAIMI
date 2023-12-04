@@ -2,14 +2,22 @@ package app.aaps.plugins.aps.openAPSAIMI
 
 import kotlin.math.max
 import kotlin.math.pow
+import kotlin.math.sqrt
+import kotlin.random.Random
 
 class aimiNeuralNetwork(private val inputSize: Int, private val hiddenSize: Int, private val outputSize: Int) {
     private val weightsInputHidden = Array(inputSize) { DoubleArray(hiddenSize) { Math.random() } }
     private val biasHidden = DoubleArray(hiddenSize) { Math.random() }
     private val weightsHiddenOutput = DoubleArray(hiddenSize) { Math.random() }
     private val biasOutput = DoubleArray(outputSize) { Math.random() }
+    var lastTrainingException: Exception? = null
+    var trainingLossHistory: MutableList<Double> = mutableListOf()
 
-    private fun relu(x: Double) = max(0.001, x)
+    private fun heInitialization(size: Int): DoubleArray {
+        val scale = sqrt(6.0 / (inputSize + size))
+        return DoubleArray(size) { Random.nextDouble(-scale, scale) }
+    }
+    private fun relu(x: Double) = max(0.01, x)
 
     private fun forwardPass(input: FloatArray): Pair<DoubleArray, DoubleArray> {
         val hidden = DoubleArray(hiddenSize) { i ->
@@ -34,12 +42,19 @@ class aimiNeuralNetwork(private val inputSize: Int, private val hiddenSize: Int,
     fun predict(input: FloatArray): DoubleArray {
         return forwardPass(input).second
     }
+    private fun DoubleArray.clipInPlace(min: Double, max: Double) {
+        for (i in indices) {
+            this[i] = this[i].coerceIn(min, max)
+        }
+    }
 
     private fun backpropagation(input: FloatArray, target: DoubleArray, learningRate: Double) {
         val (hidden, output) = forwardPass(input)
 
         // Gradient de la perte par rapport à la sortie prédite
         val gradLossOutput = DoubleArray(outputSize) { i -> 2.0 * (output[i] - target[i]) }
+        val clipValue = 1.0 // This is an example value; adjust as necessary
+        gradLossOutput.clipInPlace(-clipValue, clipValue)
 
         // Mise à jour des poids et biais de la couche de sortie
         for (i in 0 until outputSize) {
@@ -76,7 +91,7 @@ class aimiNeuralNetwork(private val inputSize: Int, private val hiddenSize: Int,
         }
     }
 
-    fun train(inputs: List<FloatArray>, targets: List<DoubleArray>, epochs: Int, learningRate: Double) {
+    /*fun train(inputs: List<FloatArray>, targets: List<DoubleArray>, epochs: Int, learningRate: Double) {
         for (epoch in 1..epochs) {
             var totalLoss = 0.0
             for ((input, target) in inputs.zip(targets)) {
@@ -85,6 +100,28 @@ class aimiNeuralNetwork(private val inputSize: Int, private val hiddenSize: Int,
                 backpropagation(input, target, learningRate)
             }
             println("Epoch $epoch, Loss: ${totalLoss / inputs.size}")
+        }
+    }*/
+    fun train(inputs: List<FloatArray>, targets: List<DoubleArray>, epochs: Int, learningRate: Double) {
+        lastTrainingException = null
+        trainingLossHistory.clear()
+
+        for (epoch in 1..epochs) {
+            var totalLoss = 0.0
+            try {
+                for ((input, target) in inputs.zip(targets)) {
+                    val output = forwardPass(input).second
+                    totalLoss += mseLoss(output, target)
+                    backpropagation(input, target, learningRate)
+                }
+                val averageLoss = totalLoss / inputs.size
+                trainingLossHistory.add(averageLoss)
+                println("Epoch $epoch, Loss: $averageLoss")
+            } catch (e: Exception) {
+                lastTrainingException = e
+                println("Exception during training at epoch $epoch: ${e.message}")
+                break // Sortie anticipée de la boucle d'entraînement en cas d'exception
+            }
         }
     }
 
