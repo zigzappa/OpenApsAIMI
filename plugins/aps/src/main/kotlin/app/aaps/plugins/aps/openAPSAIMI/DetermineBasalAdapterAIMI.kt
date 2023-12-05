@@ -147,8 +147,11 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     @Suppress("SpellCheckingInspection")
     override operator fun invoke(): APSResultObject {
         aapsLogger.debug(LTag.APS, ">>> Invoking determine_basal <<<")
-
-        predictedSMB = calculateSMBFromModel()
+        predictedSMB = if (sp.getBoolean(R.string.key_enable_ML_training, false)){
+            roundToPoint001(neuralnetwork5().toFloat())
+        }else {
+            calculateSMBFromModel()
+        }
         var smbToGive = predictedSMB
         val morningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_morning_factor, "50")) / 100.0
         val afternoonfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_afternoon_factor, "50")) / 100.0
@@ -310,11 +313,11 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val prediction = predictedBg < targetBg && delta < 10
         val interval = predictedBg < targetBg && delta > 10 && iob >= maxSMB/2 && lastsmbtime < 10
         val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 15
-        val nosmb = iob >= 2*maxSMB && bg < 100 && delta < 10
+        //val nosmb = iob >= 2*maxSMB && bg < 100 && delta < 10
 
         return belowMinThreshold || belowTargetAndDropping || belowTargetAndStableButNoCob ||
             droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval ||
-            fasting || nosmb
+            fasting //|| nosmb
     }
     private fun isSportSafetyCondition(): Boolean {
         val sport = targetBg >= 140 && recentSteps5Minutes >= 200 && recentSteps10Minutes >= 500
@@ -468,9 +471,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     }*/
     fun neuralnetwork5(): Double {
         // Tailles pour le réseau de neurones
-        val inputSize = 8   // Par exemple, 10 caractéristiques en entrée
-        val hiddenSize = 5   // Taille de la couche cachée
-        val outputSize = 1   // Par exemple, 1 valeur en sortie pour une tâche de régression
+        //val inputSize = 8   // Par exemple, 10 caractéristiques en entrée
+        //val hiddenSize = 5   // Taille de la couche cachée
+        //val outputSize = 1   // Par exemple, 1 valeur en sortie pour une tâche de régression
         // Mettre à jour le format de la date pour correspondre à celui du fichier CSV
         val dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yy HH:mm")
 
@@ -482,7 +485,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         val inputs = mutableListOf<FloatArray>()
         val targets = mutableListOf<DoubleArray>()
-        val dateLimit = LocalDateTime.now().minusDays(7)
+        val trainingDay = SafeParse.stringToDouble(sp.getString(R.string.key_nb_day_ML_training, "7"))
+        val dateLimit = LocalDateTime.now().minusDays(trainingDay.toLong())
 
         for (line in lines) {
             val cols = line.split(",").map { it.trim() }

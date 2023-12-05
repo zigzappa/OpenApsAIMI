@@ -185,6 +185,10 @@
     <string name="prebolus_highcarb_mode_title">Mode high carb pre-bolus</string>
     <string name="key_prebolus_highcarb_mode">key_prebolus_highcarb_mode</string>
     <string name="prebolus_highcarb_mode_summary">If you set a note in action page, with the word highcarb, you will receive this pre-bolus one time.</string>
+    <string name="number_day_ML_training_summary">Number of day to train the model</string>
+    <string name="key_nb_day_ML_training">key_nb_day_ML_training</string>
+    <string name="nb_day_ML_training_title">ML number training day</string>
+    <string name="key_enable_ML_training">key_enable_ML_training</string>
 
 
 </resources>
