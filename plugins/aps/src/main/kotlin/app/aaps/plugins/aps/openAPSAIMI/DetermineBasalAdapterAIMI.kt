@@ -39,7 +39,11 @@ import java.util.Calendar
 import org.tensorflow.lite.Interpreter
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
+import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 import java.util.Locale
 import kotlin.math.ln
 import kotlin.math.pow
@@ -198,7 +202,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         return determineBasalResultAIMISMB
     }
     private fun logDataToCsv(predictedSMB: Float, smbToGive: Float) {
-        val dateStr = dateUtil.dateAndTimeString(dateUtil.now())
+
+        val usFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm")
+        val dateStr = dateUtil.dateAndTimeString(dateUtil.now()).format(usFormatter)
+
 
         val headerRow = "dateStr,dateLong,hourOfDay,weekend," +
             "bg,targetBg,iob,cob,lastCarbAgeMin,futureCarbs,delta,shortAvgDelta,longAvgDelta," +
@@ -206,7 +213,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "recentSteps5Minutes,recentSteps10Minutes,recentSteps15Minutes,recentSteps30Minutes,recentSteps60Minutes,recentSteps180Minutes," +
             "tags0to60minAgo,tags60to120minAgo,tags120to180minAgo,tags180to240minAgo," +
             "predictedSMB,maxIob,maxSMB,smbGiven\n"
-        val valuesToRecord = "$dateStr,${dateUtil.now()},$hourOfDay,$weekend," +
+        val valuesToRecord = "$dateStr,$hourOfDay,$weekend," +
             "$bg,$targetBg,$iob,$cob,$lastCarbAgeMin,$futureCarbs,$delta,$shortAvgDelta,$longAvgDelta," +
             "$tdd7DaysPerHour,$tdd2DaysPerHour,$tddPerHour,$tdd24HrsPerHour," +
             "$recentSteps5Minutes,$recentSteps10Minutes,$recentSteps15Minutes,$recentSteps30Minutes,$recentSteps60Minutes,$recentSteps180Minutes," +
@@ -459,41 +466,57 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         smb = refineSMB(smb, neuralNet,input)
         return smb
     }*/
-    fun neuralnetwork5(): Float {
+    fun neuralnetwork5(): Double {
         // Tailles pour le réseau de neurones
         val inputSize = 8   // Par exemple, 10 caractéristiques en entrée
         val hiddenSize = 5   // Taille de la couche cachée
         val outputSize = 1   // Par exemple, 1 valeur en sortie pour une tâche de régression
+        // Mettre à jour le format de la date pour correspondre à celui du fichier CSV
+        val dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yy HH:mm")
 
-        // Créer une instance du réseau de neurones
-        val neuralNetwork = aimiNeuralNetwork(inputSize, hiddenSize, outputSize)
+        // Lire l'en-tête pour obtenir les indices des colonnes
+        val headerLine = File(path, "AAPS/oapsaimi_records.csv").readLines().first()
+        val headers = headerLine.split(",").map { it.trim() }
+        val colIndices = listOf("bg", "cob", "iob", "delta", "shortAvgDelta", "longAvgDelta", "variableSensitivity", "predictedSMB").map { headers.indexOf(it) }
+        val lines = File(path, "AAPS/oapsaimi_records.csv").readLines().drop(1)
 
-        // Préparer les données d'entraînement
-        val inputs: List<FloatArray> = listOf(
-            floatArrayOf(bg, cob, iob, delta, shortAvgDelta, longAvgDelta, variableSensitivity, predictedSMB)
-        )
-        val targets: List<DoubleArray> = listOf(doubleArrayOf(predictedSMB.toDouble()))
+        val inputs = mutableListOf<FloatArray>()
+        val targets = mutableListOf<DoubleArray>()
+        val dateLimit = LocalDateTime.now().minusDays(7)
 
-        // Paramètres d'entraînement
-        val epochs = 10  // Nombre d'époques pour l'entraînement
-        val learningRate = 0.0001  // Taux d'apprentissage
-        val smbValue = predictedSMB
+        for (line in lines) {
+            val cols = line.split(",").map { it.trim() }
 
-        // Appeler la méthode train
-        neuralNetwork.train(inputs, targets, epochs, learningRate)
+            try {
+                val dateStr = cols[0]
+                val date = LocalDateTime.parse(dateStr, dateFormatter)
 
-        neuralNetwork.lastTrainingException?.let { exception ->
-            this.profile.put("training_exception", exception.message ?: "Unknown exception")
+                if (date.isAfter(dateLimit)) {
+                    // Ne prendre en compte que les colonnes existantes
+                    val input = colIndices.dropLast(1).mapNotNull { index -> cols.getOrNull(index)?.toFloatOrNull() }.toFloatArray()
+                    val target = colIndices.takeLast(1).mapNotNull { index -> cols.getOrNull(index)?.toDoubleOrNull() }.toDoubleArray()
+
+                    if (input.isNotEmpty() && target.isNotEmpty()) {
+                        inputs.add(input)
+                        targets.add(target)
+                    }
+                }
+            } catch (e: DateTimeParseException) {
+                // Ignorer les lignes avec des dates incorrectes
+                continue
+            }
         }
 
-        // Enregistrement de l'historique de perte
-        this.profile.put("training_loss_history", neuralNetwork.trainingLossHistory)
-        val inputForPrediction = floatArrayOf(bg, cob, iob, delta, shortAvgDelta, longAvgDelta, variableSensitivity, predictedSMB)
-        //val prediction = neuralNetwork.predict(inputForPrediction)
-        val adjustedSMB = refineSMB(smbValue, neuralNetwork, inputForPrediction)
+        val neuralNetwork = aimiNeuralNetwork(inputs.first().size, 5, 1)
+        neuralNetwork.train(inputs, targets, 10, 0.0001)
 
-        return adjustedSMB
+
+        val inputForPrediction = inputs.last()
+        val prediction = neuralNetwork.predict(inputForPrediction)
+
+        return prediction[0]
     }
+
     private fun calculateAdjustedDelayFactor(
         bg: Float, recentSteps180Minutes: Int, averageBeatsPerMinute60: Float, averageBeatsPerMinute180: Float
     ): Float {

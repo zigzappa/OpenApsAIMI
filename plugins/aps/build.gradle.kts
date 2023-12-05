@@ -23,6 +23,7 @@ dependencies {
     implementation("org.tensorflow:tensorflow-lite-support:0.1.0")
     implementation ("org.tensorflow:tensorflow-lite-metadata:0.1.0")
     implementation ("org.tensorflow:tensorflow-lite-gpu:2.3.0")
+    implementation("androidx.core:core-i18n:1.0.0-alpha01")
 
     testImplementation(project(":pump:virtual"))
     testImplementation(project(":shared:tests"))
