@@ -147,11 +147,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     @Suppress("SpellCheckingInspection")
     override operator fun invoke(): APSResultObject {
         aapsLogger.debug(LTag.APS, ">>> Invoking determine_basal <<<")
-        predictedSMB = if (sp.getBoolean(R.string.key_enable_ML_training, false)){
-            roundToPoint001(neuralnetwork5().toFloat())
-        }else {
-            calculateSMBFromModel()
-        }
+        predictedSMB = calculateSMBFromModel()
+
         var smbToGive = predictedSMB
         val morningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_morning_factor, "50")) / 100.0
         val afternoonfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_afternoon_factor, "50")) / 100.0
@@ -166,8 +163,12 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             bg > 180 -> (smbToGive * hyperfactor).toFloat()
             else -> smbToGive
         }
-
-        smbToGive = applySafetyPrecautions(smbToGive)
+        smbToGive = if (sp.getBoolean(R.string.key_enable_ML_training, false)){
+            applySafetyPrecautions(roundToPoint001(neuralnetwork5()))
+        }else {
+            applySafetyPrecautions(smbToGive)
+        }
+        //smbToGive = applySafetyPrecautions(smbToGive)
         smbToGive = roundToPoint05(smbToGive)
 
         logDataToCsv(predictedSMB, smbToGive)
@@ -194,7 +195,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 29 Novembre 2023"
+            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 6 Décembre 2023"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -469,7 +470,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         smb = refineSMB(smb, neuralNet,input)
         return smb
     }*/
-    fun neuralnetwork5(): Double {
+    fun neuralnetwork5(): Float {
         // Tailles pour le réseau de neurones
         //val inputSize = 8   // Par exemple, 10 caractéristiques en entrée
         //val hiddenSize = 5   // Taille de la couche cachée
@@ -514,11 +515,12 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val neuralNetwork = aimiNeuralNetwork(inputs.first().size, 5, 1)
         neuralNetwork.train(inputs, targets, 10, 0.0001)
 
-
+        var smb = predictedSMB
         val inputForPrediction = inputs.last()
         val prediction = neuralNetwork.predict(inputForPrediction)
-
-        return prediction[0]
+        smb = refineSMB(smb, neuralNetwork,inputForPrediction)
+        //return prediction[0]
+        return smb
     }
 
     private fun calculateAdjustedDelayFactor(
