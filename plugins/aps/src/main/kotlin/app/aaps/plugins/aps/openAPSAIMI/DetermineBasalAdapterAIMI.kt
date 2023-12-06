@@ -39,7 +39,6 @@ import java.util.Calendar
 import org.tensorflow.lite.Interpreter
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -163,7 +162,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             bg > 180 -> (smbToGive * hyperfactor).toFloat()
             else -> smbToGive
         }
-        smbToGive = if (sp.getBoolean(R.string.key_enable_ML_training, false)){
+        val file = File(path, "AAPS/oapsaimi_records.csv")
+
+        smbToGive = if (sp.getBoolean(R.string.key_enable_ML_training, false) && file.exists()){
             applySafetyPrecautions(roundToPoint001(neuralnetwork5()))
         }else {
             applySafetyPrecautions(smbToGive)
@@ -410,6 +411,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         return smbToGive.toFloat()
     }
+
     /*private fun neuralnetwork(): Float {
         // Création du réseau de neurones avec 18 entrées, 5 neurones cachés, 1 sortie
         val neuralNet = aimiNeuralNetwork(14, 5, 1)
@@ -488,42 +490,55 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val targets = mutableListOf<DoubleArray>()
         val trainingDay = SafeParse.stringToDouble(sp.getString(R.string.key_nb_day_ML_training, "7"))
         val dateLimit = LocalDateTime.now().minusDays(trainingDay.toLong())
-
-        for (line in lines) {
-            val cols = line.split(",").map { it.trim() }
-
+        val earliestDate = lines.mapNotNull { line ->
             try {
-                val dateStr = cols[0]
-                val date = LocalDateTime.parse(dateStr, dateFormatter)
-
-                if (date.isAfter(dateLimit)) {
-                    // Ne prendre en compte que les colonnes existantes
-                    val input = colIndices.dropLast(1).mapNotNull { index -> cols.getOrNull(index)?.toFloatOrNull() }.toFloatArray()
-                    val target = colIndices.takeLast(1).mapNotNull { index -> cols.getOrNull(index)?.toDoubleOrNull() }.toDoubleArray()
-
-                    if (input.isNotEmpty() && target.isNotEmpty()) {
-                        inputs.add(input)
-                        targets.add(target)
-                    }
-
-                }
+                LocalDateTime.parse(line.split(",").first().trim(), dateFormatter)
             } catch (e: DateTimeParseException) {
-                // Ignorer les lignes avec des dates incorrectes
-                continue
+                null
             }
+        }.minOrNull()
+        if (earliestDate == null || earliestDate.isAfter(dateLimit)) {
+            return predictedSMB
+
+        } else {
+
+            for (line in lines) {
+                val cols = line.split(",").map { it.trim() }
+
+                try {
+                    val dateStr = cols[0]
+                    val date = LocalDateTime.parse(dateStr, dateFormatter)
+
+                    if (date.isAfter(dateLimit)) {
+                        // Ne prendre en compte que les colonnes existantes
+                        val input = colIndices.dropLast(1).mapNotNull { index -> cols.getOrNull(index)?.toFloatOrNull() }.toFloatArray()
+                        val target = colIndices.takeLast(1).mapNotNull { index -> cols.getOrNull(index)?.toDoubleOrNull() }.toDoubleArray()
+
+                        if (input.isNotEmpty() && target.isNotEmpty()) {
+                            inputs.add(input)
+                            targets.add(target)
+                        }
+
+                    }
+                } catch (e: DateTimeParseException) {
+                    // Ignorer les lignes avec des dates incorrectes
+                    continue
+                }
+            }
+
+            val neuralNetwork = aimiNeuralNetwork(inputs.first().size, 5, 1)
+            neuralNetwork.train(inputs, targets, 10, 0.0001)
+
+            var smb = predictedSMB
+            val inputForPrediction = inputs.last()
+            val prediction = neuralNetwork.predict(inputForPrediction)
+            this.profile.put("predictionML", prediction[0])
+            smb = refineSMB(smb, neuralNetwork, inputForPrediction)
+            this.profile.put("SMB_ML", smb)
+            //return prediction[0]
+            return smb
         }
 
-        val neuralNetwork = aimiNeuralNetwork(inputs.first().size, 5, 1)
-        neuralNetwork.train(inputs, targets, 10, 0.0001)
-
-        var smb = predictedSMB
-        val inputForPrediction = inputs.last()
-        val prediction = neuralNetwork.predict(inputForPrediction)
-        this.profile.put("predictionML",  prediction[0])
-        smb = refineSMB(smb, neuralNetwork,inputForPrediction)
-        this.profile.put("SMB_ML",  smb)
-        //return prediction[0]
-        return smb
     }
 
     private fun calculateAdjustedDelayFactor(
