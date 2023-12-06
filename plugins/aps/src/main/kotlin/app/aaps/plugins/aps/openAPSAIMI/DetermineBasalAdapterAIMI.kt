@@ -505,6 +505,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                         inputs.add(input)
                         targets.add(target)
                     }
+                    // Log les inputs et les targets
+                    logInfo("Input: ${input.joinToString(", ")} | Target: ${target.joinToString(", ")}")
                 }
             } catch (e: DateTimeParseException) {
                 // Ignorer les lignes avec des dates incorrectes
@@ -518,10 +520,17 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         var smb = predictedSMB
         val inputForPrediction = inputs.last()
         val prediction = neuralNetwork.predict(inputForPrediction)
+        this.profile.put("predictionML",  prediction[0])
         smb = refineSMB(smb, neuralNetwork,inputForPrediction)
+        this.profile.put("SMB_ML",  smb)
         //return prediction[0]
         return smb
     }
+    fun logInfo(message: String) {
+        //écrire dans un fichier de log
+        File("AAPS/log_ML_file.txt").appendText(message + "\n")
+    }
+
 
     private fun calculateAdjustedDelayFactor(
         bg: Float, recentSteps180Minutes: Int, averageBeatsPerMinute60: Float, averageBeatsPerMinute180: Float
