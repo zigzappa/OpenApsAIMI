@@ -132,6 +132,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private val path = File(Environment.getExternalStorageDirectory().toString())
     private val modelFile = File(path, "AAPS/ml/model.tflite")
     private val modelFileUAM = File(path, "AAPS/ml/modelUAM.tflite")
+    private val csvfile = File(path, "AAPS/oapsaimi_records.csv")
     private var predictedSMB = 0.0f
 
     override var currentTempParam: String? = null
@@ -149,10 +150,12 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         predictedSMB = calculateSMBFromModel()
         val file = File(path, "AAPS/oapsaimi_records.csv")
         var smbToGive = predictedSMB
-        smbToGive = if (sp.getBoolean(R.string.key_enable_ML_training, false) && file.exists()){
-            roundToPoint001(neuralnetwork5())
+        if (sp.getBoolean(R.string.key_enable_ML_training, false) && csvfile.exists()){
+            smbToGive = neuralnetwork5()
+            this.profile.put("csvfile", csvfile.exists())
+
         }else {
-            smbToGive
+            smbToGive = smbToGive
         }
 
         val morningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_morning_factor, "50")) / 100.0
