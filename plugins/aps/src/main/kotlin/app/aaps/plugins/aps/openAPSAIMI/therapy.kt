@@ -24,7 +24,7 @@ class therapy (private val appRepository: AppRepository){
         lowCarbTime = findActiveLowCarbEvents(System.currentTimeMillis()).blockingGet()
         highCarbTime = findActiveHighCarbEvents(System.currentTimeMillis()).blockingGet()
         mealTime = findActiveMealEvents(System.currentTimeMillis()).blockingGet()
-        fastingTime = findActiveMealEvents(System.currentTimeMillis()).blockingGet()
+        fastingTime = findActiveFastingEvents(System.currentTimeMillis()).blockingGet()
     }
 
     private fun findActiveSleepEvents(timestamp: Long): Single<Boolean> {
