@@ -8,7 +8,8 @@ import kotlin.random.Random
 class aimiNeuralNetwork(private val inputSize: Int, private val hiddenSize: Int, private val outputSize: Int) {
     private val weightsInputHidden = Array(inputSize) { DoubleArray(hiddenSize) { Math.random() } }
     private val biasHidden = DoubleArray(hiddenSize) { Math.random() }
-    private val weightsHiddenOutput = DoubleArray(hiddenSize) { Math.random() }
+    //private val weightsHiddenOutput = DoubleArray(hiddenSize) { Math.random() }
+    private val weightsHiddenOutput = heInitialization(outputSize)
     private val biasOutput = DoubleArray(outputSize) { Math.random() }
     var lastTrainingException: Exception? = null
     var trainingLossHistory: MutableList<Double> = mutableListOf()
@@ -139,5 +140,5 @@ private operator fun Double.timesAssign(gradRelu: Number) {
 
 fun refineSMB(smb: Float, neuralNetwork: aimiNeuralNetwork, input: FloatArray): Float {
     val prediction = neuralNetwork.predict(input)
-    return smb + prediction[0].toFloat()
+    return prediction[0].toFloat()
 }

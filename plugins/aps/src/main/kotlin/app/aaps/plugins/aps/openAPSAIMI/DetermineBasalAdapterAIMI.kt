@@ -148,7 +148,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     override operator fun invoke(): APSResultObject {
         aapsLogger.debug(LTag.APS, ">>> Invoking determine_basal <<<")
         predictedSMB = calculateSMBFromModel()
-        val file = File(path, "AAPS/oapsaimi_records.csv")
         var smbToGive = predictedSMB
         if (sp.getBoolean(R.string.key_enable_ML_training, false) && csvfile.exists()){
             smbToGive = neuralnetwork5()
@@ -194,7 +193,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             " 5 Min Steps: $recentSteps5Minutes <br/> 10 Min Steps: $recentSteps10Minutes <br/> 15 Min Steps: $recentSteps15Minutes <br/>" +
             " 30 Min Steps: $recentSteps30Minutes <br/> 60 Min Steps: $recentSteps60Minutes <br/> 180 Min Steps: $recentSteps180Minutes <br/>" +
             "Heart Beat(average past 5 minutes) : $averageBeatsPerMinute <br/> Heart Beat(average past 180 minutes) : $averageBeatsPerMinute180"
-        var mealStr = " COB: ${cob}g   Future: ${futureCarbs}g <br/> COB Age Min: $lastCarbAgeMin <br/><br/> " +
+        val mealStr = " COB: ${cob}g   Future: ${futureCarbs}g <br/> COB Age Min: $lastCarbAgeMin <br/><br/> " +
             "tags0to60minAgo: ${tags0to60minAgo}<br/> tags60to120minAgo: $tags60to120minAgo<br/> " +
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
@@ -318,11 +317,11 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val prediction = predictedBg < targetBg && delta < 10
         val interval = predictedBg < targetBg && delta > 10 && iob >= maxSMB/2 && lastsmbtime < 10
         val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 15
-        //val nosmb = iob >= 2*maxSMB && bg < 100 && delta < 10
+        val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10
 
         return belowMinThreshold || belowTargetAndDropping || belowTargetAndStableButNoCob ||
             droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval ||
-            fasting //|| nosmb
+            fasting || nosmb
     }
     private fun isSportSafetyCondition(): Boolean {
         val sport = targetBg >= 140 && recentSteps5Minutes >= 200 && recentSteps10Minutes >= 500
@@ -415,71 +414,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         return smbToGive.toFloat()
     }
 
-    /*private fun neuralnetwork(): Float {
-        // Création du réseau de neurones avec 18 entrées, 5 neurones cachés, 1 sortie
-        val neuralNet = aimiNeuralNetwork(14, 5, 1)
-        var smb = predictedSMB
-        // Préparation de l'entrée pour le réseau de neurones
-        val input = floatArrayOf(
-            hourOfDay.toFloat(), weekend.toFloat(), bg, targetBg, iob, cob, delta, shortAvgDelta, longAvgDelta,
-            tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour, predictedSMB
-        )
 
-        // Prédiction à partir du réseau de neurones
-        //val output = neuralNet.predict(input)
-        smb = refineSMB(smb, neuralNet,input)
-        return smb
-    }
-    private fun neuralnetwork2(): Float {
-        // Création du réseau de neurones avec 18 entrées, 5 neurones cachés, 1 sortie
-        val neuralNet = aimiNeuralNetwork(9, 5, 1)
-        var smb = predictedSMB
-        // Préparation de l'entrée pour le réseau de neurones
-        val input = floatArrayOf(
-            hourOfDay.toFloat(), weekend.toFloat(), bg, cob, delta, shortAvgDelta, longAvgDelta,
-            tdd24HrsPerHour, predictedSMB
-        )
-
-        // Prédiction à partir du réseau de neurones
-        //val output = neuralNet.predict(input)
-        smb = refineSMB(smb, neuralNet,input)
-        return smb
-    }
-
-    private fun neuralnetwork3(): Float {
-        // Création du réseau de neurones avec 18 entrées, 5 neurones cachés, 1 sortie
-        val neuralNet = aimiNeuralNetwork(7, 10, 3)
-        var smb = predictedSMB
-        // Préparation de l'entrée pour le réseau de neurones
-        val input = floatArrayOf(
-            //hourOfDay.toFloat(), weekend.toFloat(),
-            bg, targetBg, cob, iob, delta, shortAvgDelta, predictedSMB
-        )
-
-        // Prédiction à partir du réseau de neurones
-        //val output = neuralNet.predict(input)
-        smb = refineSMB(smb, neuralNet,input)
-        return smb
-    }
-    private fun neuralnetwork4(): Float {
-        // Création du réseau de neurones avec 18 entrées, 5 neurones cachés, 1 sortie
-        val neuralNet = aimiNeuralNetwork(8, 5, 1)
-        var smb = predictedSMB
-        // Préparation de l'entrée pour le réseau de neurones
-        val input = floatArrayOf(
-            //hourOfDay.toFloat(), weekend.toFloat(),
-            bg, cob, iob, delta, shortAvgDelta, longAvgDelta,variableSensitivity,predictedSMB
-        )
-        // Prédiction à partir du réseau de neurones
-        //val output = neuralNet.predict(input)
-        smb = refineSMB(smb, neuralNet,input)
-        return smb
-    }*/
     fun neuralnetwork5(): Float {
-        // Tailles pour le réseau de neurones
-        //val inputSize = 8   // Par exemple, 10 caractéristiques en entrée
-        //val hiddenSize = 5   // Taille de la couche cachée
-        //val outputSize = 1   // Par exemple, 1 valeur en sortie pour une tâche de régression
         // Mettre à jour le format de la date pour correspondre à celui du fichier CSV
         val dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yy HH:mm")
 
@@ -500,6 +436,11 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 null
             }
         }.minOrNull()
+        if (inputs.isEmpty() || targets.isEmpty()) {
+            // Gérer le cas où il n'y a pas suffisamment de données
+            return predictedSMB
+        }
+
         if (earliestDate == null || earliestDate.isAfter(dateLimit)) {
             return predictedSMB
 
@@ -995,10 +936,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("Sport0SMB", isSportSafetyCondition())
         this.profile.put("modelFileUAM", modelFileUAM.exists())
         this.profile.put("modelFile",  modelFile.exists())
-        //this.profile.put("neuralnetwork",  neuralnetwork())
-        //this.profile.put("neuralnetwork2",  neuralnetwork2())
-        //this.profile.put("neuralnetwork3",  neuralnetwork3())
-        //this.profile.put("neuralnetwork4",  neuralnetwork4())
+
         if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
             this.profile.put("out_units", "mmol/L")
         }
