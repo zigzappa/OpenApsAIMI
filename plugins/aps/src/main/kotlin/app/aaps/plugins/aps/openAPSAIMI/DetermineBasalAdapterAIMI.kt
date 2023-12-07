@@ -147,8 +147,14 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     override operator fun invoke(): APSResultObject {
         aapsLogger.debug(LTag.APS, ">>> Invoking determine_basal <<<")
         predictedSMB = calculateSMBFromModel()
-
+        val file = File(path, "AAPS/oapsaimi_records.csv")
         var smbToGive = predictedSMB
+        smbToGive = if (sp.getBoolean(R.string.key_enable_ML_training, false) && file.exists()){
+            roundToPoint001(neuralnetwork5())
+        }else {
+            smbToGive
+        }
+
         val morningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_morning_factor, "50")) / 100.0
         val afternoonfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_afternoon_factor, "50")) / 100.0
         val eveningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_evening_factor, "50")) / 100.0
@@ -162,14 +168,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             bg > 180 -> (smbToGive * hyperfactor).toFloat()
             else -> smbToGive
         }
-        val file = File(path, "AAPS/oapsaimi_records.csv")
 
-        smbToGive = if (sp.getBoolean(R.string.key_enable_ML_training, false) && file.exists()){
-            applySafetyPrecautions(roundToPoint001(neuralnetwork5()))
-        }else {
-            applySafetyPrecautions(smbToGive)
-        }
-        //smbToGive = applySafetyPrecautions(smbToGive)
+        smbToGive = applySafetyPrecautions(smbToGive)
         smbToGive = roundToPoint05(smbToGive)
 
         logDataToCsv(predictedSMB, smbToGive)
@@ -196,7 +196,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 6 Décembre 2023"
+            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 7 Décembre 2023"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
