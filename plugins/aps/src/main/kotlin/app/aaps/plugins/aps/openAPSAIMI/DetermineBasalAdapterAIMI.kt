@@ -39,10 +39,8 @@ import java.util.Calendar
 import org.tensorflow.lite.Interpreter
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
-import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
 import java.util.Locale
 import kotlin.math.ln
 import kotlin.math.pow
@@ -132,7 +130,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private val path = File(Environment.getExternalStorageDirectory().toString())
     private val modelFile = File(path, "AAPS/ml/model.tflite")
     private val modelFileUAM = File(path, "AAPS/ml/modelUAM.tflite")
-    private val csvfile = File(path, "AAPS/oapsaimi_records.csv")
+    private val csvfile = File(path, "AAPS/oapsaimiML_records.csv")
     private var predictedSMB = 0.0f
 
     override var currentTempParam: String? = null
@@ -147,10 +145,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     @Suppress("SpellCheckingInspection")
     override operator fun invoke(): APSResultObject {
         aapsLogger.debug(LTag.APS, ">>> Invoking determine_basal <<<")
-        predictedSMB = calculateSMBFromModel()
+        this.predictedSMB = calculateSMBFromModel()
         var smbToGive = predictedSMB
-        if (sp.getBoolean(R.string.key_enable_ML_training, false) && csvfile.exists()){
-            smbToGive = neuralnetwork5()
+        if ((sp.getBoolean(R.string.key_enable_ML_training, false) === true) && csvfile.exists()){
+            smbToGive = neuralnetwork5(delta, shortAvgDelta, longAvgDelta)
             this.profile.put("csvfile", csvfile.exists())
 
         }else {
@@ -173,7 +171,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         smbToGive = applySafetyPrecautions(smbToGive)
         smbToGive = roundToPoint05(smbToGive)
-
+        logDataMLToCsv(predictedSMB, smbToGive)
         logDataToCsv(predictedSMB, smbToGive)
         logDataToCsvHB(predictedSMB, smbToGive)
 
@@ -183,7 +181,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val glucoseStr = " bg: $bg <br/> targetBG: $targetBg <br/> futureBg: $predictedBg <br/>" +
             " delta: $delta <br/> short avg delta: $shortAvgDelta <br/> long avg delta: $longAvgDelta <br/>" +
             " accelerating_up: $accelerating_up <br/> deccelerating_up: $deccelerating_up <br/> accelerating_down: $accelerating_down <br/> deccelerating_down: $deccelerating_down <br/> stable: $stable <br/>" +
-            " neuralnetwork5: " + "${neuralnetwork5()}<br/>"
+            " neuralnetwork5: " + "${neuralnetwork5(delta, shortAvgDelta, longAvgDelta)}<br/>"
         val iobStr = " IOB: $iob <br/> tdd 7d/h: ${roundToPoint05(tdd7DaysPerHour)} <br/> " +
             "tdd 2d/h : ${roundToPoint05(tdd2DaysPerHour)} <br/> " +
             "tdd daily/h : ${roundToPoint05(tddPerHour)} <br/> " +
@@ -207,6 +205,26 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         profileParam = profile.toString()
         mealDataParam = mealData.toString()
         return determineBasalResultAIMISMB
+    }
+
+    private fun logDataMLToCsv(predictedSMB: Float, smbToGive: Float) {
+
+        val usFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm")
+        val dateStr = dateUtil.dateAndTimeString(dateUtil.now()).format(usFormatter)
+
+
+        val headerRow = "dateStr, bg, iob, cob, delta, shortAvgDelta, longAvgDelta, predictedSMB, smbGiven\n"
+        val valuesToRecord = "$dateStr," +
+            "$bg,$iob,$cob,$delta,$shortAvgDelta,$longAvgDelta," +
+            "$tdd7DaysPerHour,$tdd2DaysPerHour,$tddPerHour,$tdd24HrsPerHour," +
+            "$predictedSMB,$smbToGive"
+
+        val file = File(path, "AAPS/oapsaimiML_records.csv")
+        if (!file.exists()) {
+            file.createNewFile()
+            file.appendText(headerRow)
+        }
+        file.appendText(valuesToRecord + "\n")
     }
     private fun logDataToCsv(predictedSMB: Float, smbToGive: Float) {
 
@@ -308,6 +326,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
     private fun isCriticalSafetyCondition(): Boolean {
         val fasting = fastingTime
+        val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..4) } && delta > 15 && cob === 0.0f
         val belowMinThreshold = bg < 80
         val belowTargetAndDropping = bg < targetBg && delta < -2
         val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 5
@@ -319,9 +338,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 15
         val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10
 
+
         return belowMinThreshold || belowTargetAndDropping || belowTargetAndStableButNoCob ||
             droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval ||
-            fasting || nosmb
+            fasting || nosmb || nightTrigger
     }
     private fun isSportSafetyCondition(): Boolean {
         val sport = targetBg >= 140 && recentSteps5Minutes >= 200 && recentSteps10Minutes >= 500
@@ -413,77 +433,128 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         return smbToGive.toFloat()
     }
+    fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Float {
+        val minutesToConsider = SafeParse.stringToDouble(sp.getString(R.string.key_nb_day_ML_training, "60"))
+        val linesToConsider = (minutesToConsider / 5).toInt()
+        var averageDifference: Float
+        var totalDifference: Float
+        val maxIterations = SafeParse.stringToDouble(sp.getString(R.string.key_nb_iteration_ML_training, "100"))
+        var differenceWithinRange = false
+        var finalRefinedSMB: Float = calculateSMBFromModel()
+        val maxGlobalIterations = 5 // Nombre maximum d'itérations globales
+        var globalConvergenceReached = false
 
+        for (globalIteration in 1..maxGlobalIterations) {
+            var globalIterationCount = 0
+            var iterationCount = 0
 
-    fun neuralnetwork5(): Float {
-        // Mettre à jour le format de la date pour correspondre à celui du fichier CSV
-        val dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yy HH:mm")
+            while (globalIterationCount < maxGlobalIterations && !globalConvergenceReached) {
 
-        // Lire l'en-tête pour obtenir les indices des colonnes
-        val headerLine = File(path, "AAPS/oapsaimi_records.csv").readLines().first()
-        val headers = headerLine.split(",").map { it.trim() }
-        val colIndices = listOf("bg", "cob", "iob", "delta", "shortAvgDelta", "longAvgDelta", "variableSensitivity", "predictedSMB").map { headers.indexOf(it) }
-        val lines = File(path, "AAPS/oapsaimi_records.csv").readLines().drop(1)
+                val allLines = csvfile.readLines()
+                val headerLine = allLines.first()
+                val headers = headerLine.split(",").map { it.trim() }
+                val colIndices = listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB").map { headers.indexOf(it) }
+                val targetColIndex = headers.indexOf("smbGiven")
+                this.profile.put("colIndices", colIndices)
 
-        val inputs = mutableListOf<FloatArray>()
-        val targets = mutableListOf<DoubleArray>()
-        val trainingDay = SafeParse.stringToDouble(sp.getString(R.string.key_nb_day_ML_training, "7"))
-        val dateLimit = LocalDateTime.now().minusDays(trainingDay.toLong())
-        val earliestDate = lines.mapNotNull { line ->
-            try {
-                LocalDateTime.parse(line.split(",").first().trim(), dateFormatter)
-            } catch (e: DateTimeParseException) {
-                null
-            }
-        }.minOrNull()
-        if (inputs.isEmpty() || targets.isEmpty()) {
-            // Gérer le cas où il n'y a pas suffisamment de données
-            return predictedSMB
-        }
+                val lines = if (allLines.size > linesToConsider) allLines.takeLast(linesToConsider + 1) else allLines // +1 pour inclure l'en-tête
 
-        if (earliestDate == null || earliestDate.isAfter(dateLimit)) {
-            return predictedSMB
+                val inputs = mutableListOf<FloatArray>()
+                val targets = mutableListOf<DoubleArray>()
 
-        } else {
+                for (line in lines.drop(1)) { // Ignorer l'en-tête
+                    val cols = line.split(",").map { it.trim() }
+                    this.profile.put("cols", cols)
 
-            for (line in lines) {
-                val cols = line.split(",").map { it.trim() }
-
-                try {
-                    val dateStr = cols[0]
-                    val date = LocalDateTime.parse(dateStr, dateFormatter)
-
-                    if (date.isAfter(dateLimit)) {
-                        // Ne prendre en compte que les colonnes existantes
-                        val input = colIndices.dropLast(1).mapNotNull { index -> cols.getOrNull(index)?.toFloatOrNull() }.toFloatArray()
-                        val target = colIndices.takeLast(1).mapNotNull { index -> cols.getOrNull(index)?.toDoubleOrNull() }.toDoubleArray()
-
-                        if (input.isNotEmpty() && target.isNotEmpty()) {
-                            inputs.add(input)
-                            targets.add(target)
-                        }
-
+                    val input = colIndices.mapNotNull { index -> cols.getOrNull(index)?.toFloatOrNull() }.toFloatArray()
+                    // Calculez et ajoutez l'indicateur de tendance directement dans 'input'
+                    val trendIndicator = when {
+                        delta > 0 && shortAvgDelta > 0 && longAvgDelta > 0 -> 1
+                        delta < 0 && shortAvgDelta < 0 && longAvgDelta < 0 -> -1
+                        else                                               -> 0
                     }
-                } catch (e: DateTimeParseException) {
-                    // Ignorer les lignes avec des dates incorrectes
-                    continue
+                    val enhancedInput = input.copyOf(input.size + 1)
+                    enhancedInput[input.size] = trendIndicator.toFloat()
+                    this.profile.put("input", input.contentToString())
+                    this.profile.put("input.size", input.size)
+                    this.profile.put("colIndices.size", colIndices.size)
+
+                    val targetValue = cols.getOrNull(targetColIndex)?.toDoubleOrNull()
+                    this.profile.put("targetValue", targetValue.toString())
+                    if (enhancedInput.size == colIndices.size + 1 && targetValue != null) {
+                        inputs.add(enhancedInput)
+                        targets.add(doubleArrayOf(targetValue))
+                        this.profile.put("inputs", inputs.size.toString())
+                        this.profile.put("targets", targets.size.toString())
+                    }
                 }
+
+                if (inputs.isEmpty() || targets.isEmpty()) {
+                    return predictedSMB
+                }
+                val epoch = SafeParse.stringToDouble(sp.getString(R.string.key_nb_epoch_ML_training, "40")).toInt()
+                val learningrate = SafeParse.stringToDouble(sp.getString(R.string.key_nb_learningrate_ML_training, "0.1"))
+                //val neuralNetwork = aimiNeuralNetwork(inputs.first().size, 5, 1)
+                // Déterminer la taille de l'ensemble de validation
+                val validationSize = (inputs.size * 0.1).toInt() // Par exemple, 10% pour la validation
+
+                // Diviser les données en ensembles d'entraînement et de validation
+                val validationInputs = inputs.takeLast(validationSize)
+                val validationTargets = targets.takeLast(validationSize)
+                val trainingInputs = inputs.take(inputs.size - validationSize)
+                val trainingTargets = targets.take(targets.size - validationSize)
+
+                // Création et entraînement du réseau de neurones
+                val neuralNetwork = aimiNeuralNetwork(inputs.first().size, 5, 1)
+                neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epoch, learningrate)
+
+                val inputForPrediction = inputs.last()
+                val prediction = neuralNetwork.predict(inputForPrediction)
+                this.profile.put("predictionML", prediction[0].toString())
+
+                do {
+                    totalDifference = 0.0f
+
+                    for (enhancedInput in inputs) {
+                        val predictedSMB = finalRefinedSMB// Prédiction du modèle TFLite
+                        val refinedSMB = refineSMB(predictedSMB, neuralNetwork, enhancedInput)
+                        this.profile.put("predictedSMB", predictedSMB)
+                        this.profile.put("refinedSMB", refinedSMB)
+
+                        val difference = kotlin.math.abs(predictedSMB - refinedSMB)
+                        totalDifference += difference
+                        if (difference in 0.5..1.0) {
+                            finalRefinedSMB = refinedSMB
+                            differenceWithinRange = true
+                            this.profile.put("finalRefinedSMB in the loop", finalRefinedSMB)
+                            break  // Sortie anticipée si la différence est dans la plage souhaitée
+                        }
+                    }
+                    this.profile.put("differenceWithinRange", differenceWithinRange)
+                    averageDifference = totalDifference / inputs.size
+                    this.profile.put("averageDifferenceML", averageDifference)
+                    iterationCount++
+                    if (differenceWithinRange || iterationCount >= maxIterations) {
+                        println("Maximum iterations reached.")
+                        this.profile.put("iterationCount", iterationCount)
+                        this.profile.put("maxIterations", maxIterations)
+                        break
+                    }
+
+                    // Ajustez ici si nécessaire. Par exemple, ajuster les paramètres du modèle ou les données d'entrée
+                } while (true)
+                if (differenceWithinRange || iterationCount >= maxIterations) {
+                    globalConvergenceReached = true
+                }
+
+
+                globalIterationCount++
             }
-
-            val neuralNetwork = aimiNeuralNetwork(inputs.first().size, 5, 1)
-            neuralNetwork.train(inputs, targets, 10, 0.0001)
-
-            var smb = predictedSMB
-            val inputForPrediction = inputs.last()
-            val prediction = neuralNetwork.predict(inputForPrediction)
-            this.profile.put("predictionML", prediction[0])
-            smb = refineSMB(smb, neuralNetwork, inputForPrediction)
-            this.profile.put("SMB_ML", smb)
-            //return prediction[0]
-            return smb
         }
-
+        // Retourne finalRefinedSMB si la différence est dans la plage, sinon predictedSMB
+        return if (globalConvergenceReached) finalRefinedSMB else predictedSMB
     }
+
 
     private fun calculateAdjustedDelayFactor(
         bg: Float, recentSteps180Minutes: Int, averageBeatsPerMinute60: Float, averageBeatsPerMinute180: Float

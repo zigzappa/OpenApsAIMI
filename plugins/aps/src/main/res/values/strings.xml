@@ -189,6 +189,17 @@
     <string name="key_nb_day_ML_training">key_nb_day_ML_training</string>
     <string name="nb_day_ML_training_title">ML number training day</string>
     <string name="key_enable_ML_training">key_enable_ML_training</string>
+    <string name="nb_minutes_ML_training_title">Nb minutes to train the data</string>
+    <string name="number_minutes_training_summary">Nb minutes to train the data for the ML engine</string>
+    <string name="number_epoch_training_summary">NB Epoch to train the data</string>
+    <string name="nb_epoch_ML_training_title">NB Epoch to train the data</string>
+    <string name="key_nb_epoch_ML_training">key_nb_epoch_ML_training</string>
+    <string name="key_nb_learningrate_ML_training">key_nb_learningrate_ML_training</string>
+    <string name="number_learningrate_training_summary">nb learning rate to train the data</string>
+    <string name="nb_learningrate_ML_training_title">learning rate to train the data</string>
+    <string name="number_iteration_training_summary">Nb time it will try before stopping the loop if it can not get a satisfying result.</string>
+    <string name="key_nb_iteration_ML_training">key_nb_iteration_ML_training</string>
+    <string name="nb_iteration_ML_training_title">NB iteration stopping the loop</string>
 
 
 </resources>

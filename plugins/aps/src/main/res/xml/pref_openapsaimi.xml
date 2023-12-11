@@ -217,13 +217,43 @@
                 android:summary="This option will enable training ML calculation and use the result for the smb size." />
 
             <app.aaps.core.validators.ValidatingEditTextPreference
-                android:defaultValue="7"
+                android:defaultValue="60"
                 android:enabled="true"
-                android:dialogMessage="@string/number_day_ML_training_summary"
+                android:dialogMessage="@string/number_minutes_training_summary"
                 android:inputType="numberDecimal"
                 android:key="@string/key_nb_day_ML_training"
-                android:title="@string/nb_day_ML_training_title"
-                validate:floatmaxNumber="30"
+                android:title="@string/nb_minutes_ML_training_title"
+                validate:floatmaxNumber="20000"
+                validate:floatminNumber="1"
+                validate:testType="floatNumericRange" />
+            <app.aaps.core.validators.ValidatingEditTextPreference
+                android:defaultValue="40"
+                android:enabled="true"
+                android:dialogMessage="@string/number_epoch_training_summary"
+                android:inputType="numberDecimal"
+                android:key="@string/key_nb_epoch_ML_training"
+                android:title="@string/nb_epoch_ML_training_title"
+                validate:floatmaxNumber="200"
+                validate:floatminNumber="1"
+                validate:testType="floatNumericRange" />
+            <app.aaps.core.validators.ValidatingEditTextPreference
+                android:defaultValue="0.1"
+                android:enabled="true"
+                android:dialogMessage="@string/number_learningrate_training_summary"
+                android:inputType="numberDecimal"
+                android:key="@string/key_nb_learningrate_ML_training"
+                android:title="@string/nb_learningrate_ML_training_title"
+                validate:floatmaxNumber="1"
+                validate:floatminNumber="0.00001"
+                validate:testType="floatNumericRange" />
+            <app.aaps.core.validators.ValidatingEditTextPreference
+                android:defaultValue="100"
+                android:enabled="true"
+                android:dialogMessage="@string/number_iteration_training_summary"
+                android:inputType="numberDecimal"
+                android:key="@string/key_nb_iteration_ML_training"
+                android:title="@string/nb_iteration_ML_training_title"
+                validate:floatmaxNumber="10000"
                 validate:floatminNumber="1"
                 validate:testType="floatNumericRange" />
 
