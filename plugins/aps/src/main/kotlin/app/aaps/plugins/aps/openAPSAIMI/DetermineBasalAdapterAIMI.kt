@@ -87,6 +87,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var stable: Int = 0
     private var maxIob = 0.0f
     private var maxSMB = 1.0f
+    private var lastBolusSMBUnit = 0.0f
     private var tdd7DaysPerHour = 0.0f
     private var tdd2DaysPerHour = 0.0f
     private var tddPerHour = 0.0f
@@ -111,6 +112,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var mealTime = false
     private var fastingTime = false
     private var mealruntime: Long = 0
+    private var highCarbrunTime: Long = 0
     private var intervalsmb = 5
     private var variableSensitivity = 0.0f
     private var averageBeatsPerMinute = 0.0
@@ -164,7 +166,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         logDataToCsvHB(predictedSMB, smbToGive)
 
         val constraintStr = " Max IOB: $maxIob <br/> Max SMB: $maxSMB<br/> sleep: $sleepTime<br/> sport: $sportTime<br/> snack: $snackTime<br/>" +
-            "lowcarb: $lowCarbTime<br/> highcarb: $highCarbTime<br/> meal: $mealTime<br/> fastingtime: $fastingTime<br/> intervalsmb: $intervalsmb<br/> mealruntime: $mealruntime<br/>"
+            "lowcarb: $lowCarbTime<br/> highcarb: $highCarbTime<br/> meal: $mealTime<br/> fastingtime: $fastingTime<br/> intervalsmb: $intervalsmb<br/> " +
+            "mealruntime: $mealruntime<br/> highCarbrunTime: $highCarbrunTime<br/>"
         val glucoseStr = " bg: $bg <br/> targetBg: $targetBg <br/> futureBg: $predictedBg <br/>" +
             " delta: $delta <br/> short avg delta: $shortAvgDelta <br/> long avg delta: $longAvgDelta <br/>" +
             " accelerating_up: $accelerating_up <br/> deccelerating_up: $deccelerating_up <br/> accelerating_down: $accelerating_down <br/> deccelerating_down: $deccelerating_down <br/> stable: $stable"
@@ -273,6 +276,16 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
 
         return result
+    }
+    private fun isMealModeCondition(): Boolean{
+        val pbolusM = SafeParse.stringToDouble(sp.getString(R.string.key_prebolus_meal_mode, "2"))
+        val modeMealPB = mealruntime in 0..7 && lastBolusSMBUnit != pbolusM.toFloat() && mealTime
+        return modeMealPB
+    }
+    private fun isHighCarbModeCondition(): Boolean{
+        val pbolusHC = SafeParse.stringToDouble(sp.getString(R.string.key_prebolus_highcarb_mode, "2"))
+        val modeHcPB = highCarbrunTime in 0..7 && lastBolusSMBUnit != pbolusHC.toFloat() && highCarbTime
+        return modeHcPB
     }
 
     private fun isCriticalSafetyCondition(): Boolean {
@@ -604,6 +617,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.mealTime = therapy.mealTime
         this.fastingTime = therapy.fastingTime
         this.mealruntime = therapy.getTimeElapsedSinceLastEvent("meal")
+        this.highCarbrunTime = therapy.getTimeElapsedSinceLastEvent("highcarb")
 
         this.accelerating_up = if (delta > 2 && delta - longAvgDelta > 2) 1 else 0
         this.deccelerating_up = if (delta > 0 && (delta < shortAvgDelta || delta < longAvgDelta)) 1 else 0
@@ -769,6 +783,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     }
         val getlastBolusSMB = repository.getLastBolusRecordOfTypeWrapped(Bolus.Type.SMB).blockingGet()
         val lastBolusSMBTime = if (getlastBolusSMB is ValueWrapper.Existing) getlastBolusSMB.value.timestamp else 0L
+        this.lastBolusSMBUnit = if (getlastBolusSMB is ValueWrapper.Existing) getlastBolusSMB.value.amount.toFloat() else 0.0F
         this.lastsmbtime = ((now - lastBolusSMBTime) / (60 * 1000)).toDouble().roundToInt().toLong().toInt()
 
         this.maxIob = sp.getDouble(R.string.key_openapssmb_max_iob, 5.0).toFloat()
