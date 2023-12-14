@@ -433,7 +433,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         return smbToGive.toFloat()
     }
-    fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Float {
+    private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Float {
         val minutesToConsider = SafeParse.stringToDouble(sp.getString(R.string.key_nb_day_ML_training, "60"))
         val linesToConsider = (minutesToConsider / 5).toInt()
         var averageDifference: Float
@@ -661,6 +661,23 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         return futureBg
     }
 
+    private fun calculateGFactor(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Double {
+        val accelerationFactor = 0.5 // Facteur pour accélération de la glycémie
+        val decelerationFactor = 1.3 // Facteur pour décélération de la glycémie
+        val stableFactor = 1.7 // Facteur pour glycémie stable
+
+        return when {
+            // Accélération rapide
+            delta > 2 && (delta > shortAvgDelta && delta > longAvgDelta) -> accelerationFactor
+
+            // Décélération ou tendance à la stabilisation
+            delta < 2 && (delta < shortAvgDelta || delta < longAvgDelta) -> decelerationFactor
+
+            // Glycémie stable
+            else -> stableFactor
+        }
+    }
+
     @Suppress("SpellCheckingInspection")
     @Throws(JSONException::class)
     override fun setData(
@@ -811,11 +828,11 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             lowCarbTime -> tdd * 85.0
             snackTime -> tdd * 65.0
             highCarbTime -> tdd * 500.0
-            mealTime -> tdd * 300.0
+            mealTime -> tdd * 200.0
             bg > 180 -> tdd * dynISFadjusthyper
             else -> tdd * dynISFadjust
         }
-        this.variableSensitivity = Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1).toFloat()
+        this.variableSensitivity = kotlin.math.max(profile.getIsfMgdl().toFloat()/2.5f,Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1).toFloat() * calculateGFactor(delta,shortAvgDelta,longAvgDelta).toFloat())
         this.currentTIRLow = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.belowPct()!!
         this.currentTIRRange = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.inRangePct()!!
         this.currentTIRAbove = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.abovePct()!!
@@ -940,11 +957,11 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         val variableSensitivityDouble = variableSensitivity.toDoubleSafely()
         if (variableSensitivityDouble != null) {
-            if (recentSteps5Minutes > 100 && recentSteps10Minutes > 200 && bg < 130 && delta < 10|| recentSteps180Minutes > 1500 && bg < 130 && delta < 10) variableSensitivity *= 1.5f
-            if (recentSteps30Minutes > 500 && recentSteps5Minutes >= 0 && recentSteps5Minutes < 100 && bg < 130 && delta < 10) variableSensitivity *= 1.3f
+            if (recentSteps5Minutes > 100 && recentSteps10Minutes > 200 && bg < 130 && delta < 10|| recentSteps180Minutes > 1500 && bg < 130 && delta < 10) this.variableSensitivity *= 1.5f
+            if (recentSteps30Minutes > 500 && recentSteps5Minutes >= 0 && recentSteps5Minutes < 100 && bg < 130 && delta < 10) this.variableSensitivity *= 1.3f
 
     } else {
-        variableSensitivity = profile.getIsfMgdl().toFloat()
+        this.variableSensitivity = profile.getIsfMgdl().toFloat() * calculateGFactor(delta,shortAvgDelta,longAvgDelta).toFloat()
     }
         val getlastBolusSMB = repository.getLastBolusRecordOfTypeWrapped(Bolus.Type.SMB).blockingGet()
         val lastBolusSMBTime = if (getlastBolusSMB is ValueWrapper.Existing) getlastBolusSMB.value.timestamp else 0L
