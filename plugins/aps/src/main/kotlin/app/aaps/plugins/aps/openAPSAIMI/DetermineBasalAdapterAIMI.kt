@@ -148,7 +148,12 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.predictedSMB = calculateSMBFromModel()
         var smbToGive = predictedSMB
         if ((sp.getBoolean(R.string.key_enable_ML_training, false) === true) && csvfile.exists()){
-            smbToGive = neuralnetwork5(delta, shortAvgDelta, longAvgDelta)
+            val allLines = csvfile.readLines()
+            val minutesToConsider = SafeParse.stringToDouble(sp.getString(R.string.key_nb_day_ML_training, "60"))
+            val linesToConsider = (minutesToConsider / 5).toInt()
+            if (allLines.size > linesToConsider) {
+                smbToGive = neuralnetwork5(delta, shortAvgDelta, longAvgDelta)
+            }
             this.profile.put("csvfile", csvfile.exists())
 
         }else {
@@ -456,8 +461,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 val colIndices = listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB").map { headers.indexOf(it) }
                 val targetColIndex = headers.indexOf("smbGiven")
                 this.profile.put("colIndices", colIndices)
-
-                val lines = if (allLines.size > linesToConsider) allLines.takeLast(linesToConsider + 1) else allLines // +1 pour inclure l'en-tête
+                if (allLines.size <= linesToConsider) {
+                    return predictedSMB // ou une autre valeur de secours appropriée
+                }
+                val lines = allLines.takeLast(linesToConsider + 1)
 
                 val inputs = mutableListOf<FloatArray>()
                 val targets = mutableListOf<DoubleArray>()
