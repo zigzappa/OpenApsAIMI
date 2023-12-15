@@ -33,6 +33,10 @@ class aimiNeuralNetwork(private val inputSize: Int, private val hiddenSize: Int,
 
     // Normalisation Z-score
     private fun zScoreNormalization(inputData: List<FloatArray>): List<FloatArray> {
+        if (inputData.isEmpty()) {
+            // Retourner une liste vide ou gérer le cas d'une liste vide d'une manière appropriée
+            return emptyList()
+        }
         val means = FloatArray(inputData.first().size) { 0f }
         val stdDevs = FloatArray(inputData.first().size) { 0f }
 
