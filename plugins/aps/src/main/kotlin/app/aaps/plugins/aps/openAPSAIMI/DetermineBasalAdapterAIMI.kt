@@ -461,10 +461,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 val colIndices = listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB").map { headers.indexOf(it) }
                 val targetColIndex = headers.indexOf("smbGiven")
                 this.profile.put("colIndices", colIndices)
-                if (allLines.size <= linesToConsider) {
-                    return predictedSMB // ou une autre valeur de secours appropriée
-                }
-                val lines = allLines.takeLast(linesToConsider + 1)
+
+                val lines = if (allLines.size > linesToConsider) allLines.takeLast(linesToConsider + 1) else allLines // +1 pour inclure l'en-tête
 
                 val inputs = mutableListOf<FloatArray>()
                 val targets = mutableListOf<DoubleArray>()
