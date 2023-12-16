@@ -201,7 +201,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 7 Décembre 2023"
+            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 16 Décembre 2023"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -528,7 +528,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
                         val difference = kotlin.math.abs(predictedSMB - refinedSMB)
                         totalDifference += difference
-                        if (difference in 0.5..1.0) {
+                        if (difference in 0.0..1.5) {
                             finalRefinedSMB = refinedSMB
                             differenceWithinRange = true
                             this.profile.put("finalRefinedSMB in the loop", finalRefinedSMB)
