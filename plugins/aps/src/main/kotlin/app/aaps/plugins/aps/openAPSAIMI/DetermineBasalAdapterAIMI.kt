@@ -146,19 +146,20 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     override operator fun invoke(): APSResultObject {
         aapsLogger.debug(LTag.APS, ">>> Invoking determine_basal <<<")
         this.predictedSMB = calculateSMBFromModel()
-        var smbToGive = predictedSMB
+        //var smbToGive = predictedSMB
         if ((sp.getBoolean(R.string.key_enable_ML_training, false) === true) && csvfile.exists()){
             val allLines = csvfile.readLines()
             val minutesToConsider = SafeParse.stringToDouble(sp.getString(R.string.key_nb_day_ML_training, "60"))
             val linesToConsider = (minutesToConsider / 5).toInt()
             if (allLines.size > linesToConsider) {
-                smbToGive = neuralnetwork5(delta, shortAvgDelta, longAvgDelta)
+                this.predictedSMB = neuralnetwork5(delta, shortAvgDelta, longAvgDelta)
             }
             this.profile.put("csvfile", csvfile.exists())
 
         }else {
-            smbToGive = smbToGive
+            this.profile.put("ML Decision data training","ML decision has no enough data to refine the decision")
         }
+        var smbToGive = predictedSMB
 
         val morningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_morning_factor, "50")) / 100.0
         val afternoonfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_afternoon_factor, "50")) / 100.0
@@ -521,12 +522,12 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                     totalDifference = 0.0f
 
                     for (enhancedInput in inputs) {
-                        val predictedSMB = finalRefinedSMB// Prédiction du modèle TFLite
-                        val refinedSMB = refineSMB(predictedSMB, neuralNetwork, enhancedInput)
-                        this.profile.put("predictedSMB", predictedSMB)
+                        val predictedrefineSMB = finalRefinedSMB// Prédiction du modèle TFLite
+                        val refinedSMB = refineSMB(predictedrefineSMB, neuralNetwork, enhancedInput)
+                        this.profile.put("predictedrefineSMB", predictedrefineSMB)
                         this.profile.put("refinedSMB", refinedSMB)
 
-                        val difference = kotlin.math.abs(predictedSMB - refinedSMB)
+                        val difference = kotlin.math.abs(predictedrefineSMB - refinedSMB)
                         totalDifference += difference
                         if (difference in 0.0..1.5) {
                             finalRefinedSMB = refinedSMB
@@ -556,6 +557,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 globalIterationCount++
             }
         }
+        this.profile.put("globalConvergenceReached", globalConvergenceReached)
+        this.profile.put("finalRefinedSMB2", finalRefinedSMB)
+        this.profile.put("differenceWithinRange", differenceWithinRange)
         // Retourne finalRefinedSMB si la différence est dans la plage, sinon predictedSMB
         return if (globalConvergenceReached) finalRefinedSMB else predictedSMB
     }
