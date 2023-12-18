@@ -12,8 +12,6 @@ import android.view.View
 import android.view.WindowInsets
 import android.view.WindowManager
 import androidx.viewbinding.ViewBinding
-import app.aaps.core.interfaces.extensions.toVisibility
-import app.aaps.core.interfaces.extensions.toVisibilityKeepSpace
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.rx.AapsSchedulers
@@ -23,6 +21,8 @@ import app.aaps.core.interfaces.rx.weardata.EventData
 import app.aaps.core.interfaces.rx.weardata.EventData.ActionResendData
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.ui.extensions.toVisibility
+import app.aaps.core.ui.extensions.toVisibilityKeepSpace
 import app.aaps.wear.R
 import app.aaps.wear.data.RawDisplayData
 import app.aaps.wear.events.EventWearPreferenceChange
@@ -30,7 +30,7 @@ import app.aaps.wear.heartrate.HeartRateListener
 import app.aaps.wear.interaction.menus.MainMenuActivity
 import app.aaps.wear.interaction.utils.Persistence
 import app.aaps.wear.interaction.utils.WearUtil
-import app.aaps.wear.wearStepCount.stepCountListener
+import app.aaps.wear.wearStepCount.StepCountListener
 import com.ustwo.clockwise.common.WatchFaceTime
 import com.ustwo.clockwise.common.WatchMode
 import com.ustwo.clockwise.common.WatchShape
@@ -110,7 +110,7 @@ abstract class BaseWatchFace : WatchFace() {
     private var mLastSvg = ""
     private var mLastDirection = ""
     private var heartRateListener: HeartRateListener? = null
-    private var stepCountListener: stepCountListener? = null
+    private var stepCountListener: StepCountListener? = null
 
     override fun onCreate() {
         // Not derived from DaggerService, do injection here
@@ -176,11 +176,13 @@ abstract class BaseWatchFace : WatchFace() {
             }
         }
     }
+
     private fun updatestepsCountListener() {
         if (sp.getBoolean(R.string.key_steps_sampling, false)) {
             if (stepCountListener == null) {
-                stepCountListener = stepCountListener(
-                    this, aapsLogger, aapsSchedulers).also { scl -> disposable += scl }
+                stepCountListener = StepCountListener(
+                    this, aapsLogger, aapsSchedulers
+                ).also { scl -> disposable += scl }
             }
         } else {
             stepCountListener?.let { scl ->
@@ -189,6 +191,7 @@ abstract class BaseWatchFace : WatchFace() {
             }
         }
     }
+
     override fun onTapCommand(tapType: Int, x: Int, y: Int, eventTime: Long) {
         binding.chart?.let { chart ->
             if (tapType == TAP_TYPE_TAP && x >= chart.left && x <= chart.right && y >= chart.top && y <= chart.bottom) {
@@ -420,7 +423,6 @@ abstract class BaseWatchFace : WatchFace() {
     }
 
     private fun strikeThroughSgvIfNeeded() {
-        @Suppress("DEPRECATION")
         binding.sgv?.let { mSgv ->
             if (ageLevel() <= 0 && singleBg.timeStamp > 0) mSgv.paintFlags = mSgv.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
             else mSgv.paintFlags = mSgv.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
@@ -481,10 +483,5 @@ abstract class BaseWatchFace : WatchFace() {
         mLastSvg = singleBg.sgvString
         mLastDirection = singleBg.sgvString
         return true
-    }
-
-    companion object {
-
-        const val SCREEN_SIZE_SMALL = 280
     }
 }

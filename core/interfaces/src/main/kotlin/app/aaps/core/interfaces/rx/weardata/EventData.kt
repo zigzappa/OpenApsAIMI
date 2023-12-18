@@ -5,7 +5,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.protobuf.ProtoBuf
-import org.joda.time.DateTime
+import java.util.Date
 import java.util.Objects
 
 @Serializable
@@ -50,7 +50,7 @@ sealed class EventData : Event() {
         val product: String
     ) : EventData() {
 
-        override fun  equals(other: Any?): Boolean =
+        override fun equals(other: Any?): Boolean =
             when (other) {
                 !is WearException -> false
                 else              -> timeStamp == other.timeStamp && fingerprint == other.fingerprint
@@ -112,7 +112,7 @@ sealed class EventData : Event() {
     ) : EventData() {
 
         override fun toString() =
-            "HR ${beatsPerMinute.toInt()} at ${DateTime(timestamp)} for ${duration / 1000.0}sec $device"
+            "HR ${beatsPerMinute.toInt()} at ${Date(timestamp)} for ${duration / 1000.0}sec $device"
     }
 
     @Serializable
@@ -125,10 +125,11 @@ sealed class EventData : Event() {
         val steps30min: Int,
         val steps60min: Int,
         val steps180min: Int,
-        val device: String): EventData() {
+        val device: String
+    ) : EventData() {
 
         override fun toString() =
-            "STEPS 5min: $steps5min, 10min: $steps10min, 15min: $steps15min, 30min: $steps30min, 60min: $steps60min, 180min: $steps180min at ${DateTime(timestamp)} for ${duration / 1000.0}sec $device"
+            "STEPS 5min: $steps5min, 10min: $steps10min, 15min: $steps15min, 30min: $steps30min, 60min: $steps60min, 180min: $steps180min at ${Date(timestamp)} for ${duration / 1000.0}sec $device"
     }
 
     @Serializable
@@ -309,8 +310,10 @@ sealed class EventData : Event() {
 
     @Serializable
     data class ActionSetCustomWatchface(val customWatchfaceData: CwfData) : EventData()
+
     @Serializable
     data class ActionUpdateCustomWatchface(val customWatchfaceData: CwfData) : EventData()
+
     @Serializable
     data class ActionrequestCustomWatchface(val exportFile: Boolean) : EventData()
 

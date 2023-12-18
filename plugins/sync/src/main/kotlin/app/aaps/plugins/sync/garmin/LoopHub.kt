@@ -1,8 +1,8 @@
 package app.aaps.plugins.sync.garmin
 
-import app.aaps.core.interfaces.db.GlucoseUnit
+import app.aaps.core.data.model.GV
+import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.interfaces.profile.Profile
-import app.aaps.database.entities.GlucoseValue
 import java.time.Instant
 
 /** Abstraction from all the functionality we need from the AAPS app. */
@@ -19,6 +19,12 @@ interface LoopHub {
 
     /** Returns the remaining bolus insulin on board. */
     val insulinOnboard: Double
+
+    /** Returns the basal insulin on board. */
+    val insulinBasalOnboard: Double
+
+    /** Returns the remaining carbs on board. */
+    val carbsOnboard: Double?
 
     /** Returns true if the pump is connected. */
     val isConnected: Boolean
@@ -37,7 +43,7 @@ interface LoopHub {
     fun disconnectPump(minutes: Int)
 
     /** Retrieves the glucose values starting at from. */
-    fun getGlucoseValues(from: Instant, ascending: Boolean): List<GlucoseValue>
+    fun getGlucoseValues(from: Instant, ascending: Boolean): List<GV>
 
     /** Notifies the system that carbs were eaten and stores the value. */
     fun postCarbs(carbohydrates: Int)
