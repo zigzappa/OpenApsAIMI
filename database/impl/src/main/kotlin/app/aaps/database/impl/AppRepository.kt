@@ -510,11 +510,6 @@ class AppRepository @Inject internal constructor(
     fun getOldestCarbs(): Maybe<Carbs> =
         database.carbsDao.getOldestCarbsRecord()
             .subscribeOn(Schedulers.io())
-    fun getMostRecentCarbByDate(): Carbs? = database.carbsDao.getMostRecentCarbByDate()
-
-    fun getUserEntryDataWithNotesFromTime(timestamp: Long): Single<List<UserEntry>> =
-        database.userEntryDao.getUserEntryDataWithNotesFromTime(timestamp)
-            .subscribeOn(Schedulers.io())
 
     fun getCarbsDataFromTime(timestamp: Long, ascending: Boolean): Single<List<Carbs>> =
         database.carbsDao.getCarbsFromTime(timestamp)

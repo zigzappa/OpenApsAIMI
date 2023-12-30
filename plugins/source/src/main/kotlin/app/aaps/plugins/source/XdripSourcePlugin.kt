@@ -89,6 +89,9 @@ class XdripSourcePlugin @Inject constructor(
             }
             return sensorStartTime
         }
+        companion object {
+            var lastDataTimestamp: Long = 0
+        }
 
         @SuppressLint("CheckResult")
         override suspend fun doWorkAndLog(): Result {

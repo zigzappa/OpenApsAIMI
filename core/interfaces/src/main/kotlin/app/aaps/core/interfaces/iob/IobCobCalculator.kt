@@ -8,10 +8,6 @@ import app.aaps.core.data.iob.IobTotal
 import app.aaps.core.data.iob.MealData
 import app.aaps.core.interfaces.aps.AutosensDataStore
 import app.aaps.core.interfaces.profile.Profile
-import app.aaps.database.entities.ExtendedBolus
-import app.aaps.database.entities.TemporaryBasal
-import app.aaps.database.entities.UserEntry
-import org.json.JSONArray
 
 interface IobCobCalculator {
 
@@ -72,8 +68,4 @@ interface IobCobCalculator {
      *  @return IobTotal
      */
     fun calculateIobFromTempBasalsIncludingConvertedExtended(): IobTotal
-    fun getFutureCob(): Double
-    fun getMostRecentCarbByDate(): Long?
-    fun getMostRecentCarbAmount(): Double?
-    fun getUserEntryDataWithNotesFromTime(timestamp: Long): List<UserEntry>
-}
+    }

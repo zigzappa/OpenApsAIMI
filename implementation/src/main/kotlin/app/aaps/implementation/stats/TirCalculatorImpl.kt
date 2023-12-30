@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.TableLayout
 import android.widget.TextView
 import app.aaps.core.data.configuration.Constants
+import app.aaps.core.data.time.T
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -55,7 +56,7 @@ class TirCalculatorImpl @Inject constructor(
         if (lowMgdl > highMgdl) throw RuntimeException("Low > High")
         val startTime = dateUtil.now() - T.hours(hour = 1).msecs()
         val endTime = dateUtil.now()
-        val bgReadings = repository.compatGetBgReadingsDataFromTime(startTime, endTime, true).blockingGet()
+        val bgReadings = persistenceLayer.getBgReadingsDataFromTimeToTime(startTime, endTime, true)
 
         val result = LongSparseArray<TIR>()
         for (bg in bgReadings) {
@@ -76,7 +77,7 @@ class TirCalculatorImpl @Inject constructor(
         if (lowMgdl > highMgdl) throw RuntimeException("Low > High")
         val startTime = MidnightTime.calc(dateUtil.now())
         val endTime = dateUtil.now()
-        val bgReadings = repository.compatGetBgReadingsDataFromTime(startTime, endTime, true).blockingGet()
+        val bgReadings = persistenceLayer.getBgReadingsDataFromTimeToTime(startTime, endTime, true)
 
         val result = LongSparseArray<TIR>()
         for (bg in bgReadings) {

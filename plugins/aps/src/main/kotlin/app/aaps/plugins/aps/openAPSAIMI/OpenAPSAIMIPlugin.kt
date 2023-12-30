@@ -1,14 +1,18 @@
 package app.aaps.plugins.aps.openAPSAIMI
 import android.content.Context
 import app.aaps.annotations.OpenForTesting
+import app.aaps.core.data.aps.SMBDefaults
 import app.aaps.core.interfaces.aps.DetermineBasalAdapter
-import app.aaps.core.interfaces.aps.SMBDefaults
 import app.aaps.core.interfaces.bgQualityCheck.BgQualityCheck
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
+import app.aaps.core.interfaces.constraints.Objectives
+import app.aaps.core.interfaces.db.PersistenceLayer
+import app.aaps.core.interfaces.db.ProcessedTbrEbData
 import app.aaps.core.interfaces.iob.GlucoseStatusProvider
 import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.maintenance.ImportExportPrefs
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.profiling.Profiler
@@ -16,14 +20,14 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.stats.TddCalculator
+import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.HardLimits
 import app.aaps.core.interfaces.utils.Round
-import app.aaps.core.main.constraints.ConstraintObject
-import app.aaps.core.main.extensions.target
+import app.aaps.core.keys.Preferences
+import app.aaps.core.objects.constraints.ConstraintObject
+import app.aaps.core.objects.extensions.target
 import app.aaps.core.utils.MidnightUtils
-import app.aaps.database.ValueWrapper
-import app.aaps.database.impl.AppRepository
 import app.aaps.plugins.aps.R
 import app.aaps.plugins.aps.events.EventOpenAPSUpdateGui
 import app.aaps.plugins.aps.events.EventResetOpenAPSGui
@@ -31,28 +35,30 @@ import app.aaps.plugins.aps.openAPSSMB.OpenAPSSMBPlugin
 import dagger.android.HasAndroidInjector
 import javax.inject.Inject
 import javax.inject.Singleton
-@OpenForTesting
+
 @Singleton
 class OpenAPSAIMIPlugin  @Inject constructor(
-
-    injector: HasAndroidInjector,
+    private val injector: HasAndroidInjector,
     aapsLogger: AAPSLogger,
-    rxBus: RxBus,
-    constraintChecker: ConstraintsChecker,
+    private val rxBus: RxBus,
+    private val constraintChecker: ConstraintsChecker,
     rh: ResourceHelper,
-    profileFunction: ProfileFunction,
+    private val profileFunction: ProfileFunction,
     context: Context,
-    activePlugin: ActivePlugin,
-    iobCobCalculator: IobCobCalculator,
-    hardLimits: HardLimits,
-    profiler: Profiler,
-    sp: SP,
+    private val activePlugin: ActivePlugin,
+    private val iobCobCalculator: IobCobCalculator,
+    private val processedTbrEbData: ProcessedTbrEbData,
+    private val hardLimits: HardLimits,
+    private val profiler: Profiler,
+    private val sp: SP,
+    private val preferences: Preferences,
     dateUtil: DateUtil,
-    repository: AppRepository,
-    glucoseStatusProvider: GlucoseStatusProvider,
-    bgQualityCheck: BgQualityCheck,
-    tddCalculator: TddCalculator
-    ) : OpenAPSSMBPlugin(
+    private val persistenceLayer: PersistenceLayer,
+    private val glucoseStatusProvider: GlucoseStatusProvider,
+    private val bgQualityCheck: BgQualityCheck,
+    private val tddCalculator: TddCalculator,
+    private val importExportPrefs: ImportExportPrefs
+) : OpenAPSSMBPlugin(
     injector,
     aapsLogger,
     rxBus,
@@ -62,14 +68,17 @@ class OpenAPSAIMIPlugin  @Inject constructor(
     context,
     activePlugin,
     iobCobCalculator,
+    processedTbrEbData,
     hardLimits,
     profiler,
     sp,
+    preferences,
     dateUtil,
-    repository,
+    persistenceLayer,
     glucoseStatusProvider,
     bgQualityCheck,
-    tddCalculator
+    tddCalculator,
+    importExportPrefs
     ) {
 
         init {
@@ -145,26 +154,27 @@ class OpenAPSAIMIPlugin  @Inject constructor(
         var targetBg =
             hardLimits.verifyHardLimits(profile.getTargetMgdl(), app.aaps.core.ui.R.string.temp_target_value, HardLimits.VERY_HARD_LIMIT_TARGET_BG[0], HardLimits.VERY_HARD_LIMIT_TARGET_BG[1])
         var isTempTarget = false
-        val tempTarget = repository.getTemporaryTargetActiveAt(dateUtil.now()).blockingGet()
-        if (tempTarget is ValueWrapper.Existing) {
+        val tempTarget = persistenceLayer.getTemporaryTargetActiveAt(dateUtil.now())
+
+        if (tempTarget != null) {
             isTempTarget = true
             minBg =
                 hardLimits.verifyHardLimits(
-                    tempTarget.value.lowTarget,
+                    tempTarget.lowTarget,
                     app.aaps.core.ui.R.string.temp_target_low_target,
                     HardLimits.VERY_HARD_LIMIT_TEMP_MIN_BG[0].toDouble(),
                     HardLimits.VERY_HARD_LIMIT_TEMP_MIN_BG[1].toDouble()
                 )
             maxBg =
                 hardLimits.verifyHardLimits(
-                    tempTarget.value.highTarget,
+                    tempTarget.highTarget,
                     app.aaps.core.ui.R.string.temp_target_high_target,
                     HardLimits.VERY_HARD_LIMIT_TEMP_MAX_BG[0].toDouble(),
                     HardLimits.VERY_HARD_LIMIT_TEMP_MAX_BG[1].toDouble()
                 )
             targetBg =
                 hardLimits.verifyHardLimits(
-                    tempTarget.value.target(),
+                    tempTarget.target(),
                     app.aaps.core.ui.R.string.temp_target_value,
                     HardLimits.VERY_HARD_LIMIT_TEMP_TARGET_BG[0].toDouble(),
                     HardLimits.VERY_HARD_LIMIT_TEMP_TARGET_BG[1].toDouble()
@@ -268,7 +278,7 @@ class OpenAPSAIMIPlugin  @Inject constructor(
                 // TODO still needed with oref1?
                 // Fix bug determine basal
                 if (determineBasalResultAIMISMB != null) {
-                    if (determineBasalResultAIMISMB.rate == 0.0 && determineBasalResultAIMISMB.duration == 0 && iobCobCalculator.getTempBasalIncludingConvertedExtended(dateUtil.now()) == null)
+                    if (determineBasalResultAIMISMB.rate == 0.0 && determineBasalResultAIMISMB.duration == 0 && processedTbrEbData.getTempBasalIncludingConvertedExtended(dateUtil.now()) == null)
                         determineBasalResultAIMISMB.isTempBasalRequested = false
                 }
                 determineBasalResultAIMISMB!!.iob = iobArray[0]

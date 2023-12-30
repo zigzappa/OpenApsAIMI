@@ -347,26 +347,6 @@ class IobCobCalculatorPlugin @Inject constructor(
         return CobInfo(timestamp, displayCob, futureCarbs)
     }
 
-    override fun getFutureCob(): Double {
-        var futureCarbs = 0.0
-        val now = dateUtil.now()
-        val carbs = persistenceLayer.getCarbsDataFromTimeExpanded(now, true).blockingGet()
-        carbs.forEach { carb -> if (carb.timestamp > now) futureCarbs += carb.amount }
-        return futureCarbs
-    }
-
-    override fun getMostRecentCarbByDate(): Long? {
-        return persistenceLayer.getMostRecentCarbByDate()?.timestamp
-    }
-
-    override fun getMostRecentCarbAmount(): Double? {
-        return persistenceLayer.getMostRecentCarbByDate()?.amount
-    }
-
-    override fun getUserEntryDataWithNotesFromTime(timestamp: Long): List<UserEntry> {
-        return persistenceLayer.getUserEntryDataWithNotesFromTime(timestamp).blockingGet()
-    }
-
     override fun getMealDataWithWaitingForCalculationFinish(): MealData {
         val result = MealData()
         val now = System.currentTimeMillis()
@@ -608,6 +588,7 @@ class IobCobCalculatorPlugin @Inject constructor(
 
     override fun calculateIobFromTempBasalsIncludingConvertedExtended(): IobTotal =
         calculateIobToTimeFromTempBasalsIncludingConvertedExtended(dateUtil.now())
+
 
     override fun calculateIobToTimeFromTempBasalsIncludingConvertedExtended(toTime: Long): IobTotal {
         val total = IobTotal(toTime)

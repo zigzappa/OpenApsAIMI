@@ -41,4 +41,7 @@ enum class BooleanKey(
     ApsDynIsfAdjustSensitivity(R.string.key_dynamic_isf_adjust_sensitivity, false, defaultedBySM = true), // change from default false
     ApsAmaAutosensAdjustTargets(R.string.key_openaps_ama_autosens_adjust_targets, true, defaultedBySM = true),
     MaintenanceEnableFabric(R.string.key_enable_fabric, true, defaultedBySM = true, hideParentScreenIfHidden = true),
+    OApsAIMIMLtraining(R.string.key_enable_ML_training, false),
+    OApsAIMIEnableBasal(R.string.key_enable_basal, false),
+    OApsAIMIEnableStepsFromWatch(R.string.count_steps_watch, false)
 }

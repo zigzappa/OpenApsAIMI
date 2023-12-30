@@ -3,8 +3,8 @@ package app.aaps.plugins.aps.openAPSAIMI
 import android.text.Spanned
 import app.aaps.core.interfaces.aps.VariableSensitivityResult
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.objects.aps.APSResultObject
 import app.aaps.core.utils.HtmlHelper
-import app.aaps.plugins.aps.APSResultObject
 import app.aaps.plugins.aps.openAPSSMB.DetermineBasalResultSMB
 import dagger.android.HasAndroidInjector
 import org.json.JSONException
@@ -198,7 +198,7 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
 
     }
 
-    override fun newAndClone(injector: HasAndroidInjector): DetermineBasalResultSMB {
+    fun newAndClone(injector: HasAndroidInjector): DetermineBasalResultSMB {
         val newResult = DetermineBasalResultAIMISMB(injector)
         doClone(newResult)
         newResult.rate = this.rate
