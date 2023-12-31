@@ -339,7 +339,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val droppingFast = bg < 150 && delta < -5
         val droppingFastAtHigh = bg < 200 && delta < -7
         val droppingVeryFast = delta < -10
-        val prediction = predictedBg < targetBg && delta < 10
+        val prediction = predictedBg < targetBg && delta < 10 && bg < 130
         val interval = predictedBg < targetBg && delta > 10 && iob >= maxSMB/2 && lastsmbtime < 10
         val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 15
         val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10
