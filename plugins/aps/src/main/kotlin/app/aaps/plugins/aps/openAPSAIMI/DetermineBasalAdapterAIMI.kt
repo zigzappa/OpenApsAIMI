@@ -42,6 +42,7 @@ import java.text.DecimalFormatSymbols
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.math.round
@@ -74,6 +75,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var currentTIRLow: Double = 0.0
     private var currentTIRRange: Double = 0.0
     private var currentTIRAbove: Double = 0.0
+    private var lastHourTIRLow: Double = 0.0
     private var bg = 0.0f
     private var targetBg = 100.0f
     private var normalBgThreshold = 150.0f
@@ -165,15 +167,21 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val afternoonfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_afternoon_factor, "50")) / 100.0
         val eveningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_evening_factor, "50")) / 100.0
         val hyperfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_hyper_factor, "50")) / 100.0
+        val (adjustedMorningFactor, adjustedAfternoonFactor, adjustedEveningFactor) =
+            adjustFactorsBasedOnBgAndHypo(bg, predictedBg, lastHourTIRLow.toFloat(), morningfactor.toFloat(), afternoonfactor.toFloat(), eveningfactor.toFloat())
+
         smbToGive = when {
             highCarbTime -> smbToGive * 130.0f
             mealTime -> smbToGive * 200.0f
-            hourOfDay in 1..11 -> smbToGive * morningfactor.toFloat()
-            hourOfDay in 12..18 -> smbToGive * afternoonfactor.toFloat()
-            hourOfDay in 19..23 -> smbToGive * eveningfactor.toFloat()
+            hourOfDay in 1..11 -> smbToGive * adjustedMorningFactor.toFloat()
+            hourOfDay in 12..18 -> smbToGive * adjustedAfternoonFactor.toFloat()
+            hourOfDay in 19..23 -> smbToGive * adjustedEveningFactor.toFloat()
             bg > 180 -> (smbToGive * hyperfactor).toFloat()
             else -> smbToGive
         }
+        this.profile.put("adjustedMorningFactor",  adjustedMorningFactor)
+        this.profile.put("adjustedAfternoonFactor",  adjustedAfternoonFactor)
+        this.profile.put("adjustedEveningFactor",  adjustedEveningFactor)
 
         smbToGive = applySafetyPrecautions(smbToGive)
         smbToGive = roundToPoint05(smbToGive)
@@ -669,6 +677,21 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         return futureBg
     }
+   private fun adjustFactorsBasedOnBgAndHypo(
+       currentBg: Float, futureBg: Float, lastHourTirLow: Float,
+       morningFactor: Float, afternoonFactor: Float, eveningFactor: Float
+   ): Triple<Double, Double, Double> {
+       val bgDifference = futureBg - currentBg
+       val hypoAdjustment = if (lastHourTirLow > 0) 0.6f else 1.0f // Réduire les facteurs si hypo récente
+       val bgAdjustment = 1.0f + (Math.log(Math.abs(bgDifference.toDouble()) + 1) - 1) * (if (bgDifference < 0) -0.1f else 0.1f)
+
+       return Triple(
+           morningFactor * bgAdjustment * hypoAdjustment,
+           afternoonFactor * bgAdjustment * hypoAdjustment,
+           eveningFactor * bgAdjustment * hypoAdjustment
+       )
+   }
+
 
     private fun calculateGFactor(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Double {
         val accelerationFactor = 0.5 // Facteur pour accélération de la glycémie
@@ -845,6 +868,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.currentTIRLow = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.belowPct()!!
         this.currentTIRRange = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.inRangePct()!!
         this.currentTIRAbove = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.abovePct()!!
+        this.lastHourTIRLow = tirCalculator.averageTIR(tirCalculator.calculateHour(80.0,140.0))?.belowPct()!!
 
         val beatsPerMinuteValues: List<Int>
         val beatsPerMinuteValues60: List<Int>
@@ -1033,6 +1057,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("Sport0SMB", isSportSafetyCondition())
         this.profile.put("modelFileUAM", modelFileUAM.exists())
         this.profile.put("modelFile",  modelFile.exists())
+        this.profile.put("lastHourTIRLow",  lastHourTIRLow)
 
         if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
             this.profile.put("out_units", "mmol/L")
