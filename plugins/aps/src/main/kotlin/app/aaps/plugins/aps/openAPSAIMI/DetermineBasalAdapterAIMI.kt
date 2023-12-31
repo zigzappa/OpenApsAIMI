@@ -17,7 +17,6 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.profile.ProfileFunction
-import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.stats.TddCalculator
 import app.aaps.core.interfaces.stats.TirCalculator
 import app.aaps.core.interfaces.utils.DateUtil
@@ -50,7 +49,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var constraintChecker: ConstraintsChecker
-    @Inject lateinit var sp: SP
     @Inject lateinit var profileFunction: ProfileFunction
     @Inject lateinit var iobCobCalculator: IobCobCalculator
     @Inject lateinit var preferences: Preferences
@@ -88,8 +86,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var accelerating_down: Int = 0
     private var deccelerating_down: Int = 0
     private var stable: Int = 0
-    private var maxIob = 0.0f
-    private var maxSMB = 1.0f
+    private var maxIob = 0.0
+    private var maxSMB = 1.0
     private var lastBolusSMBUnit = 0.0f
     private var tdd7DaysPerHour = 0.0f
     private var tdd2DaysPerHour = 0.0f
@@ -149,7 +147,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         //var smbToGive = predictedSMB
         if ((preferences.get(BooleanKey.OApsAIMIMLtraining) === true) && csvfile.exists()){
             val allLines = csvfile.readLines()
-            val minutesToConsider = preferences.get(DoubleKey.OApsAIMIMlminutesTraining)
+            val minutesToConsider: Double = preferences.get(DoubleKey.OApsAIMIMlminutesTraining)
             val linesToConsider = (minutesToConsider / 5).toInt()
             if (allLines.size > linesToConsider) {
                 this.predictedSMB = neuralnetwork5(delta, shortAvgDelta, longAvgDelta)
@@ -161,10 +159,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
         var smbToGive = predictedSMB
 
-        val morningfactor = preferences.get(DoubleKey.OApsAIMIMorningFactor) / 100.0
-        val afternoonfactor = preferences.get(DoubleKey.OApsAIMIAfternoonFactor) / 100.0
-        val eveningfactor = preferences.get(DoubleKey.OApsAIMIEveningFactor) / 100.0
-        val hyperfactor = preferences.get(DoubleKey.OApsAIMIHyperFactor) / 100.0
+        val morningfactor: Double = preferences.get(DoubleKey.OApsAIMIMorningFactor) / 100.0
+        val afternoonfactor: Double = preferences.get(DoubleKey.OApsAIMIAfternoonFactor) / 100.0
+        val eveningfactor: Double = preferences.get(DoubleKey.OApsAIMIEveningFactor) / 100.0
+        val hyperfactor: Double = preferences.get(DoubleKey.OApsAIMIHyperFactor) / 100.0
         smbToGive = when {
             highCarbTime -> smbToGive * 130.0f
             mealTime -> smbToGive * 200.0f
@@ -287,8 +285,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     }
     private fun applySafetyPrecautions(smbToGiveParam: Float): Float {
         var smbToGive = smbToGiveParam
-        val pbolusM = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
-        val pbolusHC = preferences.get(DoubleKey.OApsAIMIHighCarbPrebolus)
+        val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
+        val pbolusHC: Double = preferences.get(DoubleKey.OApsAIMIHighCarbPrebolus)
         // Vérifier les conditions de sécurité critiques
         if (isMealModeCondition()) return pbolusM.toFloat()
         if (isHighCarbModeCondition()) return pbolusHC.toFloat()
@@ -309,23 +307,23 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         // Vérifiez d'abord si smbToGive dépasse maxSMB
         if (result > maxSMB) {
-            result = maxSMB
+            result = maxSMB.toFloat()
         }
         // Ensuite, vérifiez si la somme de iob et smbToGive dépasse maxIob
         if (iob + result > maxIob) {
-            result = maxIob - iob
+            result = maxIob.toFloat() - iob
         }
 
         return result
     }
 
     private fun isMealModeCondition(): Boolean{
-        val pbolusM = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
+        val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
         val modeMealPB = mealruntime in 0..7 && lastBolusSMBUnit != pbolusM.toFloat() && mealTime
         return modeMealPB
     }
     private fun isHighCarbModeCondition(): Boolean{
-        val pbolusHC = preferences.get(DoubleKey.OApsAIMIHighCarbPrebolus)
+        val pbolusHC: Double = preferences.get(DoubleKey.OApsAIMIHighCarbPrebolus)
         val modeHcPB = highCarbrunTime in 0..7 && lastBolusSMBUnit != pbolusHC.toFloat() && highCarbTime
         return modeHcPB
     }
@@ -440,11 +438,11 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         return smbToGive.toFloat()
     }
     private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Float {
-        val minutesToConsider = preferences.get(DoubleKey.OApsAIMIMlminutesTraining)
+        val minutesToConsider: Double = preferences.get(DoubleKey.OApsAIMIMlminutesTraining)
         val linesToConsider = (minutesToConsider / 5).toInt()
         var averageDifference: Float
         var totalDifference: Float
-        val maxIterations = preferences.get(DoubleKey.OApsAIMIMlIterationTraining)
+        val maxIterations: Double = preferences.get(DoubleKey.OApsAIMIMlIterationTraining)
         var differenceWithinRange = false
         var finalRefinedSMB: Float = calculateSMBFromModel()
         val maxGlobalIterations = 5 // Nombre maximum d'itérations globales
@@ -498,9 +496,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 if (inputs.isEmpty() || targets.isEmpty()) {
                     return predictedSMB
                 }
-                val epochDouble = preferences.get(DoubleKey.OApsAIMIMlEpochTraining)
-                val epoch = epochDouble.toInt()
-                val learningrate = preferences.get(DoubleKey.OApsAIMIMlLearningRateTraining)
+                val epochs: Double = preferences.get(DoubleKey.OApsAIMIMlEpochTraining)
+                val learningrate: Double = preferences.get(DoubleKey.OApsAIMIMlLearningRateTraining)
                 //val neuralNetwork = aimiNeuralNetwork(inputs.first().size, 5, 1)
                 // Déterminer la taille de l'ensemble de validation
                 val validationSize = (inputs.size * 0.1).toInt() // Par exemple, 10% pour la validation
@@ -513,7 +510,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
                 // Création et entraînement du réseau de neurones
                 val neuralNetwork = aimiNeuralNetwork(inputs.first().size, 5, 1)
-                neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epoch, learningrate)
+                neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs, learningrate)
 
                 val inputForPrediction = inputs.last()
                 val prediction = neuralNetwork.predict(inputForPrediction)
@@ -817,7 +814,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.accelerating_down = if (delta < -2 && delta - longAvgDelta < -2) 1 else 0
         this.deccelerating_down = if (delta < 0 && (delta > shortAvgDelta || delta > longAvgDelta)) 1 else 0
         this.stable = if (delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3) 1 else 0
-        val tdd7P = preferences.get(DoubleKey.OApsAIMITDD7)
+        val tdd7P: Double = preferences.get(DoubleKey.OApsAIMITDD7)
         var tdd7Days = tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))?.totalAmount?.toFloat() ?: 0.0f
         if (tdd7Days == 0.0f) tdd7Days = tdd7P.toFloat()
         this.tdd7DaysPerHour = tdd7Days / 24
@@ -843,8 +840,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
         val tddWeightedFromLast8H = ((1.4 * tddLast4H) + (0.6 * tddLast8to4H)) * 3
         var tdd = (tddWeightedFromLast8H * 0.33) + (tdd7Days.toDouble() * 0.34) + (tddDaily.toDouble() * 0.33)
-        val dynISFadjust = preferences.get(DoubleKey.OApsAIMIDynISFAdjustment) / 100.0
-        val dynISFadjusthyper = preferences.get(DoubleKey.OApsAIMIDynISFAdjustmentHyper) / 100.0
+        val dynISFadjust: Double = preferences.get(DoubleKey.OApsAIMIDynISFAdjustment) / 100.0
+        val dynISFadjusthyper: Double = preferences.get(DoubleKey.OApsAIMIDynISFAdjustmentHyper) / 100.0
 
         tdd = when{
             sportTime -> tdd * 50.0
@@ -958,7 +955,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             this.CI = (450 / tdd7P).toFloat()
         }
 
-        val choKey = preferences.get(DoubleKey.OApsAIMICHO)
+        val choKey: Double = preferences.get(DoubleKey.OApsAIMICHO)
         if (CI != 0.0f && CI != Float.POSITIVE_INFINITY && CI != Float.NEGATIVE_INFINITY) {
             this.aimilimit = (choKey / CI).toFloat()
         } else {
@@ -992,8 +989,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         this.lastsmbtime = ((now - lastBolusSMBTime) / (60 * 1000)).toDouble().roundToInt().toLong().toInt()
 
-        this.maxIob = preferences.get(DoubleKey.ApsSmbMaxIob).toFloat()
-        this.maxSMB = preferences.get(DoubleKey.OApsAIMIMaxSMB).toFloat()
+        this.maxIob = preferences.get(DoubleKey.ApsSmbMaxIob)
+        this.maxSMB = preferences.get(DoubleKey.OApsAIMIMaxSMB)
 
         // profile.dia
         val abs = iobCobCalculator.calculateAbsoluteIobFromBaseBasals(System.currentTimeMillis())

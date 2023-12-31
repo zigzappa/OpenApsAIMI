@@ -200,7 +200,7 @@ class aimiNeuralNetwork(private val inputSize: Int, private val hiddenSize: Int,
     fun train(
         inputs: List<FloatArray>, targets: List<DoubleArray>,
         validationRawInputs: List<FloatArray>, validationTargets: List<DoubleArray>,
-        epochs: Int, initialLearningRate: Double,
+        epochs: Double, initialLearningRate: Double,
         batchSize: Int = 32, // Taille du lot pour l'entraînement par lots
         patience: Int = 10, // pour early stopping
         regularizationLambda: Double = 0.01 // lambda pour régularisation L2
@@ -214,7 +214,7 @@ class aimiNeuralNetwork(private val inputSize: Int, private val hiddenSize: Int,
         val normalizedValidationInputs = zScoreNormalization(preparedValidationInputs)
 
 
-        for (epoch in 1..epochs) {
+        for (epoch in 1..epochs.toInt()) {
             var totalLoss = 0.0
             try {
                 normalizedInputs.chunked(batchSize).zip(targets.chunked(batchSize)).forEach { (batchInputs, batchTargets) ->

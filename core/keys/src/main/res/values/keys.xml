@@ -155,7 +155,7 @@
     <string name="number_iteration_training_summary">Nb time it will try before stopping the loop if it can not get a satisfying result.</string>
     <string name="key_nb_iteration_ML_training">key_nb_iteration_ML_training</string>
     <string name="nb_iteration_ML_training_title">NB iteration stopping the loop</string>
-    <string name="key_DynISFAdjust" translatable="false">DynISFAdjust</string>
+    <string name="key_DynISFAdjust">DynISFAdjust</string>
 
     <!--    Sensitivity-->
     <string name="key_absorption_cutoff" translatable="false">absorption_cutoff</string>

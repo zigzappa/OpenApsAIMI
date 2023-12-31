@@ -177,5 +177,7 @@
     <string name="number_iteration_training_summary">Nb time it will try before stopping the loop if it can not get a satisfying result.</string>
     <string name="key_nb_iteration_ML_training">key_nb_iteration_ML_training</string>
     <string name="nb_iteration_ML_training_title">NB iteration stopping the loop</string>
+    <string name="DynISF_Adjust_summary" formatted="false">Increase this value greater than 100 if you want to receive more smb. The opposite is true if you receive too much smb.</string>
+    <string name="DynISF_Adjust_title" formatted="false">DynISF factor to increase or discrease the number of SMB</string>
 
 </resources>

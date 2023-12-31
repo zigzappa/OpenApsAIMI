@@ -49,9 +49,9 @@
             android:title="CHO / Meal" />
 
         <app.aaps.core.validators.AdaptiveDoublePreference
-            android:dialogMessage="@string/DynISFAdjust_summary"
+            android:dialogMessage="@string/DynISF_Adjust_summary"
             android:key="@string/key_DynISFAdjust"
-            android:title="@string/DynISFAdjust_title" />
+            android:title="@string/DynISF_Adjust_title" />
 
         <app.aaps.core.validators.AdaptiveDoublePreference
             android:dialogMessage="@string/oaps_aimi_morning_factor_summary"

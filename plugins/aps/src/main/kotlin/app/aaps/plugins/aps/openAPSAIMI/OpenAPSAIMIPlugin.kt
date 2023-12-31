@@ -3,7 +3,9 @@ import android.content.Context
 import app.aaps.core.data.aps.SMBDefaults
 import app.aaps.core.interfaces.aps.DetermineBasalAdapter
 import app.aaps.core.interfaces.bgQualityCheck.BgQualityCheck
+import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
+import app.aaps.core.interfaces.constraints.Objectives
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.db.ProcessedTbrEbData
 import app.aaps.core.interfaces.iob.GlucoseStatusProvider
@@ -18,6 +20,7 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.stats.TddCalculator
+import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.HardLimits
 import app.aaps.core.interfaces.utils.Round
@@ -37,24 +40,27 @@ import javax.inject.Singleton
 class OpenAPSAIMIPlugin  @Inject constructor(
     private val injector: HasAndroidInjector,
     aapsLogger: AAPSLogger,
-    private val rxBus: RxBus,
-    private val constraintChecker: ConstraintsChecker,
+    rxBus: RxBus,
+    constraintChecker: ConstraintsChecker,
     rh: ResourceHelper,
-    private val profileFunction: ProfileFunction,
+    profileFunction: ProfileFunction,
     context: Context,
-    private val activePlugin: ActivePlugin,
-    private val iobCobCalculator: IobCobCalculator,
-    private val processedTbrEbData: ProcessedTbrEbData,
-    private val hardLimits: HardLimits,
-    private val profiler: Profiler,
-    private val sp: SP,
-    private val preferences: Preferences,
+    activePlugin: ActivePlugin,
+    iobCobCalculator: IobCobCalculator,
+    processedTbrEbData: ProcessedTbrEbData,
+    hardLimits: HardLimits,
+    profiler: Profiler,
+    sp: SP,
+    preferences: Preferences,
     dateUtil: DateUtil,
-    private val persistenceLayer: PersistenceLayer,
-    private val glucoseStatusProvider: GlucoseStatusProvider,
-    private val bgQualityCheck: BgQualityCheck,
-    private val tddCalculator: TddCalculator,
-    private val importExportPrefs: ImportExportPrefs
+    persistenceLayer: PersistenceLayer,
+    glucoseStatusProvider: GlucoseStatusProvider,
+    bgQualityCheck: BgQualityCheck,
+    tddCalculator: TddCalculator,
+    importExportPrefs: ImportExportPrefs,
+    config: Config,
+    private val uiInteraction: UiInteraction,
+    private val objectives: Objectives
 ) : OpenAPSSMBPlugin(
     injector,
     aapsLogger,
@@ -68,14 +74,14 @@ class OpenAPSAIMIPlugin  @Inject constructor(
     processedTbrEbData,
     hardLimits,
     profiler,
-    sp,
     preferences,
     dateUtil,
     persistenceLayer,
     glucoseStatusProvider,
     bgQualityCheck,
     tddCalculator,
-    importExportPrefs
+    importExportPrefs,
+    config
     ) {
 
         init {
@@ -84,6 +90,7 @@ class OpenAPSAIMIPlugin  @Inject constructor(
                 .description(R.string.description_openapsaimi)
                 .shortName(R.string.oaps_aimi_shortname)
                 .preferencesId(R.xml.pref_openapsaimi)
+                .preferencesVisibleInSimpleMode(true)
                 .setDefault(false)
         }
 
