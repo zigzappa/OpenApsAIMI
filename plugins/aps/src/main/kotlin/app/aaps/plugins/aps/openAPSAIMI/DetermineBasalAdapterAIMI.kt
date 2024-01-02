@@ -210,7 +210,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 01 Janvier 2024"
+            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 02 Janvier 2024"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -742,7 +742,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.weekend = if (dayOfWeek == Calendar.SUNDAY || dayOfWeek == Calendar.SATURDAY) 1 else 0
 
         val iobCalcs = iobCobCalculator.calculateIobFromBolus()
-        this.iob = iobCalcs.iob.toFloat() + iobCalcs.basaliob.toFloat()
+        val iob2cal = iobCobCalculator.calculateFromTreatmentsAndTemps(now,profile).iob
+        //this.iob = iobCalcs.iob.toFloat() + iobCalcs.basaliob.toFloat()
+        this.iob = iob2cal.toFloat()
         this.bg = glucoseStatus.glucose.toFloat()
         this.targetBg = targetBg.toFloat()
         this.cob = mealData.mealCOB.toFloat()
@@ -1031,6 +1033,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.predictedBg = predictFutureBg(bg, iob, variableSensitivity, cob, CI)
         this.profile = JSONObject()
         this.profile.put("max_iob", maxIob)
+        this.profile.put("iob2cal", iob2cal)
         this.profile.put("dia", kotlin.math.min(profile.dia, 3.0))
         this.profile.put("type", "current")
         this.profile.put("max_daily_basal", profile.getMaxDailyBasal())
