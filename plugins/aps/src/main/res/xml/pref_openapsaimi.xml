@@ -51,37 +51,6 @@
             validate:testType="floatNumericRange" />
 
         <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="110"
-            android:dialogMessage="Under this value with delta positive you can receive a smb 500% of the basal value with 30 minutes of interval. This is to manage faster very slow rise. No TBR in this plugin."
-            android:inputType="numberDecimal"
-            android:key="@string/key_B30_upperBG"
-            android:title="B30 Upper BG to stop B30"
-            validate:floatmaxNumber="200"
-            validate:floatminNumber="0"
-            validate:testType="floatNumericRange" />
-
-        <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="6"
-            android:dialogMessage="Under this value with delta positive you can receive a smb 500% of the basal value with 30 minutes of interval"
-            android:inputType="numberDecimal"
-            android:key="@string/key_B30_upperdelta"
-            android:title="B30 Upper delta to stop B30"
-            validate:floatmaxNumber="15"
-            validate:floatminNumber="0"
-            validate:testType="floatNumericRange" />
-
-        <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="30"
-            android:dialogMessage="The duration of the interval between small smb in replacement of the basal action B30 in the previous AIMI plugin. Need to be 30 minutes for Dash and COMBO"
-            android:inputType="numberDecimal"
-            android:key="@string/key_B30_duration"
-            android:title="B30 duration"
-            validate:floatmaxNumber="100"
-            validate:floatminNumber="0"
-            validate:testType="floatNumericRange" />
-
-
-        <app.aaps.core.validators.ValidatingEditTextPreference
             android:defaultValue="50"
             android:dialogMessage="Weight in kg to calculate the basal"
             android:inputType="numberDecimal"

@@ -121,8 +121,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var averageBeatsPerMinute = 0.0
     private var averageBeatsPerMinute60 = 0.0
     private var averageBeatsPerMinute180 = 0.0
-    private var b30upperbg = 0.0
-    private var b30upperdelta = 0.0
     private var profile = JSONObject()
     private var glucoseStatus = JSONObject()
     private var iobData: JSONArray? = null
@@ -985,10 +983,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 else -> basalaimi
             }
         }
-
-        this.b30upperbg = SafeParse.stringToDouble(sp.getString(R.string.key_B30_upperBG, "130"))
-        this.b30upperdelta = SafeParse.stringToDouble(sp.getString(R.string.key_B30_upperdelta, "10"))
-        val b30duration = SafeParse.stringToDouble(sp.getString(R.string.key_B30_duration, "20"))
 
         val variableSensitivityDouble = variableSensitivity.toDoubleSafely()
         if (variableSensitivityDouble != null) {
