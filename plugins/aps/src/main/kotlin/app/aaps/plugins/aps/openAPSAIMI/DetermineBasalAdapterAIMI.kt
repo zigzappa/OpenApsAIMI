@@ -42,7 +42,6 @@ import java.text.DecimalFormatSymbols
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.math.round
@@ -826,6 +825,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.deccelerating_down = if (delta < 0 && (delta > shortAvgDelta || delta > longAvgDelta)) 1 else 0
         this.stable = if (delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3) 1 else 0
         val tdd7P = SafeParse.stringToDouble(sp.getString(R.string.key_tdd7, "50"))
+
         var tdd7Days = tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))?.totalAmount?.toFloat() ?: 0.0f
         if (tdd7Days == 0.0f) tdd7Days = tdd7P.toFloat()
         this.tdd7DaysPerHour = tdd7Days / 24
@@ -853,6 +853,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         var tdd = (tddWeightedFromLast8H * 0.33) + (tdd7Days.toDouble() * 0.34) + (tddDaily.toDouble() * 0.33)
         val dynISFadjust = SafeParse.stringToDouble(sp.getString(R.string.key_DynISFAdjust, "120")) / 100.0
         val dynISFadjusthyper = SafeParse.stringToDouble(sp.getString(R.string.key_DynISFAdjusthyper, "150")) / 100.0
+        val mealTimeDynISFAdjFactor = SafeParse.stringToDouble(sp.getString(R.string.key_mealAdjFact, "200"))
 
         tdd = when{
             sportTime -> tdd * 50.0
@@ -860,7 +861,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             lowCarbTime -> tdd * 85.0
             snackTime -> tdd * 65.0
             highCarbTime -> tdd * 500.0
-            mealTime -> tdd * 200.0
+            mealTime -> tdd * mealTimeDynISFAdjFactor
             bg > 180 -> tdd * dynISFadjusthyper
             else -> tdd * dynISFadjust
         }

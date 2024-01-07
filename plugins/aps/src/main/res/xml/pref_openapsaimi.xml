@@ -92,6 +92,17 @@
             validate:testType="floatNumericRange" />
 
         <app.aaps.core.validators.ValidatingEditTextPreference
+            android:defaultValue="200"
+            android:enabled="true"
+            android:dialogMessage="@string/DynISFAdjust_meal_summary"
+            android:inputType="numberDecimal"
+            android:key="@string/key_mealAdjFact"
+            android:title="@string/DynISFAdjust_Meal_title"
+            validate:floatmaxNumber="500"
+            validate:floatminNumber="1"
+            validate:testType="floatNumericRange" />
+
+        <app.aaps.core.validators.ValidatingEditTextPreference
             android:defaultValue="50"
             android:enabled="true"
             android:dialogMessage="@string/oaps_aimi_morning_factor_summary"
