@@ -14,19 +14,33 @@ class therapy (private val appRepository: AppRepository){
     var highCarbTime = false
     var mealTime = false
     var fastingTime = false
+    var stopTime = false
 
     @SuppressLint("CheckResult")
     fun updateStatesBasedOnTherapyEvents() {
-        // Mise à jour de l'état de sleepTime
-        sleepTime = findActiveSleepEvents(System.currentTimeMillis()).blockingGet()
-        sportTime = findActiveSportEvents(System.currentTimeMillis()).blockingGet()
-        snackTime = findActiveSnackEvents(System.currentTimeMillis()).blockingGet()
-        lowCarbTime = findActiveLowCarbEvents(System.currentTimeMillis()).blockingGet()
-        highCarbTime = findActiveHighCarbEvents(System.currentTimeMillis()).blockingGet()
-        mealTime = findActiveMealEvents(System.currentTimeMillis()).blockingGet()
-        fastingTime = findActiveFastingEvents(System.currentTimeMillis()).blockingGet()
+        stopTime = findActivestopEvents(System.currentTimeMillis()).blockingGet()
+        if (!stopTime) {
+            sleepTime = findActiveSleepEvents(System.currentTimeMillis()).blockingGet()
+            sportTime = findActiveSportEvents(System.currentTimeMillis()).blockingGet()
+            snackTime = findActiveSnackEvents(System.currentTimeMillis()).blockingGet()
+            lowCarbTime = findActiveLowCarbEvents(System.currentTimeMillis()).blockingGet()
+            highCarbTime = findActiveHighCarbEvents(System.currentTimeMillis()).blockingGet()
+            mealTime = findActiveMealEvents(System.currentTimeMillis()).blockingGet()
+            fastingTime = findActiveFastingEvents(System.currentTimeMillis()).blockingGet()
+        } else {
+            resetAllStates()
+        }
     }
 
+    private fun resetAllStates() {
+        sleepTime = false;
+        sportTime = false;
+        snackTime = false;
+        lowCarbTime = false;
+        highCarbTime = false;
+        mealTime = false;
+        fastingTime = false;
+    }
     private fun findActiveSleepEvents(timestamp: Long): Single<Boolean> {
         val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
         return appRepository.getTherapyEventDataFromTime(fromTime, TherapyEvent.Type.NOTE, true)
@@ -101,6 +115,16 @@ class therapy (private val appRepository: AppRepository){
             }
     }
 
+    private fun findActivestopEvents(timestamp: Long): Single<Boolean> {
+        val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
+        return appRepository.getTherapyEventDataFromTime(fromTime, TherapyEvent.Type.NOTE, true)
+            .map { events ->
+                events.any { event ->
+                    event.note?.contains("stop", ignoreCase = true) == true &&
+                        System.currentTimeMillis() <= (event.timestamp + event.duration)
+                }
+            }
+    }
     fun getTimeElapsedSinceLastEvent(keyword: String): Long {
         val fromTime = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(60)
         val events = appRepository.getTherapyEventDataFromTime(fromTime, TherapyEvent.Type.NOTE, true).blockingGet()

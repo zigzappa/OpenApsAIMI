@@ -113,6 +113,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var highCarbTime = false
     private var mealTime = false
     private var fastingTime = false
+    private var stopTime = false
     private var mealruntime: Long = 0
     private var highCarbrunTime: Long = 0
     private var intervalsmb = 5
@@ -816,6 +817,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.highCarbTime = therapy.highCarbTime
         this.mealTime = therapy.mealTime
         this.fastingTime = therapy.fastingTime
+        this.stopTime = therapy.stopTime
         this.mealruntime = therapy.getTimeElapsedSinceLastEvent("meal")
         this.highCarbrunTime = therapy.getTimeElapsedSinceLastEvent("highcarb")
 
@@ -1052,6 +1054,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("highCarbTime", highCarbTime)
         this.profile.put("mealTime", mealTime)
         this.profile.put("fastingTime", fastingTime)
+        this.profile.put("stopTime", stopTime)
         this.profile.put("Sport0SMB", isSportSafetyCondition())
         this.profile.put("modelFileUAM", modelFileUAM.exists())
         this.profile.put("modelFile",  modelFile.exists())
