@@ -208,7 +208,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 02 Janvier 2024"
+            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 09 Janvier 2024"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -690,6 +690,18 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
        )
    }
 
+    private fun adjustFactorsdynisfBasedOnBgAndHypo(
+        currentBg: Float, futureBg: Float, lastHourTirLow: Float,
+        dynISFadjust: Float
+    ): Float {
+        val bgDifference = futureBg - currentBg
+        val hypoAdjustment = if (lastHourTirLow > 0) 0.6f else 1.0f // Réduire les facteurs si hypo récente
+        val bgAdjustment = 1.0f + (Math.log(Math.abs(bgDifference.toDouble()) + 1) - 1) * (if (bgDifference < 0) -0.1f else 0.1f)
+        val isfadjust = hypoAdjustment * bgAdjustment * dynISFadjust
+        return isfadjust.toFloat()
+
+    }
+
 
     private fun calculateGFactor(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Double {
         val accelerationFactor = 0.5 // Facteur pour accélération de la glycémie
@@ -829,15 +841,15 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val tdd7P = SafeParse.stringToDouble(sp.getString(R.string.key_tdd7, "50"))
 
         var tdd7Days = tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))?.totalAmount?.toFloat() ?: 0.0f
-        if (tdd7Days == 0.0f) tdd7Days = tdd7P.toFloat()
+        if (tdd7Days == 0.0f || tdd7Days < tdd7P) tdd7Days = tdd7P.toFloat()
         this.tdd7DaysPerHour = tdd7Days / 24
 
         var tdd2Days = tddCalculator.averageTDD(tddCalculator.calculate(2, allowMissingDays = false))?.totalAmount?.toFloat() ?: 0.0f
-        if (tdd2Days == 0.0f) tdd2Days = tdd7P.toFloat()
+        if (tdd2Days == 0.0f || tdd2Days < tdd7P) tdd2Days = tdd7P.toFloat()
         this.tdd2DaysPerHour = tdd2Days / 24
         val tddLast4H = tdd2DaysPerHour.toDouble() * 4
         var tddDaily = tddCalculator.averageTDD(tddCalculator.calculate(1, allowMissingDays = false))?.totalAmount?.toFloat() ?: 0.0f
-        if (tddDaily == 0.0f) tddDaily = tdd7P.toFloat()
+        if (tddDaily == 0.0f || tddDaily < tdd7P/2) tddDaily = tdd7P.toFloat()
         this.tddPerHour = tddDaily / 24
 
         var tdd24Hrs = tddCalculator.calculateDaily(-24, 0)?.totalAmount?.toFloat() ?: 0.0f
@@ -856,6 +868,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val dynISFadjust = SafeParse.stringToDouble(sp.getString(R.string.key_DynISFAdjust, "120")) / 100.0
         val dynISFadjusthyper = SafeParse.stringToDouble(sp.getString(R.string.key_DynISFAdjusthyper, "150")) / 100.0
         val mealTimeDynISFAdjFactor = SafeParse.stringToDouble(sp.getString(R.string.key_mealAdjFact, "200"))
+        val morningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_morning_factor, "50")) / 100.0
+        val afternoonfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_afternoon_factor, "50")) / 100.0
+        val eveningfactor = SafeParse.stringToDouble(sp.getString(R.string.key_oaps_aimi_evening_factor, "50")) / 100.0
+        val adjustDynIsf = adjustFactorsdynisfBasedOnBgAndHypo(bg, predictedBg, lastHourTIRLow.toFloat(), dynISFadjust.toFloat())
 
         tdd = when{
             sportTime -> tdd * 50.0
@@ -865,7 +881,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             highCarbTime -> tdd * 500.0
             mealTime -> tdd * mealTimeDynISFAdjFactor
             bg > 180 -> tdd * dynISFadjusthyper
-            else -> tdd * dynISFadjust
+            else -> tdd * adjustDynIsf
         }
         this.variableSensitivity = kotlin.math.max(profile.getIsfMgdl().toFloat()/2.5f,Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1).toFloat() * calculateGFactor(delta,shortAvgDelta,longAvgDelta).toFloat())
         this.currentTIRLow = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.belowPct()!!
@@ -1059,6 +1075,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("modelFileUAM", modelFileUAM.exists())
         this.profile.put("modelFile",  modelFile.exists())
         this.profile.put("lastHourTIRLow",  lastHourTIRLow)
+        this.profile.put("tdd2Days",  tdd2Days)
+        this.profile.put("tdd7Days",  tdd7Days)
+        this.profile.put("tdd",  tdd)
+
 
         if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
             this.profile.put("out_units", "mmol/L")

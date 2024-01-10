@@ -413,6 +413,13 @@ class AppRepository @Inject internal constructor(
 
     fun deleteAllTherapyEventsEntries() =
         database.therapyEventDao.deleteAllEntries()
+    fun deleteTherapyEvent(eventId: Long) {
+        database.therapyEventDao.deleteLastEventMatchingKeywords()
+    }
+    fun deleteLastEventMatchingKeyword(noteKeyword: String) {
+        database.therapyEventDao.deleteLastEventMatchingKeyword(noteKeyword)
+    }
+
 
     fun getLastTherapyRecordUpToNow(type: TherapyEvent.Type): Single<ValueWrapper<TherapyEvent>> =
         database.therapyEventDao.getLastTherapyRecord(type, System.currentTimeMillis()).toWrappedSingle()

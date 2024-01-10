@@ -62,4 +62,14 @@ internal interface TherapyEventDao : TraceableDao<TherapyEvent> {
 
     @Query("SELECT * FROM $TABLE_THERAPY_EVENTS WHERE dateCreated > :since AND dateCreated <= :until LIMIT :limit OFFSET :offset")
     fun getNewEntriesSince(since: Long, until: Long, limit: Int, offset: Int): List<TherapyEvent>
+    @Query("DELETE FROM $TABLE_THERAPY_EVENTS WHERE id = :eventId")
+    fun deleteById(eventId: Long): Int
+    @Query("DELETE FROM $TABLE_THERAPY_EVENTS WHERE id IN (SELECT id FROM $TABLE_THERAPY_EVENTS WHERE note LIKE '%sport%' OR note LIKE '%meal%' OR note LIKE '%highcarb%' OR note LIKE '%lowcarb%' OR note LIKE '%snack%' OR note LIKE '%sleep%' OR note LIKE '%fasting%' ORDER BY timestamp DESC LIMIT 1)")
+    fun deleteLastEventMatchingKeywords()
+
+    @Query("DELETE FROM $TABLE_THERAPY_EVENTS WHERE id IN (SELECT id FROM $TABLE_THERAPY_EVENTS WHERE note LIKE '%' || :noteKeyword || '%' ORDER BY timestamp DESC LIMIT 1)")
+    fun deleteLastEventMatchingKeyword(noteKeyword: String)
+
+
+
 }

@@ -29,8 +29,33 @@ class therapy (private val appRepository: AppRepository){
             fastingTime = findActiveFastingEvents(System.currentTimeMillis()).blockingGet()
         } else {
             resetAllStates()
+            clearActiveEvent("sleep")
+            clearActiveEvent("sport")
+            clearActiveEvent("snack")
+            clearActiveEvent("lowcarb")
+            clearActiveEvent("highcarb")
+            clearActiveEvent("meal")
+            clearActiveEvent("fasting")
         }
     }
+    private fun clearActiveEvent(noteKeyword: String) {
+        appRepository.deleteLastEventMatchingKeyword(noteKeyword)
+    }
+
+    /* private fun clearActiveEvent(noteKeyword: String) {
+         val currentTime = System.currentTimeMillis()
+         val fromTime = currentTime - TimeUnit.DAYS.toMillis(1)
+
+         val events = appRepository.getTherapyEventDataFromTime(fromTime, TherapyEvent.Type.NOTE, true).blockingGet()
+         val lastActiveEvent = events.filter { event ->
+             event.note?.contains(noteKeyword, ignoreCase = true) == true && isEventActive(event, currentTime)
+         }.maxByOrNull { it.timestamp }
+
+         lastActiveEvent?.let { event ->
+             appRepository.deleteTherapyEvent()
+         }
+     }*/
+
 
     private fun resetAllStates() {
         sleepTime = false;
