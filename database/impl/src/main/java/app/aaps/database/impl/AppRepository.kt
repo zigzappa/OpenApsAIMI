@@ -413,9 +413,7 @@ class AppRepository @Inject internal constructor(
 
     fun deleteAllTherapyEventsEntries() =
         database.therapyEventDao.deleteAllEntries()
-    fun deleteTherapyEvent(eventId: Long) {
-        database.therapyEventDao.deleteLastEventMatchingKeywords()
-    }
+
     fun deleteLastEventMatchingKeyword(noteKeyword: String) {
         database.therapyEventDao.deleteLastEventMatchingKeyword(noteKeyword)
     }
