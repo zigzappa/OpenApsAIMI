@@ -7,6 +7,7 @@ import app.aaps.core.data.iob.MealData
 import app.aaps.core.data.model.BS
 import app.aaps.core.data.model.TB
 import app.aaps.core.data.model.UE
+import app.aaps.core.interfaces.aps.APSResult
 import app.aaps.core.interfaces.aps.DetermineBasalAdapter
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.db.PersistenceLayer
@@ -21,14 +22,12 @@ import app.aaps.core.interfaces.stats.TddCalculator
 import app.aaps.core.interfaces.stats.TirCalculator
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.Round
-import app.aaps.core.interfaces.utils.SafeParse
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.Preferences
 import app.aaps.core.objects.aps.APSResultObject
 import app.aaps.core.objects.extensions.convertToJSONArray
 import app.aaps.core.objects.extensions.getPassedDurationToTimeInMinutes
-import app.aaps.plugins.aps.R
 import dagger.android.HasAndroidInjector
 import org.json.JSONArray
 import org.json.JSONException
@@ -145,7 +144,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var now: Long = 0
 
     @Suppress("SpellCheckingInspection")
-    override operator fun invoke(): APSResultObject {
+    override operator fun invoke(): APSResult? {
         aapsLogger.debug(LTag.APS, ">>> Invoking determine_basal <<<")
         this.predictedSMB = calculateSMBFromModel()
         //var smbToGive = predictedSMB

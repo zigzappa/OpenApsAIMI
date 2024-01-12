@@ -177,28 +177,12 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
             apsResult.rate = 0.0
             apsResult.duration = newDuration
         }
-        /*if (delta <= 0 && bg <= 140.0f && enablebasal === true) {
-            isTempBasalRequested = true
-            isChangeRequested
-            this.usePercent = true
-            apsResult.rate = 0.0
-            apsResult.duration = newDuration
 
-
-        }else if(delta > 0 && bg > 80 && enablebasal === true){
-            isTempBasalRequested = true
-            isChangeRequested
-            this.usePercent = true
-            this.percent = delta.toInt() * 100
-            apsResult.rate = newRate.toDouble() * delta
-            apsResult.duration = newDuration
-
-        }*/
         apsResult.targetBG = newtargetBG
 
     }
 
-    fun newAndClone(injector: HasAndroidInjector): DetermineBasalResultSMB {
+   fun newAndClone(injector: HasAndroidInjector): DetermineBasalResultSMB {
         val newResult = DetermineBasalResultAIMISMB(injector)
         doClone(newResult)
         newResult.rate = this.rate
