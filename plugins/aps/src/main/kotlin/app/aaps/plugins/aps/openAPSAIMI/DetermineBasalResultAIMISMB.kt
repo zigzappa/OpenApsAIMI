@@ -233,8 +233,6 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
 
 
     init {
-        //this.date = dateUtil.now()
-        //updateAPSResult(apsResultObject)
         hasPredictions = true
     }
 

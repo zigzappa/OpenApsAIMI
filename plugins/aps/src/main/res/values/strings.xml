@@ -179,5 +179,19 @@
     <string name="nb_iteration_ML_training_title">NB iteration stopping the loop</string>
     <string name="DynISF_Adjust_summary" formatted="false">Increase this value greater than 100 if you want to receive more smb. The opposite is true if you receive too much smb.</string>
     <string name="DynISF_Adjust_title" formatted="false">DynISF factor to increase or discrease the number of SMB</string>
+    <string name="oaps_aimi_mealAdjFact_summary">DynISF adjustment factor for Meal mode</string>
+    <string name="oaps_aimi_mealAdjFact_title">Meal Mode DynISF factor</string>
+    <string name="Enable_basal_title">Enable Basal</string>
+    <string name="Enable_basal_summary">This option will enable basal from the profile when bg is greater than 80 and delta not negative.</string>
+    <string name="countsteps_watch_title">Enable Counting steps from the watch</string>
+    <string name="countsteps_watch_summary">This option will use the hardware from the watch instead of the phone.</string>
+    <string name="oaps_aimi_weight_summary">Weight in kg to calculate the basal</string>
+    <string name="oaps_aimi_weight_title">Weight in kg</string>
+    <string name="oaps_aimi_tdd7_summary">TDD average 7 days</string>
+    <string name="oaps_aimi_tdd7_title">TDD 7 days</string>
+    <string name="oaps_aimi_cho_summary">Average carbs for a meal. it\'s an estimation not a precise value</string>
+    <string name="oaps_aimi_cho_title">CHO Meal average lunch or dinner</string>
+    <string name="oaps_aimi_enableMlTraining_title">Enable ML training calculation</string>
+    <string name="oaps_aimi_enableMlTraining_summary">\"This option will enable training ML calculation and use the result for the smb size.</string>
 
 </resources>

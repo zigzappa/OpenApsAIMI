@@ -1220,6 +1220,9 @@ interface PersistenceLayer {
     fun insertUserEntries(entries: List<UE>): Single<TransactionResult<UE>>
     fun getUserEntryDataFromTime(timestamp: Long): Single<List<UE>>
     fun getUserEntryFilteredDataFromTime(timestamp: Long): Single<List<UE>>
+    fun deleteLastEventMatchingKeyword(noteKeyword: String)
+
+
 
     // TDD
 
@@ -1338,7 +1341,6 @@ interface PersistenceLayer {
             .filter { it.timestamp > now }
             .sumOf { it.amount }
     }
-
 
     fun collectNewEntriesSince(since: Long, until: Long, limit: Int, offset: Int): NE
     class TransactionResult<T> {

@@ -14,17 +14,45 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
     var highCarbTime = false
     var mealTime = false
     var fastingTime = false
+    var stopTime = false
 
     @SuppressLint("CheckResult")
     fun updateStatesBasedOnTherapyEvents() {
-        // Mise à jour de l'état de sleepTime
-        sleepTime = findActiveSleepEvents(System.currentTimeMillis()).blockingGet()
-        sportTime = findActiveSportEvents(System.currentTimeMillis()).blockingGet()
-        snackTime = findActiveSnackEvents(System.currentTimeMillis()).blockingGet()
-        lowCarbTime = findActiveLowCarbEvents(System.currentTimeMillis()).blockingGet()
-        highCarbTime = findActiveHighCarbEvents(System.currentTimeMillis()).blockingGet()
-        mealTime = findActiveMealEvents(System.currentTimeMillis()).blockingGet()
-        fastingTime = findActiveFastingEvents(System.currentTimeMillis()).blockingGet()
+        stopTime = findActivestopEvents(System.currentTimeMillis()).blockingGet()
+        if (!stopTime) {
+            sleepTime = findActiveSleepEvents(System.currentTimeMillis()).blockingGet()
+            sportTime = findActiveSportEvents(System.currentTimeMillis()).blockingGet()
+            snackTime = findActiveSnackEvents(System.currentTimeMillis()).blockingGet()
+            lowCarbTime = findActiveLowCarbEvents(System.currentTimeMillis()).blockingGet()
+            highCarbTime = findActiveHighCarbEvents(System.currentTimeMillis()).blockingGet()
+            mealTime = findActiveMealEvents(System.currentTimeMillis()).blockingGet()
+            fastingTime = findActiveFastingEvents(System.currentTimeMillis()).blockingGet()
+        } else {
+            resetAllStates()
+            clearActiveEvent("sleep")
+            clearActiveEvent("sport")
+            clearActiveEvent("snack")
+            clearActiveEvent("lowcarb")
+            clearActiveEvent("highcarb")
+            clearActiveEvent("meal")
+            clearActiveEvent("fasting")
+        }
+    }
+    private fun clearActiveEvent(noteKeyword: String) {
+       persistenceLayer.deleteLastEventMatchingKeyword(noteKeyword)
+    }
+
+    // Implémenter la méthode
+
+
+    private fun resetAllStates() {
+        sleepTime = false;
+        sportTime = false;
+        snackTime = false;
+        lowCarbTime = false;
+        highCarbTime = false;
+        mealTime = false;
+        fastingTime = false;
     }
     private fun findActiveSleepEvents(timestamp: Long): Single<Boolean> {
         val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
@@ -110,7 +138,17 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
                     }
             }
     }
-
+    private fun findActivestopEvents(timestamp: Long): Single<Boolean> {
+        val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
+        return persistenceLayer.getTherapyEventDataFromTime(fromTime, true)
+            .map { events ->
+                events.filter { it.type == TE.Type.NOTE }
+                    .any { event ->
+                        event.note?.contains("stop", ignoreCase = true) == true &&
+                            System.currentTimeMillis() <= (event.timestamp + event.duration)
+                    }
+            }
+    }
 
     fun getTimeElapsedSinceLastEvent(keyword: String): Long {
         val fromTime = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(60)

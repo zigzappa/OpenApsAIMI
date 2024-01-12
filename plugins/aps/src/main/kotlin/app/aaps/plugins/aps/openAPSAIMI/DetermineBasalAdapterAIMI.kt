@@ -21,12 +21,14 @@ import app.aaps.core.interfaces.stats.TddCalculator
 import app.aaps.core.interfaces.stats.TirCalculator
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.Round
+import app.aaps.core.interfaces.utils.SafeParse
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.Preferences
 import app.aaps.core.objects.aps.APSResultObject
 import app.aaps.core.objects.extensions.convertToJSONArray
 import app.aaps.core.objects.extensions.getPassedDurationToTimeInMinutes
+import app.aaps.plugins.aps.R
 import dagger.android.HasAndroidInjector
 import org.json.JSONArray
 import org.json.JSONException
@@ -74,6 +76,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var currentTIRLow: Double = 0.0
     private var currentTIRRange: Double = 0.0
     private var currentTIRAbove: Double = 0.0
+    private var lastHourTIRLow: Double = 0.0
     private var bg = 0.0f
     private var targetBg = 100.0f
     private var normalBgThreshold = 150.0f
@@ -112,6 +115,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var highCarbTime = false
     private var mealTime = false
     private var fastingTime = false
+    private var stopTime = false
     private var mealruntime: Long = 0
     private var highCarbrunTime: Long = 0
     private var intervalsmb = 5
@@ -163,15 +167,21 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val afternoonfactor: Double = preferences.get(DoubleKey.OApsAIMIAfternoonFactor) / 100.0
         val eveningfactor: Double = preferences.get(DoubleKey.OApsAIMIEveningFactor) / 100.0
         val hyperfactor: Double = preferences.get(DoubleKey.OApsAIMIHyperFactor) / 100.0
+        val (adjustedMorningFactor, adjustedAfternoonFactor, adjustedEveningFactor) =
+            adjustFactorsBasedOnBgAndHypo(bg, predictedBg, lastHourTIRLow.toFloat(), morningfactor.toFloat(), afternoonfactor.toFloat(), eveningfactor.toFloat())
+
         smbToGive = when {
             highCarbTime -> smbToGive * 130.0f
             mealTime -> smbToGive * 200.0f
-            hourOfDay in 1..11 -> smbToGive * morningfactor.toFloat()
-            hourOfDay in 12..18 -> smbToGive * afternoonfactor.toFloat()
-            hourOfDay in 19..23 -> smbToGive * eveningfactor.toFloat()
+            hourOfDay in 1..11 -> smbToGive * adjustedMorningFactor.toFloat()
+            hourOfDay in 12..18 -> smbToGive * adjustedAfternoonFactor.toFloat()
+            hourOfDay in 19..23 -> smbToGive * adjustedEveningFactor.toFloat()
             bg > 180 -> (smbToGive * hyperfactor).toFloat()
             else -> smbToGive
         }
+        this.profile.put("adjustedMorningFactor",  adjustedMorningFactor)
+        this.profile.put("adjustedAfternoonFactor",  adjustedAfternoonFactor)
+        this.profile.put("adjustedEveningFactor",  adjustedEveningFactor)
 
         smbToGive = applySafetyPrecautions(smbToGive)
         smbToGive = roundToPoint05(smbToGive)
@@ -684,7 +694,31 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             else -> stableFactor
         }
     }
+    private fun adjustFactorsBasedOnBgAndHypo(
+        currentBg: Float, futureBg: Float, lastHourTirLow: Float,
+        morningFactor: Float, afternoonFactor: Float, eveningFactor: Float
+    ): Triple<Double, Double, Double> {
+        val bgDifference = futureBg - currentBg
+        val hypoAdjustment = if (lastHourTirLow > 0) 0.6f else 1.0f // Réduire les facteurs si hypo récente
+        val bgAdjustment = 1.0f + (Math.log(Math.abs(bgDifference.toDouble()) + 1) - 1) * (if (bgDifference < 0) -0.1f else 0.1f)
 
+        return Triple(
+            morningFactor * bgAdjustment * hypoAdjustment,
+            afternoonFactor * bgAdjustment * hypoAdjustment,
+            eveningFactor * bgAdjustment * hypoAdjustment
+        )
+    }
+    private fun adjustFactorsdynisfBasedOnBgAndHypo(
+        currentBg: Float, futureBg: Float, lastHourTirLow: Float,
+        dynISFadjust: Float
+    ): Float {
+        val bgDifference = futureBg - currentBg
+        val hypoAdjustment = if (lastHourTirLow > 0) 0.6f else 1.0f // Réduire les facteurs si hypo récente
+        val bgAdjustment = 1.0f + (Math.log(Math.abs(bgDifference.toDouble()) + 1) - 1) * (if (bgDifference < 0) -0.1f else 0.1f)
+        val isfadjust = hypoAdjustment * bgAdjustment * dynISFadjust
+        return isfadjust.toFloat()
+
+    }
     @Suppress("SpellCheckingInspection")
     @Throws(JSONException::class)
     override fun setData(
@@ -806,6 +840,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.highCarbTime = therapy.highCarbTime
         this.mealTime = therapy.mealTime
         this.fastingTime = therapy.fastingTime
+        this.stopTime = therapy.stopTime
         this.mealruntime = therapy.getTimeElapsedSinceLastEvent("meal")
         this.highCarbrunTime = therapy.getTimeElapsedSinceLastEvent("highcarb")
 
@@ -816,15 +851,15 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.stable = if (delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3) 1 else 0
         val tdd7P: Double = preferences.get(DoubleKey.OApsAIMITDD7)
         var tdd7Days = tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))?.totalAmount?.toFloat() ?: 0.0f
-        if (tdd7Days == 0.0f) tdd7Days = tdd7P.toFloat()
+        if (tdd7Days == 0.0f || tdd7Days < tdd7P) tdd7Days = tdd7P.toFloat()
         this.tdd7DaysPerHour = tdd7Days / 24
 
         var tdd2Days = tddCalculator.averageTDD(tddCalculator.calculate(2, allowMissingDays = false))?.totalAmount?.toFloat() ?: 0.0f
-        if (tdd2Days == 0.0f) tdd2Days = tdd7P.toFloat()
+        if (tdd2Days == 0.0f || tdd2Days < tdd7P) tdd2Days = tdd7P.toFloat()
         this.tdd2DaysPerHour = tdd2Days / 24
         val tddLast4H = tdd2DaysPerHour.toDouble() * 4
         var tddDaily = tddCalculator.averageTDD(tddCalculator.calculate(1, allowMissingDays = false))?.totalAmount?.toFloat() ?: 0.0f
-        if (tddDaily == 0.0f) tddDaily = tdd7P.toFloat()
+        if (tddDaily == 0.0f || tddDaily < tdd7P/2) tddDaily = tdd7P.toFloat()
         this.tddPerHour = tddDaily / 24
 
         var tdd24Hrs = tddCalculator.calculateDaily(-24, 0)?.totalAmount?.toFloat() ?: 0.0f
@@ -842,21 +877,24 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         var tdd = (tddWeightedFromLast8H * 0.33) + (tdd7Days.toDouble() * 0.34) + (tddDaily.toDouble() * 0.33)
         val dynISFadjust: Double = preferences.get(DoubleKey.OApsAIMIDynISFAdjustment) / 100.0
         val dynISFadjusthyper: Double = preferences.get(DoubleKey.OApsAIMIDynISFAdjustmentHyper) / 100.0
+        val mealTimeDynISFAdjFactor = preferences.get(DoubleKey.OApsAIMImealAdjISFFact) / 100.0
+        val adjustDynIsf = adjustFactorsdynisfBasedOnBgAndHypo(bg, predictedBg, lastHourTIRLow.toFloat(), dynISFadjust.toFloat())
 
         tdd = when{
             sportTime -> tdd * 50.0
             sleepTime -> tdd * 80.0
             lowCarbTime -> tdd * 85.0
             snackTime -> tdd * 65.0
-            highCarbTime -> tdd * 500.0
-            mealTime -> tdd * 200.0
+            highCarbTime -> tdd * 400.0
+            mealTime -> tdd * mealTimeDynISFAdjFactor
             bg > 180 -> tdd * dynISFadjusthyper
-            else -> tdd * dynISFadjust
+            else -> tdd * adjustDynIsf
         }
         this.variableSensitivity = kotlin.math.max(profile.getIsfMgdl().toFloat()/2.5f,Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1).toFloat() * calculateGFactor(delta,shortAvgDelta,longAvgDelta).toFloat())
         this.currentTIRLow = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.belowPct()!!
         this.currentTIRRange = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.inRangePct()!!
         this.currentTIRAbove = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.abovePct()!!
+        this.lastHourTIRLow = tirCalculator.averageTIR(tirCalculator.calculateHour(80.0,140.0))?.belowPct()!!
 
         val beatsPerMinuteValues: List<Int>
         val beatsPerMinuteValues60: List<Int>
@@ -1042,10 +1080,13 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("highCarbTime", highCarbTime)
         this.profile.put("mealTime", mealTime)
         this.profile.put("fastingTime", fastingTime)
+        this.profile.put("stopTime", stopTime)
         this.profile.put("Sport0SMB", isSportSafetyCondition())
         this.profile.put("modelFileUAM", modelFileUAM.exists())
         this.profile.put("modelFile",  modelFile.exists())
-
+        this.profile.put("tdd2Days",  tdd2Days)
+        this.profile.put("tdd7Days",  tdd7Days)
+        this.profile.put("tdd",  tdd)
         if (profileFunction.getUnits() == app.aaps.core.data.model.GlucoseUnit.MMOL) {
             this.profile.put("out_units", "mmol/L")
         }

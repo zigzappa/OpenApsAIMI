@@ -49,4 +49,5 @@ enum class DoubleKey(
     OApsAIMIMlIterationTraining(R.string.key_nb_iteration_ML_training,10000.0,100.0, 10000.0, defaultedBySM = true),
     OApsAIMIMlLearningRateTraining(R.string.key_nb_learningrate_ML_training,0.0001,0.00001, 0.1, defaultedBySM = true),
     OApsAIMIMlEpochTraining(R.string.key_nb_epoch_ML_training,200.0,10.0, 200.0, defaultedBySM = true),
+    OApsAIMImealAdjISFFact(R.string.key_oaps_aimi_mealAdjFact,50.0,1.0,500.0)
 }

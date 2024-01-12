@@ -9,13 +9,13 @@
 
         <app.aaps.core.keys.AdaptiveSwitchPreference
             android:key="@string/count_steps_watch"
-            android:title="Enable Counting from the watch"
-            android:summary="This option will use the hardware from the watch instead of the phone." />
+            android:title="@string/countsteps_watch_title"
+            android:summary="@string/countsteps_watch_summary" />
 
         <app.aaps.core.keys.AdaptiveSwitchPreference
             android:key="@string/key_enable_basal"
-            android:title="Enable basal"
-            android:summary="This option will enable basal from the profile when bg is greater than 80 and delta not negative." />
+            android:title="@string/Enable_basal_title"
+            android:summary="@string/Enable_basal_summary" />
 
         <app.aaps.core.validators.AdaptiveDoublePreference
             android:dialogMessage="@string/openapsma_max_basal_summary"
@@ -34,24 +34,29 @@
             android:title="@string/openapsaimi_maxsmb_title" />
 
         <app.aaps.core.validators.AdaptiveDoublePreference
-            android:dialogMessage="Weight in kg to calculate the basal"
+            android:dialogMessage="@string/oaps_aimi_weight_summary"
             android:key="@string/key_aimiweight"
-            android:title="Weight in kg" />
+            android:title="@string/oaps_aimi_weight_title" />
 
         <app.aaps.core.validators.AdaptiveDoublePreference
-            android:dialogMessage="TDD average 7 days"
+            android:dialogMessage="@string/oaps_aimi_tdd7_summary"
             android:key="@string/key_tdd7"
-            android:title="TDD 7 days" />
+            android:title="@string/oaps_aimi_tdd7_title" />
 
         <app.aaps.core.validators.AdaptiveDoublePreference
-            android:dialogMessage="Average carbs for a meal. it's an estimation not a precise value"
+            android:dialogMessage="@string/oaps_aimi_cho_summary"
             android:key="@string/key_cho"
-            android:title="CHO / Meal" />
+            android:title="@string/oaps_aimi_cho_title" />
 
         <app.aaps.core.validators.AdaptiveDoublePreference
             android:dialogMessage="@string/DynISF_Adjust_summary"
             android:key="@string/key_DynISFAdjust"
             android:title="@string/DynISF_Adjust_title" />
+
+        <app.aaps.core.validators.AdaptiveDoublePreference
+            android:dialogMessage="@string/oaps_aimi_mealAdjFact_summary"
+            android:key="@string/key_oaps_aimi_mealAdjFact"
+            android:title="@string/oaps_aimi_mealAdjFact_title" />
 
         <app.aaps.core.validators.AdaptiveDoublePreference
             android:dialogMessage="@string/oaps_aimi_morning_factor_summary"
@@ -101,8 +106,8 @@
 
             <app.aaps.core.keys.AdaptiveSwitchPreference
                 android:key="@string/key_enable_ML_training"
-                android:title="Enable ML training calculation"
-                android:summary="This option will enable training ML calculation and use the result for the smb size." />
+                android:title="@string/oaps_aimi_enableMlTraining_title"
+                android:summary="@string/oaps_aimi_enableMlTraining_summary" />
 
             <app.aaps.core.validators.AdaptiveDoublePreference
                 android:dialogMessage="@string/number_minutes_training_summary"
