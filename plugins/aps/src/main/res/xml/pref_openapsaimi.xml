@@ -48,12 +48,12 @@
             android:key="@string/key_cho"
             android:title="@string/oaps_aimi_cho_title" />
 
-        <app.aaps.core.validators.AdaptiveDoublePreference
+        <app.aaps.core.validators.AdaptiveIntPreference
             android:dialogMessage="@string/DynISF_Adjust_summary"
             android:key="@string/key_DynISFAdjust"
             android:title="@string/DynISF_Adjust_title" />
 
-        <app.aaps.core.validators.AdaptiveDoublePreference
+        <app.aaps.core.validators.AdaptiveIntPreference
             android:dialogMessage="@string/oaps_aimi_mealAdjFact_summary"
             android:key="@string/key_oaps_aimi_mealAdjFact"
             android:title="@string/oaps_aimi_mealAdjFact_title" />
@@ -83,7 +83,7 @@
                 android:key="@string/key_oaps_aimi_hyper_factor"
                 android:title="@string/oaps_aimi_hyper_factor_title" />
 
-            <app.aaps.core.validators.AdaptiveDoublePreference
+            <app.aaps.core.validators.AdaptiveIntPreference
                 android:dialogMessage="@string/DynISFAdjusthyper_summary"
                 android:key="@string/key_DynISFAdjusthyper"
                 android:title="@string/DynISFAdjusthyper_title" />
@@ -92,7 +92,7 @@
         </androidx.preference.PreferenceScreen>
         <androidx.preference.PreferenceScreen
             android:key="MT_testing_ideas"
-            android:title="MT Test Idea Preferences">
+            android:title="Training ML and Modes">
 
             <app.aaps.core.validators.AdaptiveDoublePreference
                 android:dialogMessage="@string/prebolus_meal_mode_summary"
@@ -128,6 +128,33 @@
                 android:dialogMessage="@string/number_iteration_training_summary"
                 android:key="@string/key_nb_iteration_ML_training"
                 android:title="@string/nb_iteration_ML_training_title" />
+
+        </androidx.preference.PreferenceScreen>
+
+        <androidx.preference.PreferenceScreen
+            android:key="absorption_smb_advanced"
+            android:title="@string/advanced_settings_title">
+
+            <Preference android:summary="@string/openapsama_link_to_preference_json_doc_txt">
+                <intent
+                    android:action="android.intent.action.VIEW"
+                    android:data="@string/openapsama_link_to_preference_json_doc" />
+            </Preference>
+
+            <app.aaps.core.keys.AdaptiveSwitchPreference
+                android:key="@string/key_openaps_always_use_short_deltas"
+                android:summary="@string/always_use_short_avg_summary"
+                android:title="@string/always_use_short_avg" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/openapsama_max_daily_safety_multiplier_summary"
+                android:key="@string/key_openaps_max_daily_safety_multiplier"
+                android:title="@string/openapsama_max_daily_safety_multiplier" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/openapsama_current_basal_safety_multiplier_summary"
+                android:key="@string/key_openaps_current_basal_safety_multiplier"
+                android:title="@string/openapsama_current_basal_safety_multiplier" />
 
         </androidx.preference.PreferenceScreen>
 

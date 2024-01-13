@@ -33,8 +33,6 @@ enum class DoubleKey(
     AutosensMin(R.string.key_openaps_autosens_min, 0.7, 0.1, 1.0, defaultedBySM = true, hideParentScreenIfHidden = true),
     AutosensMax(R.string.key_openaps_autosens_max, 1.2, 0.5, 3.0, defaultedBySM = true),
     EquilMaxBolus(R.string.key_equil_maxbolus, 10.0, 0.1, 25.0),
-    OApsAIMIDynISFAdjustment(R.string.key_DynISFAdjust,85.0,1.0,500.0),
-    OApsAIMIDynISFAdjustmentHyper(R.string.key_DynISFAdjusthyper,150.0,1.0,500.0),
     OApsAIMIMaxSMB(R.string.key_openapsaimi_max_smb,1.0,0.05,15.0),
     OApsAIMIweight(R.string.key_aimiweight,50.0,1.0,200.0),
     OApsAIMICHO(R.string.key_cho,50.0,1.0,150.0),
@@ -49,5 +47,4 @@ enum class DoubleKey(
     OApsAIMIMlIterationTraining(R.string.key_nb_iteration_ML_training,10000.0,100.0, 10000.0, defaultedBySM = true),
     OApsAIMIMlLearningRateTraining(R.string.key_nb_learningrate_ML_training,0.0001,0.00001, 0.1, defaultedBySM = true),
     OApsAIMIMlEpochTraining(R.string.key_nb_epoch_ML_training,200.0,10.0, 200.0, defaultedBySM = true),
-    OApsAIMImealAdjISFFact(R.string.key_oaps_aimi_mealAdjFact,50.0,1.0,500.0)
 }

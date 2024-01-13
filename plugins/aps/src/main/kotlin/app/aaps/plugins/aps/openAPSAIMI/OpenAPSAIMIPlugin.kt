@@ -251,8 +251,8 @@ class OpenAPSAIMIPlugin  @Inject constructor(
         }
 
 
-        provideDetermineBasalAdapter().also { determineBasalAdapterSMBJS ->
-            determineBasalAdapterSMBJS.setData(
+        provideDetermineBasalAdapter().also { determineBasalAdapterAIMI ->
+            determineBasalAdapterAIMI.setData(
                 profile, maxIob, maxBasal, minBg, maxBg, targetBg,
                 activePlugin.activePump.baseBasalRate,
                 iobArray,
@@ -271,7 +271,7 @@ class OpenAPSAIMIPlugin  @Inject constructor(
                 tddLast8to4H = tddLast8to4H
             )
             val now = System.currentTimeMillis()
-            val determineBasalResultAIMISMB = determineBasalAdapterSMBJS.invoke()
+            val determineBasalResultAIMISMB = determineBasalAdapterAIMI.invoke()
             profiler.log(LTag.APS, "SMB calculation", start)
             if (determineBasalResultAIMISMB == null) {
                 aapsLogger.error(LTag.APS, "SMB calculation returned null")
@@ -289,7 +289,7 @@ class OpenAPSAIMIPlugin  @Inject constructor(
                 determineBasalResultAIMISMB!!.json?.put("timestamp", dateUtil.toISOString(now))
                 determineBasalResultAIMISMB!!.inputConstraints = inputConstraints
 
-                lastDetermineBasalAdapter = determineBasalAdapterSMBJS
+                lastDetermineBasalAdapter = determineBasalAdapterAIMI
                 lastAPSResult = determineBasalResultAIMISMB as DetermineBasalResultAIMISMB
                 lastAPSRun = now
             }

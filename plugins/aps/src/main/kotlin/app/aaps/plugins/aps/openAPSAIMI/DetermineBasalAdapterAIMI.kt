@@ -24,6 +24,7 @@ import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.Round
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
+import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.Preferences
 import app.aaps.core.objects.aps.APSResultObject
 import app.aaps.core.objects.extensions.convertToJSONArray
@@ -669,7 +670,13 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         // Calculer l'effet des glucides sur l'augmentation de la glycémie
         // en supposant que 'absorptionTime' représente la période de temps pendant laquelle les glucides sont absorbés
-        val carbEffect = (cob / absorptionTimeInMinutes) * CI
+        //val carbEffect = (cob / absorptionTimeInMinutes) * CI
+        val carbEffect = if (absorptionTimeInMinutes != 0f) {
+            (cob / absorptionTimeInMinutes) * CI
+        } else {
+            0f // ou une autre valeur appropriée
+        }
+
 
         // Prédire la glycémie future
         val futureBg = bg - insulinEffect + carbEffect
@@ -874,9 +881,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
         val tddWeightedFromLast8H = ((1.4 * tddLast4H) + (0.6 * tddLast8to4H)) * 3
         var tdd = (tddWeightedFromLast8H * 0.33) + (tdd7Days.toDouble() * 0.34) + (tddDaily.toDouble() * 0.33)
-        val dynISFadjust: Double = preferences.get(DoubleKey.OApsAIMIDynISFAdjustment) / 100.0
-        val dynISFadjusthyper: Double = preferences.get(DoubleKey.OApsAIMIDynISFAdjustmentHyper) / 100.0
-        val mealTimeDynISFAdjFactor = preferences.get(DoubleKey.OApsAIMImealAdjISFFact) / 100.0
+        val dynISFadjust: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustment) / 100).toDouble()
+        val dynISFadjusthyper: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustmentHyper) / 100).toDouble()
+        val mealTimeDynISFAdjFactor = (preferences.get(IntKey.OApsAIMImealAdjISFFact) / 100).toDouble()
         val adjustDynIsf = adjustFactorsdynisfBasedOnBgAndHypo(bg, predictedBg, lastHourTIRLow.toFloat(), dynISFadjust.toFloat())
 
         tdd = when{
