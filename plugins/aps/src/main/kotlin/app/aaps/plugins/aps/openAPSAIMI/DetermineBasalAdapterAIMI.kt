@@ -26,7 +26,6 @@ import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.Preferences
-import app.aaps.core.objects.aps.APSResultObject
 import app.aaps.core.objects.extensions.convertToJSONArray
 import app.aaps.core.objects.extensions.getPassedDurationToTimeInMinutes
 import dagger.android.HasAndroidInjector
@@ -145,7 +144,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var now: Long = 0
 
     @Suppress("SpellCheckingInspection")
-    override operator fun invoke(): APSResult? {
+    override operator fun invoke(): APSResult {
         aapsLogger.debug(LTag.APS, ">>> Invoking determine_basal <<<")
         this.predictedSMB = calculateSMBFromModel()
         //var smbToGive = predictedSMB
@@ -210,7 +209,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 16 Décembre 2023"
+            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 13 janvier 2024"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -827,7 +826,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 this.targetBg = hyperTarget.toFloat()
             }
             !tempTargetSet && circadianSmb > 0.1 && predictedBg < 130 -> {
-                var hypoTarget = 100 * kotlin.math.max(1.0, circadianSensitivity)
+                val hypoTarget = 100 * kotlin.math.max(1.0, circadianSensitivity)
                 this.targetBg = (hypoTarget + circadianSmb).toFloat()
             }
             else -> {
