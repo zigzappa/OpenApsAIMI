@@ -43,8 +43,8 @@ enum class DoubleKey(
     OApsAIMIHyperFactor(R.string.key_oaps_aimi_hyper_factor,60.0,1.0,150.0),
     OApsAIMIMealPrebolus(R.string.key_prebolus_meal_mode,2.0,0.1, 10.0),
     OApsAIMIHighCarbPrebolus(R.string.key_prebolus_highcarb_mode,5.0,0.1, 10.0),
-    OApsAIMIMlminutesTraining(R.string.key_nb_day_ML_training,5760.0,60.0, 20000.0, defaultedBySM = true),
+    OApsAIMIMlminutesTraining(R.string.key_nb_day_ML_training,10000.0,60.0, 40000.0, defaultedBySM = true),
     OApsAIMIMlIterationTraining(R.string.key_nb_iteration_ML_training,10000.0,100.0, 10000.0, defaultedBySM = true),
-    OApsAIMIMlLearningRateTraining(R.string.key_nb_learningrate_ML_training,0.0001,0.00001, 0.1, defaultedBySM = true),
-    OApsAIMIMlEpochTraining(R.string.key_nb_epoch_ML_training,200.0,10.0, 200.0, defaultedBySM = true),
+    OApsAIMIMlLearningRateTraining(R.string.key_nb_learningrate_ML_training,0.0001,0.000001, 0.1, defaultedBySM = true),
+    OApsAIMIMlEpochTraining(R.string.key_nb_epoch_ML_training,200.0,10.0, 400.0, defaultedBySM = true),
 }
