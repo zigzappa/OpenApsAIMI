@@ -209,7 +209,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 15 janvier 2024"
+            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 16 janvier 2024"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -649,39 +649,36 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         iob: Float,
         variableSensitivity: Float,
         cob: Float,
-        CI: Float,
+        CI: Float
     ): Float {
         // Temps moyen d'absorption des glucides en heures
         val averageCarbAbsorptionTime = 2.5f
         val absorptionTimeInMinutes = averageCarbAbsorptionTime * 60
 
-        // Calculer l'effet de l'insuline sur la baisse de la glycémie
+        // Calculer l'effet de l'insuline
         val insulinEffect = calculateInsulinEffect(
-            bg,
-            iob,
-            variableSensitivity,
-            cob,
-            normalBgThreshold,
-            recentSteps180Minutes,
-            averageBeatsPerMinute60.toFloat(),
-            averageBeatsPerMinute180.toFloat()
+            bg, iob, variableSensitivity, cob, normalBgThreshold, recentSteps180Minutes,
+            averageBeatsPerMinute60.toFloat(), averageBeatsPerMinute180.toFloat()
         )
 
-        // Calculer l'effet des glucides sur l'augmentation de la glycémie
-        // en supposant que 'absorptionTime' représente la période de temps pendant laquelle les glucides sont absorbés
-        //val carbEffect = (cob / absorptionTimeInMinutes) * CI
-        val carbEffect = if (absorptionTimeInMinutes != 0f) {
+        // Calculer l'effet des glucides
+        val carbEffect = if (absorptionTimeInMinutes != 0f && CI > 0f) {
             (cob / absorptionTimeInMinutes) * CI
         } else {
             0f // ou une autre valeur appropriée
         }
 
-
         // Prédire la glycémie future
-        val futureBg = bg - insulinEffect + carbEffect
+        var futureBg = bg - insulinEffect + carbEffect
+
+        // S'assurer que la glycémie future n'est pas inférieure à une valeur minimale, par exemple 39
+        if (futureBg < 39f) {
+            futureBg = 39f
+        }
 
         return futureBg
     }
+
 
     private fun calculateGFactor(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Double {
         val accelerationFactor = 0.5 // Facteur pour accélération de la glycémie
