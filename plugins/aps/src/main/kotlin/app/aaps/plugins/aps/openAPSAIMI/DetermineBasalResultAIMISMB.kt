@@ -75,22 +75,7 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
         updateAPSResult(apsResultObject)
             this.isTempBasalRequested = true
             this.usePercent = true
-        /*if (enablebasal === true) {
-            if (delta <= 0 && bg <= 150) {
-                this.percent = 0
-                this.rate = 0.0
-                this.duration = 120
-                aapsLogger.debug(LTag.APS, "rate: $rate, percent: $percent, duration: $duration, bg: $bg, delta: $delta")
-            } else if (delta > 0 && bg > 80) {
-                this.percent = delta.toInt() * 100
-                this.rate = basalaimi.toDouble() * delta
-                this.duration = 30
-                aapsLogger.debug(LTag.APS, "rate: $rate, percent: $percent, duration: $duration, bg: $bg, delta: $delta")
-            }
-        }else{
-            this.rate = 0.0
-            this.duration = 120
-        }*/
+
         if (enablebasal) {
             when {
                 delta <= 0 && bg <= 140 -> {

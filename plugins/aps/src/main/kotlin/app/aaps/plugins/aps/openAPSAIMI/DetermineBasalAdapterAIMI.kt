@@ -26,8 +26,12 @@ import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.Preferences
+import app.aaps.core.objects.extensions.combine
 import app.aaps.core.objects.extensions.convertToJSONArray
 import app.aaps.core.objects.extensions.getPassedDurationToTimeInMinutes
+import app.aaps.core.objects.extensions.plus
+import app.aaps.core.objects.extensions.round
+import app.aaps.plugins.aps.openAPS.IobData
 import dagger.android.HasAndroidInjector
 import org.json.JSONArray
 import org.json.JSONException
@@ -209,7 +213,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 16 janvier 2024"
+            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 17 janvier 2024"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -753,7 +757,17 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.weekend = if (dayOfWeek == Calendar.SUNDAY || dayOfWeek == Calendar.SATURDAY) 1 else 0
 
         val iobCalcs = iobCobCalculator.calculateIobFromBolus()
-        this.iob = if (preferences.get(BooleanKey.OApsAIMIEnableBasal)) iobCalcs.iob.toFloat() + iobCalcs.basaliob.toFloat() else iobCalcs.iob.toFloat()
+        //this.iob = if (preferences.get(BooleanKey.OApsAIMIEnableBasal)) iobCalcs.iob.toFloat() + iobCalcs.basaliob.toFloat() else iobCalcs.iob.toFloat()
+        val bolusIob= iobCobCalculator.calculateIobFromBolus().round()
+        val basalIob =  iobCobCalculator.calculateIobFromTempBasalsIncludingConvertedExtended().round()
+        //this.iob = if (preferences.get(BooleanKey.OApsAIMIEnableBasal)) bolusIob.iob.toFloat() + basalIob.iob.toFloat() else bolusIob.iob.toFloat()
+        //val iobTotal = IobTotal.combine(bolusIob, basalIob).round()
+        if (preferences.get(BooleanKey.OApsAIMIEnableBasal)) {
+            this.iob = IobTotal.combine(bolusIob, basalIob).round().iob.toFloat()
+        }else{
+            this.iob = bolusIob.iob.toFloat()
+        }
+
         this.bg = glucoseStatus.glucose.toFloat()
         this.targetBg = targetBg.toFloat()
         this.cob = mealData.mealCOB.toFloat()
