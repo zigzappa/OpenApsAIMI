@@ -725,6 +725,26 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         return isfadjust.toFloat()
 
     }
+    private fun calculateSmoothBasalRate(
+        tdd2Days: Float, // Total Daily Dose (TDD) pour le jour le plus récent
+        tdd7Days: Float, // TDD pour le jour précédent
+        currentBasalRate: Float // Le taux de basal actuel
+    ): Float {
+        // Poids pour le lissage. Plus la valeur est proche de 1, plus l'influence du jour le plus récent est grande.
+        val weightRecent = 0.6f
+        val weightPrevious = 1.0f - weightRecent
+
+        // Calculer la TDD moyenne pondérée
+        val weightedTdd = (tdd2Days * weightRecent) + (tdd7Days * weightPrevious)
+
+        // Ajuster la basale en fonction de la TDD moyenne pondérée
+        // Cette formule peut être ajustée en fonction de la logique souhaitée
+        val adjustedBasalRate = currentBasalRate * (weightedTdd / tdd2Days)
+
+        // Retourner la nouvelle basale lissée
+        return adjustedBasalRate
+    }
+
     @Suppress("SpellCheckingInspection")
     @Throws(JSONException::class)
     override fun setData(
@@ -998,10 +1018,11 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             averageBeatsPerMinute180 = 80.0
         }
         if (tdd2Days != null && tdd2Days != 0.0f) {
-            this.basalaimi = (tdd2Days / preferences.get(DoubleKey.OApsAIMIweight)).toFloat()
+            basalaimi = (tdd2Days / preferences.get(DoubleKey.OApsAIMIweight)).toFloat()
         } else {
-            this.basalaimi = (tdd7P / preferences.get(DoubleKey.OApsAIMIweight)).toFloat()
+            basalaimi = (tdd7P / preferences.get(DoubleKey.OApsAIMIweight)).toFloat()
         }
+        this.basalaimi = calculateSmoothBasalRate(tdd2Days,tdd7Days,basalaimi)
         if (tdd2Days != null && tdd2Days != 0.0f) {
             this.CI = 450 / tdd2Days
         } else {
@@ -1020,23 +1041,12 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         if (averageBeatsPerMinute != 0.0) {
             this.basalaimi = when {
                 averageBeatsPerMinute >= averageBeatsPerMinute180 && recentSteps5Minutes > 100 && recentSteps10Minutes > 200 -> (basalaimi * 0.65).toFloat()
-                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute > averageBeatsPerMinute180 && bg >= 130 && recentSteps10Minutes === 0 && timenow > sixAM -> (basalaimi * 1.3).toFloat()
-                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute < averageBeatsPerMinute180 && recentSteps10Minutes === 0 && bg >= 110 -> (basalaimi * 1.2).toFloat()
+                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute > averageBeatsPerMinute180 && bg >= 130 && recentSteps10Minutes === 0 && timenow > sixAM -> (basalaimi * 1.2).toFloat()
+                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute < averageBeatsPerMinute180 && recentSteps10Minutes === 0 && bg >= 110 -> (basalaimi * 1.1).toFloat()
                 else -> basalaimi
             }
         }
 
-       /* val variableSensitivityDouble = variableSensitivity.toDoubleSafely()
-        if (variableSensitivityDouble != null) {
-            if (recentSteps5Minutes > 100 && recentSteps10Minutes > 200 && bg < 130 && delta < 10|| recentSteps180Minutes > 1500 && bg < 130 && delta < 10) this.variableSensitivity *= 1.5f
-            if (recentSteps30Minutes > 500 && recentSteps5Minutes >= 0 && recentSteps5Minutes < 100 && bg < 130 && delta < 10) this.variableSensitivity *= 1.3f
-
-    } else {
-        this.variableSensitivity = profile.getIsfMgdl().toFloat() * calculateGFactor(delta,shortAvgDelta,longAvgDelta).toFloat()
-    }*/
-        /*val getlastBolusSMB = persistenceLayer.getLastBolusRecordOfTypeWrapped(BS.Type.SMB).blockingGet()
-        val lastBolusSMBTime = if (getlastBolusSMB is ValueWrapper.Existing) getlastBolusSMB.value.timestamp else 0L
-        this.lastBolusSMBUnit = if (getlastBolusSMB is ValueWrapper.Existing) getlastBolusSMB.value.amount.toFloat() else 0.0F*/
         val getlastBolusSMB = persistenceLayer.getNewestBolusOfType(BS.Type.SMB)
         val lastBolusSMBTime = getlastBolusSMB?.timestamp ?: 0L
         this.lastBolusSMBUnit = getlastBolusSMB?.amount?.toFloat() ?: 0.0F
