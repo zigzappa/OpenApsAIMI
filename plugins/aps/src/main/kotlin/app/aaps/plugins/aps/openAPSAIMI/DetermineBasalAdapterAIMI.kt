@@ -450,7 +450,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         return smbToGive.toFloat()
     }
-    private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Float {
+    /*private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Float {
         val minutesToConsider: Double = preferences.get(DoubleKey.OApsAIMIMlminutesTraining)
         val linesToConsider = (minutesToConsider / 5).toInt()
         var averageDifference: Float
@@ -573,8 +573,82 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("differenceWithinRange", differenceWithinRange)
         // Retourne finalRefinedSMB si la différence est dans la plage, sinon predictedSMB
         return if (globalConvergenceReached) finalRefinedSMB else predictedSMB
-    }
+    }*/
+    private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Float {
+        val minutesToConsider: Double = preferences.get(DoubleKey.OApsAIMIMlminutesTraining)
+        val linesToConsider = (minutesToConsider / 5).toInt()
+        val maxIterations: Double = preferences.get(DoubleKey.OApsAIMIMlIterationTraining)
 
+        // Chargement et prétraitement des données
+        val allLines = csvfile.readLines()
+        val headerLine = allLines.first()
+        val headers = headerLine.split(",").map { it.trim() }
+        val colIndices = listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB").map { headers.indexOf(it) }
+        val targetColIndex = headers.indexOf("smbGiven")
+
+        val processedData = allLines.drop(1).mapNotNull { line ->
+            val cols = line.split(",").map { it.trim() }
+            val input = colIndices.mapNotNull { index -> cols.getOrNull(index)?.toFloatOrNull() }.toFloatArray()
+            val targetValue = cols.getOrNull(targetColIndex)?.toDoubleOrNull()
+            if (input.size == colIndices.size && targetValue != null) Pair(input, doubleArrayOf(targetValue)) else null
+        }.takeLast(linesToConsider)
+
+        if (processedData.isEmpty()) return predictedSMB
+
+        val inputs = processedData.map { it.first }
+        val targets = processedData.map { it.second }
+
+        val neuralNetwork = aimiNeuralNetwork(inputs.first().size, 5, 1)
+        var finalRefinedSMB = calculateSMBFromModel()
+        var globalConvergenceReached = false
+
+        for (globalIteration in 1..5) { // Nombre maximum d'itérations globales
+            var globalIterationCount = 0
+            var iterationCount = 0
+
+            while (globalIterationCount < 5 && !globalConvergenceReached) {
+                val validationSize = (inputs.size * 0.1).toInt()
+                val validationInputs = inputs.takeLast(validationSize)
+                val validationTargets = targets.takeLast(validationSize)
+                val trainingInputs = inputs.take(inputs.size - validationSize)
+                val trainingTargets = targets.take(targets.size - validationSize)
+
+                val epochs: Double = preferences.get(DoubleKey.OApsAIMIMlEpochTraining)
+                val learningRate: Double = preferences.get(DoubleKey.OApsAIMIMlLearningRateTraining)
+
+                neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs, learningRate)
+
+                var totalDifference = 0.0f
+                for ((input, target) in processedData) {
+                    val prediction = neuralNetwork.predict(input)
+                    val refinedSMB = finalRefinedSMB + prediction[0].toFloat()
+                    val difference = kotlin.math.abs(refinedSMB - target.first())
+                    totalDifference = (totalDifference + difference).toFloat()
+                    if (difference in 0.0..1.5) {
+                        finalRefinedSMB = refinedSMB
+                        break
+                    }
+                }
+                val averageDifference = totalDifference / processedData.size
+                this.profile.put("averageDifferenceML", averageDifference)
+
+                iterationCount++
+                if (iterationCount >= maxIterations) {
+                    break
+                }
+
+                globalIterationCount++
+            }
+            if (iterationCount >= maxIterations) {
+                globalConvergenceReached = true
+                break
+            }
+        }
+        this.profile.put("globalConvergenceReached", globalConvergenceReached)
+        this.profile.put("finalRefinedSMB", finalRefinedSMB)
+
+        return if (globalConvergenceReached) finalRefinedSMB else predictedSMB
+    }
 
     private fun calculateAdjustedDelayFactor(
         bg: Float, recentSteps180Minutes: Int, averageBeatsPerMinute60: Float, averageBeatsPerMinute180: Float
