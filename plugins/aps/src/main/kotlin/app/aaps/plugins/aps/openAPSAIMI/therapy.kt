@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import app.aaps.core.data.model.TE
 import app.aaps.core.interfaces.db.PersistenceLayer
 import io.reactivex.rxjava3.core.Single
+import java.util.Calendar
 import java.util.concurrent.TimeUnit
 class Therapy (private val persistenceLayer: PersistenceLayer){
 
@@ -15,6 +16,7 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
     var mealTime = false
     var fastingTime = false
     var stopTime = false
+    var calibartionTime = false
 
     @SuppressLint("CheckResult")
     fun updateStatesBasedOnTherapyEvents() {
@@ -27,6 +29,7 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
             highCarbTime = findActiveHighCarbEvents(System.currentTimeMillis()).blockingGet()
             mealTime = findActiveMealEvents(System.currentTimeMillis()).blockingGet()
             fastingTime = findActiveFastingEvents(System.currentTimeMillis()).blockingGet()
+            calibartionTime = isCalibrationEvent(System.currentTimeMillis()).blockingGet()
         } else {
             resetAllStates()
             clearActiveEvent("sleep")
@@ -66,6 +69,18 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
                     }
             }
     }
+
+    private fun isCalibrationEvent(timestamp: Long): Single<Boolean> {
+        val tenMinutesAgo = timestamp - TimeUnit.MINUTES.toMillis(15)
+        return persistenceLayer.getTherapyEventDataFromTime(tenMinutesAgo, true)
+            .map { events ->
+                events.filter { it.type == TE.Type.FINGER_STICK_BG_VALUE }
+                    .any { event ->
+                        System.currentTimeMillis() <= (event.timestamp + event.duration)
+                    }
+            }
+    }
+
 
     private fun findActiveSportEvents(timestamp: Long): Single<Boolean> {
         val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
@@ -163,8 +178,4 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
         return -1  // Retourner -1 si aucun événement n'a été trouvé
     }
 
-    /*private fun isEventActive(event: TherapyEvent, currentTime: Long): Boolean {
-        val eventEndTime = event.timestamp + event.duration
-        return currentTime <= eventEndTime
-    }*/
 }

@@ -29,9 +29,7 @@ import app.aaps.core.keys.Preferences
 import app.aaps.core.objects.extensions.combine
 import app.aaps.core.objects.extensions.convertToJSONArray
 import app.aaps.core.objects.extensions.getPassedDurationToTimeInMinutes
-import app.aaps.core.objects.extensions.plus
 import app.aaps.core.objects.extensions.round
-import app.aaps.plugins.aps.openAPS.IobData
 import dagger.android.HasAndroidInjector
 import org.json.JSONArray
 import org.json.JSONException
@@ -119,6 +117,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var mealTime = false
     private var fastingTime = false
     private var stopTime = false
+    private var iscalibration = false
     private var mealruntime: Long = 0
     private var highCarbrunTime: Long = 0
     private var intervalsmb = 5
@@ -213,7 +212,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 17 janvier 2024"
+            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 20 janvier 2024"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -344,6 +343,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private fun isCriticalSafetyCondition(): Boolean {
         val fasting = fastingTime
         val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..4) } && delta > 15 && cob === 0.0f
+        val isNewCalibration = iscalibration && delta > 10
         val belowMinThreshold = bg < 80
         val belowTargetAndDropping = bg < targetBg && delta < -2
         val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 5
@@ -358,7 +358,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         return belowMinThreshold || belowTargetAndDropping || belowTargetAndStableButNoCob ||
             droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval ||
-            fasting || nosmb || nightTrigger
+            fasting || nosmb || nightTrigger || isNewCalibration
     }
     private fun isSportSafetyCondition(): Boolean {
         val sport = targetBg >= 140 && recentSteps5Minutes >= 200 && recentSteps10Minutes >= 500
@@ -879,6 +879,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.stopTime = therapy.stopTime
         this.mealruntime = therapy.getTimeElapsedSinceLastEvent("meal")
         this.highCarbrunTime = therapy.getTimeElapsedSinceLastEvent("highcarb")
+        this.iscalibration = therapy.calibartionTime
 
         this.accelerating_up = if (delta > 2 && delta - longAvgDelta > 2) 1 else 0
         this.deccelerating_up = if (delta > 0 && (delta < shortAvgDelta || delta < longAvgDelta)) 1 else 0
