@@ -212,7 +212,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 20 janvier 2024"
+            ",<br/> Version du plugin OpenApsAIMI-MT.1 ML.2, 21 janvier 2024"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -450,12 +450,12 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         return smbToGive.toFloat()
     }
-    /*private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Float {
+    private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Float {
         val minutesToConsider: Double = preferences.get(DoubleKey.OApsAIMIMlminutesTraining)
-        val linesToConsider = (minutesToConsider / 5).toInt()
+        val linesToConsider = (minutesToConsider / 5).toInt().coerceIn(5000,20000)
         var averageDifference: Float
         var totalDifference: Float
-        val maxIterations: Double = preferences.get(DoubleKey.OApsAIMIMlIterationTraining)
+        val maxIterations: Double = preferences.get(DoubleKey.OApsAIMIMlIterationTraining).coerceIn(5000.0,10000.0)
         var differenceWithinRange = false
         var finalRefinedSMB: Float = calculateSMBFromModel()
         val maxGlobalIterations = 5 // Nombre maximum d'itérations globales
@@ -509,9 +509,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 if (inputs.isEmpty() || targets.isEmpty()) {
                     return predictedSMB
                 }
-                val epochs: Double = preferences.get(DoubleKey.OApsAIMIMlEpochTraining)
-                val learningrate: Double = preferences.get(DoubleKey.OApsAIMIMlLearningRateTraining)
-                //val neuralNetwork = aimiNeuralNetwork(inputs.first().size, 5, 1)
+                val epochs: Double = preferences.get(DoubleKey.OApsAIMIMlEpochTraining).coerceIn(100.0,300.0) // Limite le nombre d'époques
+                val learningRate: Double = preferences.get(DoubleKey.OApsAIMIMlLearningRateTraining).coerceIn(0.00001, 0.001)
                 // Déterminer la taille de l'ensemble de validation
                 val validationSize = (inputs.size * 0.1).toInt() // Par exemple, 10% pour la validation
 
@@ -523,7 +522,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
                 // Création et entraînement du réseau de neurones
                 val neuralNetwork = aimiNeuralNetwork(inputs.first().size, 5, 1)
-                neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs, learningrate)
+                neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs, learningRate)
 
                 val inputForPrediction = inputs.last()
                 val prediction = neuralNetwork.predict(inputForPrediction)
@@ -541,7 +540,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                         val difference = kotlin.math.abs(predictedrefineSMB - refinedSMB)
                         totalDifference += difference
                         if (difference in 0.0..1.5) {
-                            finalRefinedSMB = refinedSMB
+                            finalRefinedSMB = if (refinedSMB > 0.0f) refinedSMB else 0.0f
                             differenceWithinRange = true
                             this.profile.put("finalRefinedSMB in the loop", finalRefinedSMB)
                             break  // Sortie anticipée si la différence est dans la plage souhaitée
@@ -573,8 +572,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("differenceWithinRange", differenceWithinRange)
         // Retourne finalRefinedSMB si la différence est dans la plage, sinon predictedSMB
         return if (globalConvergenceReached) finalRefinedSMB else predictedSMB
-    }*/
-    private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Float {
+    }
+    /*private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Float {
         val minutesToConsider: Double = preferences.get(DoubleKey.OApsAIMIMlminutesTraining)
         val linesToConsider = (minutesToConsider / 5).toInt()
         val maxIterations: Double = preferences.get(DoubleKey.OApsAIMIMlIterationTraining)
@@ -648,7 +647,93 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("finalRefinedSMB", finalRefinedSMB)
 
         return if (globalConvergenceReached) finalRefinedSMB else predictedSMB
-    }
+    }*/
+    /*private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Float {
+        val minutesToConsider: Double = preferences.get(DoubleKey.OApsAIMIMlminutesTraining)
+        val linesToConsider = (minutesToConsider / 5).toInt().coerceIn(5000,20000) // Limite le nombre de lignes pour réduire la charge
+        val maxIterations: Double = preferences.get(DoubleKey.OApsAIMIMlIterationTraining).coerceIn(5000.0,10000.0) // Limite le nombre d'itérations
+        val convergenceThreshold = 1.5f // Seuil de convergence
+
+        // Chargement des données avec optimisation de la mémoire
+        val allLines = csvfile.readLines().takeLast(linesToConsider + 1)
+        val headerLine = allLines.first()
+        val headers = headerLine.split(",").map { it.trim() }
+        val colIndices = listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB").map { headers.indexOf(it) }
+        val targetColIndex = headers.indexOf("smbGiven")
+        this.profile.put("colIndices", colIndices)
+
+        val processedData = mutableListOf<Pair<FloatArray, DoubleArray>>()
+        for (line in allLines.drop(1)) {
+            val cols = line.split(",").map { it.trim() }
+            val input = colIndices.mapNotNull { index -> cols.getOrNull(index)?.toFloatOrNull() }.toFloatArray()
+            val targetValue = cols.getOrNull(targetColIndex)?.toDoubleOrNull()
+            this.profile.put("cols", cols)
+            this.profile.put("targetValue", targetValue.toString())
+
+            if (input.size == colIndices.size && targetValue != null) {
+                processedData.add(Pair(input, doubleArrayOf(targetValue)))
+            }
+        }
+
+        if (processedData.isEmpty()) return predictedSMB
+
+        val validationSize = (processedData.size * 0.1).toInt().coerceAtLeast(1) // S'assure d'avoir au moins 1 élément pour la validation
+        val trainingData = processedData.take(processedData.size - validationSize)
+        val validationData = processedData.takeLast(validationSize)
+
+        val neuralNetwork = aimiNeuralNetwork(trainingData.first().first.size, 5, 1)
+        var finalRefinedSMB = calculateSMBFromModel()
+        var globalConvergenceReached = false
+
+        for (globalIteration in 1..5) {
+            var iterationCount = 0
+            var consecutiveImprovements = 0 // Compteur pour les améliorations consécutives
+
+            while (iterationCount < maxIterations && !globalConvergenceReached) {
+                val trainingInputs = trainingData.map { it.first }
+                val trainingTargets = trainingData.map { it.second }
+                val validationInputs = validationData.map { it.first }
+                val validationTargets = validationData.map { it.second }
+
+                val epochs: Double = preferences.get(DoubleKey.OApsAIMIMlEpochTraining).coerceIn(100.0,300.0) // Limite le nombre d'époques
+                val learningRate: Double = preferences.get(DoubleKey.OApsAIMIMlLearningRateTraining).coerceIn(0.00001, 0.001) // Assure un taux d'apprentissage raisonnable
+
+                neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs, learningRate)
+
+                var totalDifference = 0.0f
+                for ((input, target) in trainingData) {
+                    val prediction = neuralNetwork.predict(input)
+                    val refinedSMB = finalRefinedSMB + prediction[0].toFloat()
+                    val difference = kotlin.math.abs(refinedSMB - target.first())
+                    totalDifference = (totalDifference + difference).toFloat()
+                    this.profile.put("predictionML", prediction[0].toString())
+                    this.profile.put("refinedSMB", refinedSMB)
+                    this.profile.put("difference", difference)
+                    if (difference in 0.0..1.5) {
+                        finalRefinedSMB = refinedSMB
+                        this.profile.put("finalRefinedSMB", finalRefinedSMB)
+                        break
+                    }
+                }
+                val averageDifference = totalDifference / trainingData.size
+                if (averageDifference < convergenceThreshold) {
+                    consecutiveImprovements++
+                    if (consecutiveImprovements >= 3) { // Par exemple, 3 améliorations consécutives suffisent pour la convergence
+                        globalConvergenceReached = true
+                        break
+                    }
+                } else {
+                    consecutiveImprovements = 0
+                }
+
+                iterationCount++
+            }
+            if (globalConvergenceReached) break
+        }
+        this.profile.put("globalConvergenceReached", globalConvergenceReached)
+        return if (globalConvergenceReached) finalRefinedSMB else predictedSMB
+    }*/
+
 
     private fun calculateAdjustedDelayFactor(
         bg: Float, recentSteps180Minutes: Int, averageBeatsPerMinute60: Float, averageBeatsPerMinute180: Float
