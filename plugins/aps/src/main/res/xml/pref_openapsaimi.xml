@@ -91,6 +91,251 @@
 
         </androidx.preference.PreferenceScreen>
         <androidx.preference.PreferenceScreen
+            android:key="Advance_Mode_Dynisf_and_reactivity"
+            android:title="Advance Mode Dynisf and reactivity">
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_0_1_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_0_1"
+                android:title="@string/oaps_aimi_reactivity_factor_0_1_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_1_2_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_1_2"
+                android:title="@string/oaps_aimi_reactivity_factor_1_2_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_2_3_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_2_3"
+                android:title="@string/oaps_aimi_reactivity_factor_2_3_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_3_4_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_3_4"
+                android:title="@string/oaps_aimi_reactivity_factor_3_4_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_4_5_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_4_5"
+                android:title="@string/oaps_aimi_reactivity_factor_4_5_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_5_6_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_5_6"
+                android:title="@string/oaps_aimi_reactivity_factor_5_6_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_6_7_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_6_7"
+                android:title="@string/oaps_aimi_reactivity_factor_6_7_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_7_8_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_7_8"
+                android:title="@string/oaps_aimi_reactivity_factor_7_8_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_8_9_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_8_9"
+                android:title="@string/oaps_aimi_reactivity_factor_8_9_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_9_10_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_9_10"
+                android:title="@string/oaps_aimi_reactivity_factor_9_10_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_10_11_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_10_11"
+                android:title="@string/oaps_aimi_reactivity_factor_10_11_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_11_12_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_11_12"
+                android:title="@string/oaps_aimi_reactivity_factor_11_12_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_12_13_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_12_13"
+                android:title="@string/oaps_aimi_reactivity_factor_12_13_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_13_14_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_13_14"
+                android:title="@string/oaps_aimi_reactivity_factor_13_14_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_14_15_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_14_15"
+                android:title="@string/oaps_aimi_reactivity_factor_14_15_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_15_16_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_15_16"
+                android:title="@string/oaps_aimi_reactivity_factor_15_16_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_16_17_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_16_17"
+                android:title="@string/oaps_aimi_reactivity_factor_16_17_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_17_18_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_17_18"
+                android:title="@string/oaps_aimi_reactivity_factor_17_18_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_18_19_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_18_19"
+                android:title="@string/oaps_aimi_reactivity_factor_18_19_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_19_20_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_19_20"
+                android:title="@string/oaps_aimi_reactivity_factor_19_20_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_20_21_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_20_21"
+                android:title="@string/oaps_aimi_reactivity_factor_20_21_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_21_22_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_21_22"
+                android:title="@string/oaps_aimi_reactivity_factor_21_22_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_22_23_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_22_23"
+                android:title="@string/oaps_aimi_reactivity_factor_22_23_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_23_24_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_23_24"
+                android:title="@string/oaps_aimi_reactivity_factor_23_24_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_0_1_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_0_1"
+                android:title="@string/oaps_aimi_dynisf_factor_0_1_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_1_2_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_1_2"
+                android:title="@string/oaps_aimi_dynisf_factor_1_2_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_2_3_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_2_3"
+                android:title="@string/oaps_aimi_dynisf_factor_2_3_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_3_4_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_3_4"
+                android:title="@string/oaps_aimi_dynisf_factor_3_4_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_4_5_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_4_5"
+                android:title="@string/oaps_aimi_dynisf_factor_4_5_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_5_6_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_5_6"
+                android:title="@string/oaps_aimi_dynisf_factor_5_6_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_6_7_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_6_7"
+                android:title="@string/oaps_aimi_dynisf_factor_6_7_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_7_8_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_7_8"
+                android:title="@string/oaps_aimi_dynisf_factor_7_8_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_8_9_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_8_9"
+                android:title="@string/oaps_aimi_dynisf_factor_8_9_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_9_10_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_9_10"
+                android:title="@string/oaps_aimi_dynisf_factor_9_10_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_10_11_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_10_11"
+                android:title="@string/oaps_aimi_dynisf_factor_10_11_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_11_12_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_11_12"
+                android:title="@string/oaps_aimi_dynisf_factor_11_12_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_12_13_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_12_13"
+                android:title="@string/oaps_aimi_dynisf_factor_12_13_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_13_14_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_13_14"
+                android:title="@string/oaps_aimi_dynisf_factor_13_14_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_14_15_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_14_15"
+                android:title="@string/oaps_aimi_dynisf_factor_14_15_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_15_16_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_15_16"
+                android:title="@string/oaps_aimi_dynisf_factor_15_16_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_16_17_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_16_17"
+                android:title="@string/oaps_aimi_dynisf_factor_16_17_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_17_18_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_17_18"
+                android:title="@string/oaps_aimi_dynisf_factor_17_18_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_18_19_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_18_19"
+                android:title="@string/oaps_aimi_dynisf_factor_18_19_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_19_20_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_19_20"
+                android:title="@string/oaps_aimi_dynisf_factor_19_20_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_20_21_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_20_21"
+                android:title="@string/oaps_aimi_dynisf_factor_20_21_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_21_22_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_21_22"
+                android:title="@string/oaps_aimi_dynisf_factor_21_22_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_22_23_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_22_23"
+                android:title="@string/oaps_aimi_dynisf_factor_22_23_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_23_24_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_23_24"
+                android:title="@string/oaps_aimi_dynisf_factor_23_24_title" />
+
+        </androidx.preference.PreferenceScreen>
+        <androidx.preference.PreferenceScreen
             android:key="MT_testing_ideas"
             android:title="Training ML and Modes">
 
