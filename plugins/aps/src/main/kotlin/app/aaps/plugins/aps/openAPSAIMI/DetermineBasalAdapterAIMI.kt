@@ -452,10 +452,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     }
     private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Float {
         val minutesToConsider: Double = preferences.get(DoubleKey.OApsAIMIMlminutesTraining)
-        val linesToConsider = (minutesToConsider / 5).toInt().coerceIn(5000,20000)
+        val linesToConsider = (minutesToConsider / 5).toInt()
         var averageDifference: Float
         var totalDifference: Float
-        val maxIterations: Double = preferences.get(DoubleKey.OApsAIMIMlIterationTraining).coerceIn(5000.0,10000.0)
+        val maxIterations: Double = preferences.get(DoubleKey.OApsAIMIMlIterationTraining)
         var differenceWithinRange = false
         var finalRefinedSMB: Float = calculateSMBFromModel()
         val maxGlobalIterations = 5 // Nombre maximum d'itérations globales
@@ -509,8 +509,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 if (inputs.isEmpty() || targets.isEmpty()) {
                     return predictedSMB
                 }
-                val epochs: Double = preferences.get(DoubleKey.OApsAIMIMlEpochTraining).coerceIn(100.0,300.0) // Limite le nombre d'époques
-                val learningRate: Double = preferences.get(DoubleKey.OApsAIMIMlLearningRateTraining).coerceIn(0.00001, 0.001)
+                val epochs: Double = preferences.get(DoubleKey.OApsAIMIMlEpochTraining)
+                val learningRate: Double = preferences.get(DoubleKey.OApsAIMIMlLearningRateTraining)
                 // Déterminer la taille de l'ensemble de validation
                 val validationSize = (inputs.size * 0.1).toInt() // Par exemple, 10% pour la validation
 
