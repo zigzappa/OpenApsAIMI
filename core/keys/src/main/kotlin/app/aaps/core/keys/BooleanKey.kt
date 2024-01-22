@@ -43,5 +43,6 @@ enum class BooleanKey(
     MaintenanceEnableFabric(R.string.key_enable_fabric, true, defaultedBySM = true, hideParentScreenIfHidden = true),
     OApsAIMIMLtraining(R.string.key_enable_ML_training, false),
     OApsAIMIEnableBasal(R.string.key_enable_basal, false),
-    OApsAIMIEnableStepsFromWatch(R.string.count_steps_watch, false)
+    OApsAIMIEnableStepsFromWatch(R.string.count_steps_watch, false),
+    OApsAIMIEnableDynisfReactivityHour(R.string.key_enable_advance_dynisf_reactivity, false, defaultedBySM = true, hideParentScreenIfHidden = true)
 }
