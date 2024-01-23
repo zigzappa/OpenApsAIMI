@@ -1,11 +1,12 @@
 package app.aaps.plugins.aps.openAPSAIMI
 
 import android.annotation.SuppressLint
-import app.aaps.database.entities.TherapyEvent
-import app.aaps.database.impl.AppRepository
+import app.aaps.core.data.model.TE
+import app.aaps.core.interfaces.db.PersistenceLayer
 import io.reactivex.rxjava3.core.Single
+import java.util.Calendar
 import java.util.concurrent.TimeUnit
-class therapy (private val appRepository: AppRepository){
+class Therapy (private val persistenceLayer: PersistenceLayer){
 
     var sleepTime = false
     var sportTime = false
@@ -15,6 +16,7 @@ class therapy (private val appRepository: AppRepository){
     var mealTime = false
     var fastingTime = false
     var stopTime = false
+    var calibartionTime = false
 
     @SuppressLint("CheckResult")
     fun updateStatesBasedOnTherapyEvents() {
@@ -27,6 +29,7 @@ class therapy (private val appRepository: AppRepository){
             highCarbTime = findActiveHighCarbEvents(System.currentTimeMillis()).blockingGet()
             mealTime = findActiveMealEvents(System.currentTimeMillis()).blockingGet()
             fastingTime = findActiveFastingEvents(System.currentTimeMillis()).blockingGet()
+            calibartionTime = isCalibrationEvent(System.currentTimeMillis()).blockingGet()
         } else {
             resetAllStates()
             clearActiveEvent("sleep")
@@ -39,8 +42,11 @@ class therapy (private val appRepository: AppRepository){
         }
     }
     private fun clearActiveEvent(noteKeyword: String) {
-        appRepository.deleteLastEventMatchingKeyword(noteKeyword)
+       persistenceLayer.deleteLastEventMatchingKeyword(noteKeyword)
     }
+
+    // Implémenter la méthode
+
 
     private fun resetAllStates() {
         sleepTime = false;
@@ -53,91 +59,115 @@ class therapy (private val appRepository: AppRepository){
     }
     private fun findActiveSleepEvents(timestamp: Long): Single<Boolean> {
         val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
-        return appRepository.getTherapyEventDataFromTime(fromTime, TherapyEvent.Type.NOTE, true)
+        // Utiliser la méthode getTherapyEventDataFromTime avec le timestamp et l'ordre de tri
+        return persistenceLayer.getTherapyEventDataFromTime(fromTime, true)
             .map { events ->
-                events.any { event ->
-                    event.note?.contains("sleep", ignoreCase = true) == true &&
-                        System.currentTimeMillis() <= (event.timestamp + event.duration)
-                }
+                events.filter { it.type == TE.Type.NOTE } // Filtrer les événements par type
+                    .any { event ->
+                        event.note?.contains("sleep", ignoreCase = true) == true &&
+                            System.currentTimeMillis() <= (event.timestamp + event.duration)
+                    }
             }
     }
 
-    private fun findActiveSportEvents(timestamp: Long): Single<Boolean> {
-        val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
-        return appRepository.getTherapyEventDataFromTime(fromTime, TherapyEvent.Type.NOTE, true)
+    private fun isCalibrationEvent(timestamp: Long): Single<Boolean> {
+        val tenMinutesAgo = timestamp - TimeUnit.MINUTES.toMillis(15)
+        return persistenceLayer.getTherapyEventDataFromTime(tenMinutesAgo, true)
             .map { events ->
-                events.any { event ->
-                    event.note?.contains("sport", ignoreCase = true) == true &&
+                events.filter { it.type == TE.Type.FINGER_STICK_BG_VALUE }
+                    .any { event ->
                         System.currentTimeMillis() <= (event.timestamp + event.duration)
-                }
+                    }
             }
     }
+
+
+    private fun findActiveSportEvents(timestamp: Long): Single<Boolean> {
+        val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
+        // Utiliser la méthode getTherapyEventDataFromTime avec le timestamp et l'ordre de tri
+        return persistenceLayer.getTherapyEventDataFromTime(fromTime, true)
+            .map { events ->
+                events.filter { it.type == TE.Type.NOTE } // Filtrer les événements par type
+                    .any { event ->
+                        event.note?.contains("sport", ignoreCase = true) == true &&
+                            System.currentTimeMillis() <= (event.timestamp + event.duration)
+                    }
+            }
+    }
+
     private fun findActiveSnackEvents(timestamp: Long): Single<Boolean> {
         val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
-        return appRepository.getTherapyEventDataFromTime(fromTime, TherapyEvent.Type.NOTE, true)
+        // Utiliser la méthode getTherapyEventDataFromTime avec le timestamp et l'ordre de tri
+        return persistenceLayer.getTherapyEventDataFromTime(fromTime, true)
             .map { events ->
-                events.any { event ->
-                    event.note?.contains("snack", ignoreCase = true) == true &&
-                        System.currentTimeMillis() <= (event.timestamp + event.duration)
-                }
+                events.filter { it.type == TE.Type.NOTE } // Filtrer les événements par type
+                    .any { event ->
+                        event.note?.contains("snack", ignoreCase = true) == true &&
+                            System.currentTimeMillis() <= (event.timestamp + event.duration)
+                    }
             }
     }
 
     private fun findActiveLowCarbEvents(timestamp: Long): Single<Boolean> {
         val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
-        return appRepository.getTherapyEventDataFromTime(fromTime, TherapyEvent.Type.NOTE, true)
+        // Utiliser la méthode getTherapyEventDataFromTime avec le timestamp et l'ordre de tri
+        return persistenceLayer.getTherapyEventDataFromTime(fromTime, true)
             .map { events ->
-                events.any { event ->
-                    event.note?.contains("lowcarb", ignoreCase = true) == true &&
-                        System.currentTimeMillis() <= (event.timestamp + event.duration)
-                }
+                events.filter { it.type == TE.Type.NOTE } // Filtrer les événements par type
+                    .any { event ->
+                        event.note?.contains("lowcarb", ignoreCase = true) == true &&
+                            System.currentTimeMillis() <= (event.timestamp + event.duration)
+                    }
             }
     }
-
     private fun findActiveHighCarbEvents(timestamp: Long): Single<Boolean> {
         val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
-        return appRepository.getTherapyEventDataFromTime(fromTime, TherapyEvent.Type.NOTE, true)
+        return persistenceLayer.getTherapyEventDataFromTime(fromTime, true)
             .map { events ->
-                events.any { event ->
-                    event.note?.contains("highcarb", ignoreCase = true) == true &&
-                        System.currentTimeMillis() <= (event.timestamp + event.duration)
-                }
+                events.filter { it.type == TE.Type.NOTE }
+                    .any { event ->
+                        event.note?.contains("highcarb", ignoreCase = true) == true &&
+                            System.currentTimeMillis() <= (event.timestamp + event.duration)
+                    }
             }
     }
     private fun findActiveMealEvents(timestamp: Long): Single<Boolean> {
         val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
-        return appRepository.getTherapyEventDataFromTime(fromTime, TherapyEvent.Type.NOTE, true)
+        return persistenceLayer.getTherapyEventDataFromTime(fromTime, true)
             .map { events ->
-                events.any { event ->
-                    event.note?.contains("meal", ignoreCase = true) == true &&
-                        System.currentTimeMillis() <= (event.timestamp + event.duration)
-                }
+                events.filter { it.type == TE.Type.NOTE }
+                    .any { event ->
+                        event.note?.contains("meal", ignoreCase = true) == true &&
+                            System.currentTimeMillis() <= (event.timestamp + event.duration)
+                    }
             }
     }
     private fun findActiveFastingEvents(timestamp: Long): Single<Boolean> {
         val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
-        return appRepository.getTherapyEventDataFromTime(fromTime, TherapyEvent.Type.NOTE, true)
+        return persistenceLayer.getTherapyEventDataFromTime(fromTime, true)
             .map { events ->
-                events.any { event ->
-                    event.note?.contains("fasting", ignoreCase = true) == true &&
-                        System.currentTimeMillis() <= (event.timestamp + event.duration)
-                }
+                events.filter { it.type == TE.Type.NOTE }
+                    .any { event ->
+                        event.note?.contains("fasting", ignoreCase = true) == true &&
+                            System.currentTimeMillis() <= (event.timestamp + event.duration)
+                    }
+            }
+    }
+    private fun findActivestopEvents(timestamp: Long): Single<Boolean> {
+        val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
+        return persistenceLayer.getTherapyEventDataFromTime(fromTime, true)
+            .map { events ->
+                events.filter { it.type == TE.Type.NOTE }
+                    .any { event ->
+                        event.note?.contains("stop", ignoreCase = true) == true &&
+                            System.currentTimeMillis() <= (event.timestamp + event.duration)
+                    }
             }
     }
 
-    private fun findActivestopEvents(timestamp: Long): Single<Boolean> {
-        val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
-        return appRepository.getTherapyEventDataFromTime(fromTime, TherapyEvent.Type.NOTE, true)
-            .map { events ->
-                events.any { event ->
-                    event.note?.contains("stop", ignoreCase = true) == true &&
-                        System.currentTimeMillis() <= (event.timestamp + event.duration)
-                }
-            }
-    }
     fun getTimeElapsedSinceLastEvent(keyword: String): Long {
         val fromTime = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(60)
-        val events = appRepository.getTherapyEventDataFromTime(fromTime, TherapyEvent.Type.NOTE, true).blockingGet()
+        val events = persistenceLayer.getTherapyEventDataFromTime(fromTime, TE.Type.NOTE, true)
 
         val lastEvent = events.filter { it.note?.contains(keyword, ignoreCase = true) == true }
             .maxByOrNull { it.timestamp }
@@ -148,8 +178,4 @@ class therapy (private val appRepository: AppRepository){
         return -1  // Retourner -1 si aucun événement n'a été trouvé
     }
 
-    private fun isEventActive(event: TherapyEvent, currentTime: Long): Boolean {
-        val eventEndTime = event.timestamp + event.duration
-        return currentTime <= eventEndTime
-    }
 }

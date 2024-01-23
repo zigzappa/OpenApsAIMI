@@ -1,34 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="key_openapsama_max_daily_safety_multiplier" translatable="false">openapsama_max_daily_safety_multiplier</string>
-    <string name="key_openapsama_current_basal_safety_multiplier" translatable="false">openapsama_current_basal_safety_multiplier</string>
-    <string name="key_openapsama_autosens_adjusttargets" translatable="false">autosens_adjust_targets</string>
-    <string name="key_always_use_shortavg" translatable="false">always_use_shortavg</string>
-    <string name="key_openapsma_max_iob" translatable="false">openapsma_max_iob</string>
-    <string name="key_sensitivity_raises_target" translatable="false">sensitivity_raises_target</string>
-    <string name="key_resistance_lowers_target" translatable="false">resistance_lowers_target</string>
-    <string name="key_use_smb" translatable="false">use_smb</string>
-    <string name="key_use_uam" translatable="false">use_uam</string>
-    <string name="key_smb_interval" translatable="false">smbinterval</string>
-    <string name="key_enableSMB_always" translatable="false">enableSMB_always</string>
-    <string name="key_enableSMB_with_COB" translatable="false">enableSMB_with_COB</string>
-    <string name="key_enableSMB_with_temptarget" translatable="false">enableSMB_with_temptarget</string>
-    <string name="key_enableSMB_after_carbs" translatable="false">enableSMB_after_carbs</string>
-    <string name="key_allowSMB_with_high_temptarget" translatable="false">enableSMB_with_high_temptarget</string>
-    <string name="key_smb_max_minutes" translatable="false">smbmaxminutes</string>
-    <string name="key_uam_smb_max_minutes" translatable="false">uamsmbmaxminutes</string>
-    <string name="key_carbsReqThreshold" translatable="false">carbsReqThreshold</string>
-    <string name="key_openapssmb_max_iob" translatable="false">openapsmb_max_iob</string>
-    <string name="key_lgs_threshold" translatable="false">lgsThreshold</string>
-    <string name="key_DynISFAdjust" translatable="false">DynISFAdjust</string>
-    <string name="key_adjust_sensitivity" translatable="false">dynisf_adjust_sensitivity</string>
-
     <string name="dynisf_adjust_sensitivity">Enable TDD based sensitivity ratio for basal and glucose target modification</string>
     <string name="dynisf_adjust_sensitivity_summary">Uses the last 24h TDD/7D TDD to calculate sensitivity ratio used for increasing or decreasing basal rate, and also adjust glucose target if these options are enabled, in the same way Autosens does. It is recommended to start with this option turned off</string>
     <string name="DynISFAdjust_title" formatted="false">DynamicISF Adjustment Factor %</string>
     <string name="DynISFAdjust_summary" formatted="false">Adjustment factor for DynamicISF. Set more than 100% for more aggressive correction doses, and less than 100% for less aggressive corrections.</string>
-    <string name="DynISFAdjust_Meal_title" formatted="false">DynamicISF Adjustment Factor for the Meal Model %</string>
-    <string name="DynISFAdjust_meal_summary" formatted="false">Adjustment factor for DynamicISF of meal mode</string>
     <string name="high_temptarget_raises_sensitivity_title">High temptarget raises sensitivity</string>
     <string name="high_temptarget_raises_sensitivity_summary"><![CDATA[Raise sensitivity for temptargets >= 100]]></string>
     <string name="low_temptarget_lowers_sensitivity_title">Low temptarget lowers sensitivity</string>
@@ -160,9 +135,6 @@
     <string name="oaps_aimi_shortname">OpenApsAIMI</string>
     <string name="key_aimiweight">key_aimiweight</string>
     <string name="key_tdd7">key_tdd7</string>
-
-
-
     <string name="key_cho">key_cho</string>
     <string name="key_B30_upperBG">key_B30_upperBG</string>
     <string name="key_B30_upperdelta">key_B30_upperdelta</string>
@@ -205,7 +177,19 @@
     <string name="number_iteration_training_summary">Nb time it will try before stopping the loop if it can not get a satisfying result.</string>
     <string name="key_nb_iteration_ML_training">key_nb_iteration_ML_training</string>
     <string name="nb_iteration_ML_training_title">NB iteration stopping the loop</string>
-    <string name="key_mealAdjFact">key_mealAdjFact</string>
-
+    <string name="DynISF_Adjust_summary" formatted="false">Increase this value greater than 100 if you want to receive more smb. The opposite is true if you receive too much smb.</string>
+    <string name="DynISF_Adjust_title" formatted="false">DynISF factor to increase or discrease the number of SMB</string>
+    <string name="oaps_aimi_mealAdjFact_summary">DynISF adjustment factor for Meal mode</string>
+    <string name="oaps_aimi_mealAdjFact_title">Meal Mode DynISF factor</string>
+    <string name="Enable_basal_title">Enable Basal</string>
+    <string name="Enable_basal_summary">This option will enable basal from the profile when bg is greater than 80 and delta not negative.</string>
+    <string name="countsteps_watch_title">Enable Counting steps from the watch</string>
+    <string name="countsteps_watch_summary">This option will use the hardware from the watch instead of the phone.</string>
+    <string name="oaps_aimi_weight_summary">Weight in kg to calculate the basal</string>
+    <string name="oaps_aimi_weight_title">Weight in kg</string>
+    <string name="oaps_aimi_tdd7_summary">TDD average 7 days</string>
+    <string name="oaps_aimi_tdd7_title">TDD 7 days</string>
+    <string name="oaps_aimi_cho_summary">Average carbs for a meal. it\'s an estimation not a precise value</string>
+    <string name="oaps_aimi_cho_title">CHO Meal average lunch or dinner</string>
 
 </resources>

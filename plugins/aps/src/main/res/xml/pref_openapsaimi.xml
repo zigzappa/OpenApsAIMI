@@ -1,242 +1,410 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:validate="http://schemas.android.com/apk/res-auto">
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory
         android:key="@string/key_openapsaimi_settings"
         android:title="@string/openapsaimi"
         app:initialExpandedChildrenCount="0">
 
-        <SwitchPreference
-            android:defaultValue="false"
+        <app.aaps.core.keys.AdaptiveSwitchPreference
             android:key="@string/count_steps_watch"
-            android:title="Enable Counting from the watch"
-            android:summary="This option will use the hardware from the watch instead of the phone." />
+            android:title="@string/countsteps_watch_title"
+            android:summary="@string/countsteps_watch_summary" />
 
-        <SwitchPreference
-            android:defaultValue="false"
+        <app.aaps.core.keys.AdaptiveSwitchPreference
             android:key="@string/key_enable_basal"
-            android:title="Enable basal"
-            android:summary="This option will enable basal from the profile when bg is greater than 80 and delta not negative." />
+            android:title="@string/Enable_basal_title"
+            android:summary="@string/Enable_basal_summary" />
 
-        <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="1"
+        <app.aaps.core.validators.AdaptiveDoublePreference
             android:dialogMessage="@string/openapsma_max_basal_summary"
-            android:inputType="numberDecimal"
-            android:key="@string/key_openapsma_max_basal"
-            android:title="@string/openapsma_max_basal_title"
-            validate:floatmaxNumber="25.0"
-            validate:floatminNumber="0.1"
-            validate:testType="floatNumericRange" />
+            android:key="@string/key_openaps_max_basal"
+            android:title="@string/openapsma_max_basal_title" />
 
-        <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="5"
+
+        <app.aaps.core.validators.AdaptiveDoublePreference
             android:dialogMessage="@string/openapssmb_max_iob_summary"
-            android:inputType="numberDecimal"
-            android:key="@string/key_openapssmb_max_iob"
-            android:title="@string/openapssmb_max_iob_title"
-            validate:floatmaxNumber="15.0"
-            validate:floatminNumber="1"
-            validate:testType="floatNumericRange" />
+            android:key="@string/key_openaps_smb_max_iob"
+            android:title="@string/openapssmb_max_iob_title" />
 
-        <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="2"
+        <app.aaps.core.validators.AdaptiveDoublePreference
             android:dialogMessage="@string/openapsaimi_maxsmb_summary"
-            android:inputType="numberDecimal"
             android:key="@string/key_openapsaimi_max_smb"
-            android:title="@string/openapsaimi_maxsmb_title"
-            validate:floatmaxNumber="15.0"
-            validate:floatminNumber="0.05"
-            validate:testType="floatNumericRange" />
+            android:title="@string/openapsaimi_maxsmb_title" />
 
-        <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="50"
-            android:dialogMessage="Weight in kg to calculate the basal"
-            android:inputType="numberDecimal"
+        <app.aaps.core.validators.AdaptiveDoublePreference
+            android:dialogMessage="@string/oaps_aimi_weight_summary"
             android:key="@string/key_aimiweight"
-            android:title="Weight in kg"
-            validate:floatmaxNumber="150"
-            validate:floatminNumber="0"
-            validate:testType="floatNumericRange" />
+            android:title="@string/oaps_aimi_weight_title" />
 
-        <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="50"
-            android:dialogMessage="TDD average 7 days"
-            android:inputType="numberDecimal"
+        <app.aaps.core.validators.AdaptiveDoublePreference
+            android:dialogMessage="@string/oaps_aimi_tdd7_summary"
             android:key="@string/key_tdd7"
-            android:title="TDD 7 days"
-            validate:floatmaxNumber="150"
-            validate:floatminNumber="0"
-            validate:testType="floatNumericRange" />
+            android:title="@string/oaps_aimi_tdd7_title" />
 
-        <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="50"
-            android:dialogMessage="Average carbs for a meal. it's an estimation not a precise value"
-            android:inputType="numberDecimal"
+        <app.aaps.core.validators.AdaptiveDoublePreference
+            android:dialogMessage="@string/oaps_aimi_cho_summary"
             android:key="@string/key_cho"
-            android:title="CHO / Meal"
-            validate:floatmaxNumber="150"
-            validate:floatminNumber="0"
-            validate:testType="floatNumericRange" />
+            android:title="@string/oaps_aimi_cho_title" />
 
-        <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="120"
-            android:enabled="true"
-            android:dialogMessage="@string/DynISFAdjust_summary"
-            android:inputType="numberDecimal"
+        <app.aaps.core.validators.AdaptiveIntPreference
+            android:dialogMessage="@string/DynISF_Adjust_summary"
             android:key="@string/key_DynISFAdjust"
-            android:title="@string/DynISFAdjust_title"
-            validate:floatmaxNumber="500"
-            validate:floatminNumber="1"
-            validate:testType="floatNumericRange" />
+            android:title="@string/DynISF_Adjust_title" />
 
-        <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="200"
-            android:enabled="true"
-            android:dialogMessage="@string/DynISFAdjust_meal_summary"
-            android:inputType="numberDecimal"
-            android:key="@string/key_mealAdjFact"
-            android:title="@string/DynISFAdjust_Meal_title"
-            validate:floatmaxNumber="500"
-            validate:floatminNumber="1"
-            validate:testType="floatNumericRange" />
+        <app.aaps.core.validators.AdaptiveIntPreference
+            android:dialogMessage="@string/oaps_aimi_mealAdjFact_summary"
+            android:key="@string/key_oaps_aimi_mealAdjFact"
+            android:title="@string/oaps_aimi_mealAdjFact_title" />
 
-        <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="50"
-            android:enabled="true"
+        <app.aaps.core.validators.AdaptiveDoublePreference
             android:dialogMessage="@string/oaps_aimi_morning_factor_summary"
-            android:inputType="numberDecimal"
             android:key="@string/key_oaps_aimi_morning_factor"
-            android:title="@string/oaps_aimi_morning_factor_title"
-            validate:floatmaxNumber="300"
-            validate:floatminNumber="1"
-            validate:testType="floatNumericRange" />
+            android:title="@string/oaps_aimi_morning_factor_title" />
 
-        <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="50"
-            android:enabled="true"
+        <app.aaps.core.validators.AdaptiveDoublePreference
             android:dialogMessage="@string/oaps_aimi_afternoon_factor_summary"
-            android:inputType="numberDecimal"
             android:key="@string/key_oaps_aimi_afternoon_factor"
-            android:title="@string/oaps_aimi_afternoon_factor_title"
-            validate:floatmaxNumber="300"
-            validate:floatminNumber="1"
-            validate:testType="floatNumericRange" />
+            android:title="@string/oaps_aimi_afternoon_factor_title" />
 
-        <app.aaps.core.validators.ValidatingEditTextPreference
-            android:defaultValue="50"
-            android:enabled="true"
+        <app.aaps.core.validators.AdaptiveDoublePreference
             android:dialogMessage="@string/oaps_aimi_evening_factor_summary"
-            android:inputType="numberDecimal"
             android:key="@string/key_oaps_aimi_evening_factor"
-            android:title="@string/oaps_aimi_evening_factor_title"
-            validate:floatmaxNumber="300"
-            validate:floatminNumber="1"
-            validate:testType="floatNumericRange" />
+            android:title="@string/oaps_aimi_evening_factor_title" />
 
 
         <androidx.preference.PreferenceScreen
             android:key="high_BG_settings"
             android:title="High BG Preferences">
 
-            <app.aaps.core.validators.ValidatingEditTextPreference
-                android:defaultValue="50"
-                android:enabled="true"
+            <app.aaps.core.validators.AdaptiveDoublePreference
                 android:dialogMessage="@string/oaps_aimi_hyper_factor_summary"
-                android:inputType="numberDecimal"
                 android:key="@string/key_oaps_aimi_hyper_factor"
-                android:title="@string/oaps_aimi_hyper_factor_title"
-                validate:floatmaxNumber="300"
-                validate:floatminNumber="1"
-                validate:testType="floatNumericRange" />
+                android:title="@string/oaps_aimi_hyper_factor_title" />
 
-            <app.aaps.core.validators.ValidatingEditTextPreference
-                android:defaultValue="150"
-                android:enabled="true"
+            <app.aaps.core.validators.AdaptiveIntPreference
                 android:dialogMessage="@string/DynISFAdjusthyper_summary"
-                android:inputType="numberDecimal"
                 android:key="@string/key_DynISFAdjusthyper"
-                android:title="@string/DynISFAdjusthyper_title"
-                validate:floatmaxNumber="500"
-                validate:floatminNumber="1"
-                validate:testType="floatNumericRange" />
+                android:title="@string/DynISFAdjusthyper_title" />
 
 
         </androidx.preference.PreferenceScreen>
         <androidx.preference.PreferenceScreen
+            android:key="Advance_Mode_Dynisf_and_reactivity"
+            android:title="Advance Mode Dynisf and reactivity">
+
+            <app.aaps.core.keys.AdaptiveSwitchPreference
+                android:key="@string/key_enable_advance_dynisf_reactivity"
+                android:title="@string/oaps_aimi_enable_advance_dynisf_reactivity_title"
+                android:summary="@string/oaps_aimi_enable_advance_dynisf_reactivity_summary" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_0_1_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_0_1"
+                android:title="@string/oaps_aimi_reactivity_factor_0_1_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_1_2_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_1_2"
+                android:title="@string/oaps_aimi_reactivity_factor_1_2_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_2_3_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_2_3"
+                android:title="@string/oaps_aimi_reactivity_factor_2_3_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_3_4_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_3_4"
+                android:title="@string/oaps_aimi_reactivity_factor_3_4_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_4_5_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_4_5"
+                android:title="@string/oaps_aimi_reactivity_factor_4_5_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_5_6_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_5_6"
+                android:title="@string/oaps_aimi_reactivity_factor_5_6_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_6_7_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_6_7"
+                android:title="@string/oaps_aimi_reactivity_factor_6_7_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_7_8_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_7_8"
+                android:title="@string/oaps_aimi_reactivity_factor_7_8_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_8_9_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_8_9"
+                android:title="@string/oaps_aimi_reactivity_factor_8_9_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_9_10_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_9_10"
+                android:title="@string/oaps_aimi_reactivity_factor_9_10_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_10_11_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_10_11"
+                android:title="@string/oaps_aimi_reactivity_factor_10_11_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_11_12_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_11_12"
+                android:title="@string/oaps_aimi_reactivity_factor_11_12_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_12_13_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_12_13"
+                android:title="@string/oaps_aimi_reactivity_factor_12_13_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_13_14_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_13_14"
+                android:title="@string/oaps_aimi_reactivity_factor_13_14_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_14_15_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_14_15"
+                android:title="@string/oaps_aimi_reactivity_factor_14_15_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_15_16_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_15_16"
+                android:title="@string/oaps_aimi_reactivity_factor_15_16_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_16_17_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_16_17"
+                android:title="@string/oaps_aimi_reactivity_factor_16_17_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_17_18_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_17_18"
+                android:title="@string/oaps_aimi_reactivity_factor_17_18_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_18_19_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_18_19"
+                android:title="@string/oaps_aimi_reactivity_factor_18_19_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_19_20_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_19_20"
+                android:title="@string/oaps_aimi_reactivity_factor_19_20_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_20_21_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_20_21"
+                android:title="@string/oaps_aimi_reactivity_factor_20_21_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_21_22_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_21_22"
+                android:title="@string/oaps_aimi_reactivity_factor_21_22_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_22_23_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_22_23"
+                android:title="@string/oaps_aimi_reactivity_factor_22_23_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/oaps_aimi_reactivity_factor_23_24_summary"
+                android:key="@string/key_oaps_aimi_reactivity_factor_23_24"
+                android:title="@string/oaps_aimi_reactivity_factor_23_24_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_0_1_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_0_1"
+                android:title="@string/oaps_aimi_dynisf_factor_0_1_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_1_2_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_1_2"
+                android:title="@string/oaps_aimi_dynisf_factor_1_2_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_2_3_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_2_3"
+                android:title="@string/oaps_aimi_dynisf_factor_2_3_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_3_4_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_3_4"
+                android:title="@string/oaps_aimi_dynisf_factor_3_4_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_4_5_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_4_5"
+                android:title="@string/oaps_aimi_dynisf_factor_4_5_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_5_6_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_5_6"
+                android:title="@string/oaps_aimi_dynisf_factor_5_6_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_6_7_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_6_7"
+                android:title="@string/oaps_aimi_dynisf_factor_6_7_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_7_8_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_7_8"
+                android:title="@string/oaps_aimi_dynisf_factor_7_8_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_8_9_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_8_9"
+                android:title="@string/oaps_aimi_dynisf_factor_8_9_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_9_10_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_9_10"
+                android:title="@string/oaps_aimi_dynisf_factor_9_10_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_10_11_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_10_11"
+                android:title="@string/oaps_aimi_dynisf_factor_10_11_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_11_12_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_11_12"
+                android:title="@string/oaps_aimi_dynisf_factor_11_12_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_12_13_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_12_13"
+                android:title="@string/oaps_aimi_dynisf_factor_12_13_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_13_14_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_13_14"
+                android:title="@string/oaps_aimi_dynisf_factor_13_14_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_14_15_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_14_15"
+                android:title="@string/oaps_aimi_dynisf_factor_14_15_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_15_16_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_15_16"
+                android:title="@string/oaps_aimi_dynisf_factor_15_16_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_16_17_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_16_17"
+                android:title="@string/oaps_aimi_dynisf_factor_16_17_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_17_18_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_17_18"
+                android:title="@string/oaps_aimi_dynisf_factor_17_18_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_18_19_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_18_19"
+                android:title="@string/oaps_aimi_dynisf_factor_18_19_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_19_20_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_19_20"
+                android:title="@string/oaps_aimi_dynisf_factor_19_20_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_20_21_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_20_21"
+                android:title="@string/oaps_aimi_dynisf_factor_20_21_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_21_22_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_21_22"
+                android:title="@string/oaps_aimi_dynisf_factor_21_22_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_22_23_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_22_23"
+                android:title="@string/oaps_aimi_dynisf_factor_22_23_title" />
+
+            <app.aaps.core.validators.AdaptiveIntPreference
+                android:dialogMessage="@string/oaps_aimi_dynisf_factor_23_24_summary"
+                android:key="@string/key_oaps_aimi_dynisf_factor_23_24"
+                android:title="@string/oaps_aimi_dynisf_factor_23_24_title" />
+
+        </androidx.preference.PreferenceScreen>
+        <androidx.preference.PreferenceScreen
             android:key="MT_testing_ideas"
-            android:title="MT Test Idea Preferences">
+            android:title="Training ML and Modes">
 
-            <app.aaps.core.validators.ValidatingEditTextPreference
-                android:defaultValue="2"
-                android:enabled="true"
+            <app.aaps.core.validators.AdaptiveDoublePreference
                 android:dialogMessage="@string/prebolus_meal_mode_summary"
-                android:inputType="numberDecimal"
                 android:key="@string/key_prebolus_meal_mode"
-                android:title="@string/prebolus_meal_mode_title"
-                validate:floatmaxNumber="5"
-                validate:floatminNumber="1"
-                validate:testType="floatNumericRange" />
+                android:title="@string/prebolus_meal_mode_title" />
 
-            <app.aaps.core.validators.ValidatingEditTextPreference
-                android:defaultValue="2"
-                android:enabled="true"
+            <app.aaps.core.validators.AdaptiveDoublePreference
                 android:dialogMessage="@string/prebolus_highcarb_mode_summary"
-                android:inputType="numberDecimal"
                 android:key="@string/key_prebolus_highcarb_mode"
-                android:title="@string/prebolus_highcarb_mode_title"
-                validate:floatmaxNumber="5"
-                validate:floatminNumber="1"
-                validate:testType="floatNumericRange" />
+                android:title="@string/prebolus_highcarb_mode_title" />
 
-            <SwitchPreference
-                android:defaultValue="false"
+            <app.aaps.core.keys.AdaptiveSwitchPreference
                 android:key="@string/key_enable_ML_training"
-                android:title="Enable ML training calculation"
-                android:summary="This option will enable training ML calculation and use the result for the smb size." />
+                android:title="@string/oaps_aimi_enableMlTraining_title"
+                android:summary="@string/oaps_aimi_enableMlTraining_summary" />
 
-            <app.aaps.core.validators.ValidatingEditTextPreference
-                android:defaultValue="60"
-                android:enabled="true"
+            <app.aaps.core.validators.AdaptiveDoublePreference
                 android:dialogMessage="@string/number_minutes_training_summary"
-                android:inputType="numberDecimal"
                 android:key="@string/key_nb_day_ML_training"
-                android:title="@string/nb_minutes_ML_training_title"
-                validate:floatmaxNumber="20000"
-                validate:floatminNumber="1"
-                validate:testType="floatNumericRange" />
-            <app.aaps.core.validators.ValidatingEditTextPreference
-                android:defaultValue="40"
-                android:enabled="true"
-                android:dialogMessage="@string/number_epoch_training_summary"
-                android:inputType="numberDecimal"
-                android:key="@string/key_nb_epoch_ML_training"
-                android:title="@string/nb_epoch_ML_training_title"
-                validate:floatmaxNumber="200"
-                validate:floatminNumber="1"
-                validate:testType="floatNumericRange" />
-            <app.aaps.core.validators.ValidatingEditTextPreference
-                android:defaultValue="0.1"
-                android:enabled="true"
-                android:dialogMessage="@string/number_learningrate_training_summary"
-                android:inputType="numberDecimal"
-                android:key="@string/key_nb_learningrate_ML_training"
-                android:title="@string/nb_learningrate_ML_training_title"
-                validate:floatmaxNumber="1"
-                validate:floatminNumber="0.00001"
-                validate:testType="floatNumericRange" />
-            <app.aaps.core.validators.ValidatingEditTextPreference
-                android:defaultValue="100"
-                android:enabled="true"
-                android:dialogMessage="@string/number_iteration_training_summary"
-                android:inputType="numberDecimal"
-                android:key="@string/key_nb_iteration_ML_training"
-                android:title="@string/nb_iteration_ML_training_title"
-                validate:floatmaxNumber="10000"
-                validate:floatminNumber="1"
-                validate:testType="floatNumericRange" />
+                android:title="@string/nb_minutes_ML_training_title" />
 
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/number_epoch_training_summary"
+                android:key="@string/key_nb_epoch_ML_training"
+                android:title="@string/nb_epoch_ML_training_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/number_learningrate_training_summary"
+                android:key="@string/key_nb_learningrate_ML_training"
+                android:title="@string/nb_learningrate_ML_training_title" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/number_iteration_training_summary"
+                android:key="@string/key_nb_iteration_ML_training"
+                android:title="@string/nb_iteration_ML_training_title" />
+
+        </androidx.preference.PreferenceScreen>
+
+        <androidx.preference.PreferenceScreen
+            android:key="absorption_smb_advanced"
+            android:title="@string/advanced_settings_title">
+
+            <Preference android:summary="@string/openapsama_link_to_preference_json_doc_txt">
+                <intent
+                    android:action="android.intent.action.VIEW"
+                    android:data="@string/openapsama_link_to_preference_json_doc" />
+            </Preference>
+
+            <app.aaps.core.keys.AdaptiveSwitchPreference
+                android:key="@string/key_openaps_always_use_short_deltas"
+                android:summary="@string/always_use_short_avg_summary"
+                android:title="@string/always_use_short_avg" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/openapsama_max_daily_safety_multiplier_summary"
+                android:key="@string/key_openaps_max_daily_safety_multiplier"
+                android:title="@string/openapsama_max_daily_safety_multiplier" />
+
+            <app.aaps.core.validators.AdaptiveDoublePreference
+                android:dialogMessage="@string/openapsama_current_basal_safety_multiplier_summary"
+                android:key="@string/key_openaps_current_basal_safety_multiplier"
+                android:title="@string/openapsama_current_basal_safety_multiplier" />
 
         </androidx.preference.PreferenceScreen>
 

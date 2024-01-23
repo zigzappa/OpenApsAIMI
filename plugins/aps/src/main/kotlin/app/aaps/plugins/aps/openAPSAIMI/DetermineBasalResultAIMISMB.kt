@@ -3,8 +3,8 @@ package app.aaps.plugins.aps.openAPSAIMI
 import android.text.Spanned
 import app.aaps.core.interfaces.aps.VariableSensitivityResult
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.objects.aps.APSResultObject
 import app.aaps.core.utils.HtmlHelper
-import app.aaps.plugins.aps.APSResultObject
 import app.aaps.plugins.aps.openAPSSMB.DetermineBasalResultSMB
 import dagger.android.HasAndroidInjector
 import org.json.JSONException
@@ -75,22 +75,7 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
         updateAPSResult(apsResultObject)
             this.isTempBasalRequested = true
             this.usePercent = true
-        /*if (enablebasal === true) {
-            if (delta <= 0 && bg <= 150) {
-                this.percent = 0
-                this.rate = 0.0
-                this.duration = 120
-                aapsLogger.debug(LTag.APS, "rate: $rate, percent: $percent, duration: $duration, bg: $bg, delta: $delta")
-            } else if (delta > 0 && bg > 80) {
-                this.percent = delta.toInt() * 100
-                this.rate = basalaimi.toDouble() * delta
-                this.duration = 30
-                aapsLogger.debug(LTag.APS, "rate: $rate, percent: $percent, duration: $duration, bg: $bg, delta: $delta")
-            }
-        }else{
-            this.rate = 0.0
-            this.duration = 120
-        }*/
+
         if (enablebasal) {
             when {
                 delta <= 0 && bg <= 140 -> {
@@ -100,7 +85,7 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
                     this.duration = 120
                     aapsLogger.debug(LTag.APS, "Basale désactivée - Rate: $rate, Percent: $percent, Duration: $duration, BG: $bg, Delta: $delta")
                 }
-                delta > 0 && bg > 80 -> {
+                delta > 1 && bg > 80 -> {
                     // Logique pour delta > 0 et bg > 80
                     this.percent = delta.toInt() * 100
                     this.rate = basalaimi.toDouble() * delta
@@ -177,28 +162,12 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
             apsResult.rate = 0.0
             apsResult.duration = newDuration
         }
-        /*if (delta <= 0 && bg <= 140.0f && enablebasal === true) {
-            isTempBasalRequested = true
-            isChangeRequested
-            this.usePercent = true
-            apsResult.rate = 0.0
-            apsResult.duration = newDuration
 
-
-        }else if(delta > 0 && bg > 80 && enablebasal === true){
-            isTempBasalRequested = true
-            isChangeRequested
-            this.usePercent = true
-            this.percent = delta.toInt() * 100
-            apsResult.rate = newRate.toDouble() * delta
-            apsResult.duration = newDuration
-
-        }*/
         apsResult.targetBG = newtargetBG
 
     }
 
-    override fun newAndClone(injector: HasAndroidInjector): DetermineBasalResultSMB {
+   fun newAndClone(injector: HasAndroidInjector): DetermineBasalResultSMB {
         val newResult = DetermineBasalResultAIMISMB(injector)
         doClone(newResult)
         newResult.rate = this.rate
@@ -233,8 +202,6 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
 
 
     init {
-        //this.date = dateUtil.now()
-        //updateAPSResult(apsResultObject)
         hasPredictions = true
     }
 
