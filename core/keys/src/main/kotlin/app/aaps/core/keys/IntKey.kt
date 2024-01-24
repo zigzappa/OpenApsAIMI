@@ -48,7 +48,7 @@ enum class IntKey(
     MaintenanceLogsAmount(R.string.key_maintenance_logs_amount, 2, 1, 10, defaultedBySM = true),
     AlertsStaleDataThreshold(R.string.key_missed_bg_readings_threshold_minutes, 30, 15, 10000, defaultedBySM = true),
     AlertsPumpUnreachableThreshold(R.string.key_pump_unreachable_threshold_minutes, 30, 30, 300, defaultedBySM = true),
-    OApsAIMIDynISFAdjustment(R.string.key_DynISFAdjust,100,1,500),
+    OApsAIMIDynISFAdjustment(R.string.key_DynISF_Adjust,100,1,500),
     OApsAIMIDynISFAdjustmentHyper(R.string.key_DynISFAdjusthyper,150,1,500),
     OApsAIMImealAdjISFFact(R.string.key_oaps_aimi_mealAdjFact,50,1,500),
     OApsAIMIDynISFFactor01(R.string.key_oaps_aimi_dynisf_factor_0_1, 70, 1, 500, defaultedBySM = true),

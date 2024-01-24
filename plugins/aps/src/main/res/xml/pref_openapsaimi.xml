@@ -50,7 +50,7 @@
 
         <app.aaps.core.validators.AdaptiveIntPreference
             android:dialogMessage="@string/DynISF_Adjust_summary"
-            android:key="@string/key_DynISFAdjust"
+            android:key="@string/key_DynISF_Adjust"
             android:title="@string/DynISF_Adjust_title" />
 
         <app.aaps.core.validators.AdaptiveIntPreference
