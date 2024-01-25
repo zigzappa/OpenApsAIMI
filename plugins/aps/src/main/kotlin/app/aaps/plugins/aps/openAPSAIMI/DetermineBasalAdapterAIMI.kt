@@ -157,7 +157,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             val minutesToConsider: Double = preferences.get(DoubleKey.OApsAIMIMlminutesTraining)
             val linesToConsider = (minutesToConsider / 5).toInt()
             if (allLines.size > linesToConsider) {
-                this.predictedSMB = neuralnetwork5(delta, shortAvgDelta, longAvgDelta)
+                //this.predictedSMB = neuralnetwork5(delta, shortAvgDelta, longAvgDelta)
+                val (refinedSMB, refinedBasalaimi) = neuralnetwork5(delta, shortAvgDelta, longAvgDelta, predictedSMB, basalaimi)
+                this.predictedSMB = refinedSMB
+                this.basalaimi = refinedBasalaimi
             }
             this.profile.put("csvfile", csvfile.exists())
 
@@ -234,7 +237,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val glucoseStr = " bg: $bg <br/> targetBG: $targetBg <br/> futureBg: $predictedBg <br/>" +
             " delta: $delta <br/> short avg delta: $shortAvgDelta <br/> long avg delta: $longAvgDelta <br/>" +
             " accelerating_up: $accelerating_up <br/> deccelerating_up: $deccelerating_up <br/> accelerating_down: $accelerating_down <br/> deccelerating_down: $deccelerating_down <br/> stable: $stable <br/>" +
-            " neuralnetwork5: " + "${neuralnetwork5(delta, shortAvgDelta, longAvgDelta)}<br/>"
+            " neuralnetwork5: " + "${neuralnetwork5(delta, shortAvgDelta, longAvgDelta, predictedSMB, basalaimi)}<br/>"
         val iobStr = " IOB: $iob <br/> tdd 7d/h: ${roundToPoint05(tdd7DaysPerHour)} <br/> " +
             "tdd 2d/h : ${roundToPoint05(tdd2DaysPerHour)} <br/> " +
             "tdd daily/h : ${roundToPoint05(tddPerHour)} <br/> " +
@@ -487,7 +490,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         return smbToGive.toFloat()
     }
-    private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Float {
+    private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, predictedSMB: Float, basalaimi: Float): Pair<Float, Float> {
         val minutesToConsider: Double = preferences.get(DoubleKey.OApsAIMIMlminutesTraining)
         val linesToConsider = (minutesToConsider / 5).toInt()
         var averageDifference: Float
@@ -497,6 +500,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         var finalRefinedSMB: Float = calculateSMBFromModel()
         val maxGlobalIterations = 5 // Nombre maximum d'itérations globales
         var globalConvergenceReached = false
+        var refineBasalAimi = basalaimi
 
         for (globalIteration in 1..maxGlobalIterations) {
             var globalIterationCount = 0
@@ -544,7 +548,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 }
 
                 if (inputs.isEmpty() || targets.isEmpty()) {
-                    return predictedSMB
+                    return Pair(predictedSMB, basalaimi)
                 }
                 val epochs: Double = preferences.get(DoubleKey.OApsAIMIMlEpochTraining)
                 val learningRate: Double = preferences.get(DoubleKey.OApsAIMIMlLearningRateTraining)
@@ -571,9 +575,11 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                     for (enhancedInput in inputs) {
                         val predictedrefineSMB = finalRefinedSMB// Prédiction du modèle TFLite
                         val refinedSMB = refineSMB(predictedrefineSMB, neuralNetwork, enhancedInput)
+                        val refinedBasalAimi = refineSMB(refineBasalAimi, neuralNetwork,enhancedInput)
                         this.profile.put("predictedrefineSMB", predictedrefineSMB)
                         this.profile.put("refinedSMB", refinedSMB)
-
+                        this.profile.put("refinedBasalAimi", refinedBasalAimi)
+                        refineBasalAimi = refinedBasalAimi
                         val difference = kotlin.math.abs(predictedrefineSMB - refinedSMB)
                         totalDifference += difference
                         if (difference in 0.0..1.5) {
@@ -608,7 +614,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("finalRefinedSMB2", finalRefinedSMB)
         this.profile.put("differenceWithinRange", differenceWithinRange)
         // Retourne finalRefinedSMB si la différence est dans la plage, sinon predictedSMB
-        return if (globalConvergenceReached) finalRefinedSMB else predictedSMB
+        return Pair (if (globalConvergenceReached) finalRefinedSMB else predictedSMB,refineBasalAimi)
     }
 
     private fun calculateAdjustedDelayFactor(
