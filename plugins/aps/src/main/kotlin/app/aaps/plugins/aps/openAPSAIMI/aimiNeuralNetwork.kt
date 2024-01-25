@@ -30,6 +30,80 @@ class aimiNeuralNetwork(private val inputSize: Int, private val hiddenSize: Int,
             originalFeatures + newFeature // Ajoute la nouvelle caractéristique à la fin de l'array
         }
     }
+    fun trainForBasalaimi(
+        inputs: List<FloatArray>,
+        basalaimiTargets: List<DoubleArray>,
+        epochs: Int,
+        learningRate: Double
+    ) {
+        for (epoch in 1..epochs) {
+            var totalLoss = 0.0
+            for ((input, target) in inputs.zip(basalaimiTargets)) {
+                val (hidden, output) = forwardPassbasal(input)
+                totalLoss += mseLoss(output, target)
+
+                backpropagationbasal(input, target, learningRate)
+            }
+            val averageLoss = totalLoss / inputs.size
+            println("Epoch $epoch: Training Loss = $averageLoss")
+        }
+    }
+    private fun backpropagationbasal(input: FloatArray, target: DoubleArray, learningRate: Double) {
+        // Passe en avant pour obtenir les activations
+        val (hidden, output) = forwardPassbasal(input)
+
+        // Gradient de l'erreur par rapport à la sortie
+        val gradLossOutput = DoubleArray(outputSize) { i ->
+            2.0 * (output[i] - target[i])
+        }
+
+        // Mise à jour des poids et biais de la couche de sortie
+        for (i in 0 until outputSize) {
+            for (j in 0 until hiddenSize) {
+                weightsHiddenOutput[j][i] -= learningRate * gradLossOutput[i] * hidden[j]
+            }
+            biasOutput[i] -= learningRate * gradLossOutput[i]
+        }
+
+        // Gradient de l'erreur par rapport à la couche cachée
+        val gradLossHidden = DoubleArray(hiddenSize) { 0.0 }
+        for (i in 0 until hiddenSize) {
+            for (j in 0 until outputSize) {
+                gradLossHidden[i] += gradLossOutput[j] * weightsHiddenOutput[i][j]
+            }
+            if (hidden[i] <= 0) {
+                gradLossHidden[i] = 0.0 // Application de la fonction dérivée de ReLU
+            }
+        }
+
+        // Mise à jour des poids et biais de la couche d'entrée
+        for (i in 0 until inputSize) {
+            for (j in 0 until hiddenSize) {
+                weightsInputHidden[i][j] -= learningRate * gradLossHidden[j] * input[i]
+            }
+        }
+    }
+    private fun forwardPassbasal(input: FloatArray): Pair<DoubleArray, DoubleArray> {
+        // Calcul des activations pour la première couche cachée
+        val hiddenLayer = DoubleArray(hiddenSize) { i ->
+            var sum = 0.0
+            for (j in input.indices) {
+                sum += input[j] * weightsInputHidden[j][i]
+            }
+            relu(sum + biasHidden[i]) // Applique la fonction d'activation ReLU
+        }
+
+        // Calcul des activations pour la couche de sortie
+        val outputLayer = DoubleArray(outputSize) { i ->
+            var sum = 0.0
+            for (j in hiddenLayer.indices) {
+                sum += hiddenLayer[j] * weightsHiddenOutput[j][i]
+            }
+            sum + biasOutput[i] // Pas de fonction d'activation pour la couche de sortie dans cet exemple
+        }
+
+        return Pair(hiddenLayer, outputLayer)
+    }
 
     // Normalisation Z-score
     private fun zScoreNormalization(inputData: List<FloatArray>): List<FloatArray> {
@@ -150,53 +224,6 @@ class aimiNeuralNetwork(private val inputSize: Int, private val hiddenSize: Int,
             biasHidden[j] -= learningRate * gradLossHidden
         }
     }
-    /*fun train(
-        inputs: List<FloatArray>, targets: List<DoubleArray>,
-        validationInputs: List<FloatArray>, validationTargets: List<DoubleArray>,
-        epochs: Int, initialLearningRate: Double,
-        patience: Int = 10, // pour early stopping
-        regularizationLambda: Double = 0.01) { // lambda pour régularisation L2
-        var learningRate = initialLearningRate
-        var bestLoss = Double.MAX_VALUE
-        var epochsWithoutImprovement = 0
-
-        for (epoch in 1..epochs) {
-            var totalLoss = 0.0
-            try {
-                for ((input, target) in inputs.zip(targets)) {
-                    val output = forwardPass(input).second
-                    totalLoss += mseLoss(output, target) + l2Regularization(regularizationLambda)
-                    backpropagation(input, target, learningRate)
-                }
-                val averageLoss = totalLoss / inputs.size
-                trainingLossHistory.add(averageLoss)
-
-                // Validation de l'Époque
-                val validationLoss = validate(validationInputs, validationTargets)
-                println("Epoch $epoch, Training Loss: $averageLoss, Validation Loss: $validationLoss")
-
-                // Early Stopping
-                if (validationLoss < bestLoss) {
-                    bestLoss = validationLoss
-                    epochsWithoutImprovement = 0
-                } else {
-                    epochsWithoutImprovement++
-                    if (epochsWithoutImprovement >= patience) {
-                        println("Early stopping triggered at epoch $epoch")
-                        break
-                    }
-                }
-
-                // Ajustement Dynamique du Taux d'Apprentissage
-                learningRate = learningRate * 0.95 // Réduction du taux d'apprentissage de 5% par époque, par exemple
-
-            } catch (e: Exception) {
-                lastTrainingException = e
-                println("Exception during training at epoch $epoch: ${e.message}")
-                break // Sortie anticipée de la boucle d'entraînement en cas d'exception
-            }
-        }
-    }*/
     fun train(
         inputs: List<FloatArray>, targets: List<DoubleArray>,
         validationRawInputs: List<FloatArray>, validationTargets: List<DoubleArray>,
@@ -292,6 +319,10 @@ class aimiNeuralNetwork(private val inputSize: Int, private val hiddenSize: Int,
     }
 }
 
+private fun mseLoss(output: DoubleArray, target: DoubleArray): Double {
+    return output.zip(target).sumOf { (o, t) -> (o - t).pow(2) } / output.size
+}
+
 
 
 private operator fun Double.timesAssign(gradRelu: Number) {
@@ -299,6 +330,10 @@ private operator fun Double.timesAssign(gradRelu: Number) {
 }
 
 fun refineSMB(smb: Float, neuralNetwork: aimiNeuralNetwork, input: FloatArray): Float {
-    val prediction = neuralNetwork.predict(input)
-    return smb + prediction[0].toFloat()
+    val prediction = neuralNetwork.predict(input)[0]
+    return smb + prediction.toFloat()
+}
+fun refineBasalaimi(basalaimi: Float, neuralNetwork: aimiNeuralNetwork, input: FloatArray): Float {
+    val prediction = neuralNetwork.predict(input)[0] // Utilise la prédiction du réseau entraîné
+    return basalaimi + prediction.toFloat()
 }

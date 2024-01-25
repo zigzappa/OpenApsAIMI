@@ -173,22 +173,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val afternoonfactor: Double = preferences.get(DoubleKey.OApsAIMIAfternoonFactor) / 100.0
         val eveningfactor: Double = preferences.get(DoubleKey.OApsAIMIEveningFactor) / 100.0
         val hyperfactor: Double = preferences.get(DoubleKey.OApsAIMIHyperFactor) / 100.0
-       /* val (adjustedMorningFactor, adjustedAfternoonFactor, adjustedEveningFactor) =
-            adjustFactorsBasedOnBgAndHypo(bg, predictedBg, lastHourTIRLow.toFloat(), morningfactor.toFloat(), afternoonfactor.toFloat(), eveningfactor.toFloat())
-
-        smbToGive = when {
-            highCarbTime -> smbToGive * 130.0f
-            mealTime -> smbToGive * 200.0f
-            hourOfDay in 1..11 -> smbToGive * adjustedMorningFactor.toFloat()
-            hourOfDay in 12..18 -> smbToGive * adjustedAfternoonFactor.toFloat()
-            hourOfDay in 19..23 -> smbToGive * adjustedEveningFactor.toFloat()
-            bg > 180 -> (smbToGive * hyperfactor).toFloat()
-            else -> smbToGive
-        }
-        this.profile.put("adjustedMorningFactor",  adjustedMorningFactor)
-        this.profile.put("adjustedAfternoonFactor",  adjustedAfternoonFactor)
-        this.profile.put("adjustedEveningFactor",  adjustedEveningFactor)*/
-        // Exemple de récupération des facteurs de réactivité
 
 // Vérifier si l'option est activée
         val isDynamicReactivityEnabled = preferences.get(BooleanKey.OApsAIMIEnableDynisfReactivityHour)
@@ -208,16 +192,16 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         val (adjustedMorningFactor, adjustedAfternoonFactor, adjustedEveningFactor) = adjustedFactors
 
-            // Appliquer les ajustements en fonction de l'heure de la journée
-            smbToGive = when {
-                highCarbTime -> smbToGive * 130.0f
-                mealTime -> smbToGive * 200.0f
-                hourOfDay in 1..11 -> smbToGive * adjustedMorningFactor.toFloat()
-                hourOfDay in 12..18 -> smbToGive * adjustedAfternoonFactor.toFloat()
-                hourOfDay in 19..23 -> smbToGive * adjustedEveningFactor.toFloat()
-                bg > 180 -> (smbToGive * hyperfactor).toFloat()
-                else -> smbToGive
-            }
+        // Appliquer les ajustements en fonction de l'heure de la journée
+        smbToGive = when {
+            highCarbTime -> smbToGive * 130.0f
+            mealTime -> smbToGive * 200.0f
+            hourOfDay in 1..11 -> smbToGive * adjustedMorningFactor.toFloat()
+            hourOfDay in 12..18 -> smbToGive * adjustedAfternoonFactor.toFloat()
+            hourOfDay in 19..23 -> smbToGive * adjustedEveningFactor.toFloat()
+            bg > 180 -> (smbToGive * hyperfactor).toFloat()
+            else -> smbToGive
+        }
 
         this.profile.put("adjustedMorningFactor",  adjustedMorningFactor)
         this.profile.put("adjustedAfternoonFactor",  adjustedAfternoonFactor)
@@ -560,6 +544,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 val validationTargets = targets.takeLast(validationSize)
                 val trainingInputs = inputs.take(inputs.size - validationSize)
                 val trainingTargets = targets.take(targets.size - validationSize)
+                val maxChangePercent = 0.20f
 
                 // Création et entraînement du réseau de neurones
                 val neuralNetwork = aimiNeuralNetwork(inputs.first().size, 5, 1)
@@ -575,11 +560,20 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                     for (enhancedInput in inputs) {
                         val predictedrefineSMB = finalRefinedSMB// Prédiction du modèle TFLite
                         val refinedSMB = refineSMB(predictedrefineSMB, neuralNetwork, enhancedInput)
-                        val refinedBasalAimi = refineSMB(refineBasalAimi, neuralNetwork,enhancedInput)
+                        val refinedBasalAimi = refineBasalaimi(refineBasalAimi, neuralNetwork, enhancedInput)
                         this.profile.put("predictedrefineSMB", predictedrefineSMB)
                         this.profile.put("refinedSMB", refinedSMB)
                         this.profile.put("refinedBasalAimi", refinedBasalAimi)
                         refineBasalAimi = refinedBasalAimi
+                        val change = refineBasalAimi - basalaimi
+                        val maxChange = basalaimi * maxChangePercent
+                        this.profile.put("refineBasalAimi", refineBasalAimi)
+                        // Limitez le changement à un pourcentage de la valeur initiale
+                        refineBasalAimi = if (kotlin.math.abs(change) > maxChange) {
+                            basalaimi + kotlin.math.sign(change) * maxChange
+                        } else {
+                            basalaimi
+                        }
                         val difference = kotlin.math.abs(predictedrefineSMB - refinedSMB)
                         totalDifference += difference
                         if (difference in 0.0..1.5) {
@@ -616,6 +610,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         // Retourne finalRefinedSMB si la différence est dans la plage, sinon predictedSMB
         return Pair (if (globalConvergenceReached) finalRefinedSMB else predictedSMB,refineBasalAimi)
     }
+
 
     private fun calculateAdjustedDelayFactor(
         bg: Float, recentSteps180Minutes: Int, averageBeatsPerMinute60: Float, averageBeatsPerMinute180: Float
