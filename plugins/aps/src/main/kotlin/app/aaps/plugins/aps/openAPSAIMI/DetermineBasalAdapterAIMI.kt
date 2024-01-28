@@ -44,7 +44,6 @@ import java.text.DecimalFormatSymbols
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.math.round
 
@@ -719,9 +718,29 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         return futureBg
     }
+    private fun calculateGFactor(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, lastHourTIRabove170: Double, bg: Float): Double {
+        val accelerationFactor = 0.7 // Augmentation du facteur pour une réaction plus agressive
+        val decelerationFactor = 1.3 // Facteur pour décélération de la glycémie
+        val stableFactor = 1.7 // Facteur pour glycémie stable
+
+        return when {
+            // Accélération rapide avec des seuils réduits
+            delta > 8 && shortAvgDelta >= 3 && longAvgDelta >= 3 -> accelerationFactor
+            delta >= 2 && shortAvgDelta >= 2 && longAvgDelta >= 2 && bg > 130 && bg < 170 -> accelerationFactor
+            delta >= 4 && shortAvgDelta >= 2 && longAvgDelta >= 2 && bg > 120 && bg < 170 -> accelerationFactor
+            delta >= 4 && lastHourTIRabove170 > 0 && bg > 170 -> accelerationFactor
+            delta > 1.5 && (delta > shortAvgDelta && delta > longAvgDelta) -> accelerationFactor
+
+            // Décélération ou tendance à la stabilisation
+            delta < 1.5 && (delta < shortAvgDelta || delta < longAvgDelta) && bg < 170 -> decelerationFactor
+
+            // Glycémie stable
+            else -> stableFactor
+        }
+    }
 
 
-    private fun calculateGFactor(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Double {
+    /*private fun calculateGFactor(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Double {
         val accelerationFactor = 0.5 // Facteur pour accélération de la glycémie
         val decelerationFactor = 1.3 // Facteur pour décélération de la glycémie
         val stableFactor = 1.7 // Facteur pour glycémie stable
@@ -739,7 +758,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             // Glycémie stable
             else -> stableFactor
         }
-    }
+    }*/
     private fun getHourlyReactivityFactor(hourOfDay: Int, preferences: Preferences): Float {
         return when (hourOfDay) {
             0 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor01)
@@ -783,7 +802,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             eveningFactor * bgAdjustment * hypoAdjustment
         )
     }
-    private fun adjustFactorsdynisfBasedOnBgAndHypo(
+    /*private fun adjustFactorsdynisfBasedOnBgAndHypo(
         currentBg: Float, futureBg: Float, lastHourTirLow: Float,
         dynISFadjust: Float
     ): Float {
@@ -793,7 +812,23 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val isfadjust = hypoAdjustment * bgAdjustment * dynISFadjust
         return isfadjust.toFloat()
 
+    }*/
+    private fun adjustFactorsdynisfBasedOnBgAndHypo(
+        currentBg: Float, futureBg: Float, lastHourTirLow: Float,
+        dynISFadjust: Float
+    ): Float {
+        val bgDifference = futureBg - currentBg
+        // Augmenter l'impact de la différence de BG
+        val bgAdjustmentMultiplier = if (bgDifference < 0) -0.3f else 0.3f // Plus agressif que -0.1f / 0.1f
+        val bgAdjustment = 1.0f + (Math.log(Math.abs(bgDifference.toDouble()) + 1) - 1) * bgAdjustmentMultiplier
+
+        // Ajuster l'impact de l'hypo
+        val hypoAdjustment = if (lastHourTirLow > 0) 0.5f else 1.0f // Plus agressif que 0.6f / 1.0f
+
+        val isfadjust = hypoAdjustment * bgAdjustment * dynISFadjust
+        return isfadjust.toFloat()
     }
+
     private fun calculateSmoothBasalRate(
         tdd2Days: Float, // Total Daily Dose (TDD) pour le jour le plus récent
         tdd7Days: Float, // TDD pour le jour précédent
@@ -1201,7 +1236,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         if (tddDouble != null && glucoseDouble != null && insulinDivisorDouble != null) {
             this.variableSensitivity = kotlin.math.max(
                 profile.getIsfMgdl().toFloat() / 2.5f,
-                Round.roundTo(1800 / (tdd * kotlin.math.ln((glucoseStatus.glucose / insulinDivisor) + 1)), 0.1).toFloat() * calculateGFactor(delta, shortAvgDelta, longAvgDelta).toFloat()
+                Round.roundTo(1800 / (tdd * kotlin.math.ln((glucoseStatus.glucose / insulinDivisor) + 1)), 0.1).toFloat() * calculateGFactor(delta, shortAvgDelta, longAvgDelta, lastHourTIRabove170, bg).toFloat()
             )
 
             // Votre nouvelle condition ici
@@ -1214,14 +1249,14 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             val variableSensitivityDouble = variableSensitivity.toDoubleSafely()
             if (variableSensitivityDouble != null) {
                 if (recentSteps5Minutes > 100 && recentSteps10Minutes > 200 && bg < 130 && delta < 10 || recentSteps180Minutes > 1500 && bg < 130 && delta < 10) {
-                    this.variableSensitivity *= 1.5f * calculateGFactor(delta, shortAvgDelta, longAvgDelta).toFloat()
+                    this.variableSensitivity *= 1.5f * calculateGFactor(delta, shortAvgDelta, longAvgDelta, lastHourTIRabove170, bg).toFloat()
                 }
                 if (recentSteps30Minutes > 500 && recentSteps5Minutes >= 0 && recentSteps5Minutes < 100 && bg < 130 && delta < 10) {
-                    this.variableSensitivity *= 1.3f * calculateGFactor(delta, shortAvgDelta, longAvgDelta).toFloat()
+                    this.variableSensitivity *= 1.3f * calculateGFactor(delta, shortAvgDelta, longAvgDelta, lastHourTIRabove170, bg).toFloat()
                 }
             }
         } else {
-            this.variableSensitivity = profile.getIsfMgdl().toFloat() * calculateGFactor(delta, shortAvgDelta, longAvgDelta).toFloat()
+            this.variableSensitivity = profile.getIsfMgdl().toFloat() * calculateGFactor(delta, shortAvgDelta, longAvgDelta, lastHourTIRabove170,bg).toFloat()
         }
 
         this.predictedBg = predictFutureBg(bg, iob, variableSensitivity, cob, CI)
