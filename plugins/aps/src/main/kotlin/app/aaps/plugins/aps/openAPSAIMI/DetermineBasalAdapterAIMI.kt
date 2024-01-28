@@ -79,6 +79,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var currentTIRAbove: Double = 0.0
     private var lastHourTIRLow: Double = 0.0
     private var lastHourTIRLow100: Double = 0.0
+    private var lastHourTIRabove170: Double = 0.0
     private var bg = 0.0f
     private var targetBg = 100.0f
     private var normalBgThreshold = 150.0f
@@ -236,7 +237,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI-MT.2 ML.2, 26 janvier 2024"
+            ",<br/> Version du plugin OpenApsAIMI-MT.2 ML.2, 28 janvier 2024"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -728,9 +729,12 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         return when {
             // Accélération rapide
             delta > 2 && (delta > shortAvgDelta && delta > longAvgDelta) -> accelerationFactor
+            delta > 10 && shortAvgDelta >= 4 && longAvgDelta >= 4 -> accelerationFactor
+            delta >= 5 && shortAvgDelta >= 5 && longAvgDelta >= 5 -> accelerationFactor
+            delta >= 5 && lastHourTIRabove170 > 0 && bg > 170 -> accelerationFactor
 
             // Décélération ou tendance à la stabilisation
-            delta < 2 && (delta < shortAvgDelta || delta < longAvgDelta) -> decelerationFactor
+            delta < 2 && (delta < shortAvgDelta || delta < longAvgDelta) && bg < 170 -> decelerationFactor
 
             // Glycémie stable
             else -> stableFactor
@@ -1043,6 +1047,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.currentTIRAbove = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.abovePct()!!
         this.lastHourTIRLow = tirCalculator.averageTIR(tirCalculator.calculateHour(80.0,140.0))?.belowPct()!!
         this.lastHourTIRLow100 = tirCalculator.averageTIR(tirCalculator.calculateHour(100.0,140.0))?.belowPct()!!
+        this.lastHourTIRabove170 = tirCalculator.averageTIR(tirCalculator.calculateHour(100.0,170.0))?.abovePct()!!
 
         val beatsPerMinuteValues: List<Int>
         val beatsPerMinuteValues60: List<Int>
