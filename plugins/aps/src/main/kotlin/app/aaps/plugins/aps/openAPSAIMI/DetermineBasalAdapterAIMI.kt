@@ -503,7 +503,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
                 val inputs = mutableListOf<FloatArray>()
                 val targets = mutableListOf<DoubleArray>()
-
+                var isAggressiveResponseNeeded = false
                 for (line in lines.drop(1)) { // Ignorer l'en-tête
                     val cols = line.split(",").map { it.trim() }
                     this.profile.put("cols", cols)
@@ -561,9 +561,14 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                         val predictedrefineSMB = finalRefinedSMB// Prédiction du modèle TFLite
                         val refinedSMB = refineSMB(predictedrefineSMB, neuralNetwork, enhancedInput)
                         val refinedBasalAimi = refineBasalaimi(refineBasalAimi, neuralNetwork, enhancedInput)
+
                         this.profile.put("predictedrefineSMB", predictedrefineSMB)
                         this.profile.put("refinedSMB", refinedSMB)
                         this.profile.put("refinedBasalAimi", refinedBasalAimi)
+                        if (delta > 10 && bg > 120 && iob < 1.5) {
+                            isAggressiveResponseNeeded = true
+                        }
+
                         refineBasalAimi = refinedBasalAimi
                         val change = refineBasalAimi - basalaimi
                         val maxChange = basalaimi * maxChangePercent
@@ -583,6 +588,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                             break  // Sortie anticipée si la différence est dans la plage souhaitée
                         }
                     }
+                    if (isAggressiveResponseNeeded && (finalRefinedSMB <= 0.5 || refineBasalAimi <= 0.5)) {
+                        continue
+                    }
+
                     this.profile.put("differenceWithinRange", differenceWithinRange)
                     averageDifference = totalDifference / inputs.size
                     this.profile.put("averageDifferenceML", averageDifference)
