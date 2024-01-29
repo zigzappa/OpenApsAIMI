@@ -591,7 +591,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                     if (isAggressiveResponseNeeded && (finalRefinedSMB <= 0.5 || refineBasalAimi <= 0.5)) {
                         finalRefinedSMB = maxSMB.toFloat() / 2
                         refineBasalAimi = maxSMB.toFloat()
+                    }else if (!isAggressiveResponseNeeded && delta > 3 && bg >130){
+                        refineBasalAimi = basalaimi * delta
                     }
+
 
                     this.profile.put("differenceWithinRange", differenceWithinRange)
                     averageDifference = totalDifference / inputs.size
