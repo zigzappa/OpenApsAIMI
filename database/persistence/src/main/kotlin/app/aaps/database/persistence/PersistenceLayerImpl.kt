@@ -709,6 +709,10 @@ class PersistenceLayerImpl @Inject constructor(
                 transactionResult
             }
 
+    override fun deleteLastEventMatchingKeyword(noteKeyword: String) {
+        repository.deleteLastEventMatchingKeyword(noteKeyword)
+    }
+
     override fun invalidateEffectiveProfileSwitch(id: Long, action: Action, source: Sources, note: String?, listValues: List<ValueWithUnit?>): Single<PersistenceLayer.TransactionResult<EPS>> =
         repository.runTransactionForResult(InvalidateEffectiveProfileSwitchTransaction(id))
             .doOnError { aapsLogger.error(LTag.DATABASE, "Error while invalidating EffectiveProfileSwitch", it) }

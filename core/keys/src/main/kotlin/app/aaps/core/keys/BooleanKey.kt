@@ -44,4 +44,8 @@ enum class BooleanKey(
     ApsAmaAutosensAdjustTargets(R.string.key_openaps_ama_autosens_adjust_targets, true, defaultedBySM = true),
     ApsUseDynamicSensitivity(R.string.key_use_dynamic_sensitivity, false),
     MaintenanceEnableFabric(R.string.key_enable_fabric, true, defaultedBySM = true, hideParentScreenIfHidden = true),
+    OApsAIMIMLtraining(R.string.key_enable_ML_training, false),
+    OApsAIMIEnableBasal(R.string.key_enable_basal, false),
+    OApsAIMIEnableStepsFromWatch(R.string.count_steps_watch, false),
+    OApsAIMIEnableDynisfReactivityHour(R.string.key_enable_advance_dynisf_reactivity, false, defaultedBySM = true, hideParentScreenIfHidden = true)
 }

@@ -3,6 +3,7 @@ package app.aaps.di
 import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.plugins.aps.autotune.AutotunePlugin
 import app.aaps.plugins.aps.loop.LoopPlugin
+import app.aaps.plugins.aps.openAPSAIMI.OpenAPSAIMIPlugin
 import app.aaps.plugins.aps.openAPSAMA.OpenAPSAMAPlugin
 import app.aaps.plugins.aps.openAPSSMB.OpenAPSSMBPlugin
 import app.aaps.plugins.automation.AutomationPlugin
@@ -243,6 +244,12 @@ abstract class PluginsListModule {
     @IntoMap
     @IntKey(220)
     abstract fun bindOpenAPSSMBPlugin(plugin: OpenAPSSMBPlugin): PluginBase
+
+    @Binds
+    @APS
+    @IntoMap
+    @IntKey(224)
+    abstract fun bindOpenAPSAIMIPlugin(plugin: OpenAPSAIMIPlugin): PluginBase
 
     @Binds
     @AllConfigs
