@@ -738,7 +738,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         return futureBg
     }
-    private fun calculateGFactor(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, lastHourTIRabove170: Double, bg: Float): Double {
+    /*private fun calculateGFactor(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, lastHourTIRabove170: Double, bg: Float): Double {
         val accelerationFactor = 0.7 // Augmentation du facteur pour une réaction plus agressive
         val decelerationFactor = 1.3 // Facteur pour décélération de la glycémie
         val stableFactor = 1.7 // Facteur pour glycémie stable
@@ -757,7 +757,19 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             // Glycémie stable
             else -> stableFactor
         }
+    }*/
+    private fun calculateGFactor(delta: Float, lastHourTIRabove170: Double, bg: Float): Double {
+        val deltaFactor = delta / 10 // Ajuster selon les besoins
+        val bgFactor = if (bg > 170) 1.2 else if (bg < 100) 0.8 else 1.0
+
+        // Introduire un facteur basé sur lastHourTIRabove170
+        val tirFactor = 1.0 + lastHourTIRabove170 * 0.05 // Exemple: 5% d'augmentation pour chaque unité de lastHourTIRabove170
+
+        // Combinez les facteurs pour obtenir un ajustement global
+        return deltaFactor * bgFactor * tirFactor
     }
+
+
 
     private fun getHourlyReactivityFactor(hourOfDay: Int, preferences: Preferences): Float {
         return when (hourOfDay) {
@@ -1066,17 +1078,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             bg > 180 -> tdd * dynISFadjusthyper
             else -> tdd * adjustedDynISF
         }
-        /*tdd = when{
-            sportTime -> tdd * 50.0
-            sleepTime -> tdd * 80.0
-            lowCarbTime -> tdd * 85.0
-            snackTime -> tdd * 65.0
-            highCarbTime -> tdd * 400.0
-            mealTime -> tdd * mealTimeDynISFAdjFactor
-            bg > 180 -> tdd * dynISFadjusthyper
-            else -> tdd * adjustDynIsf
-        }*/
-        //this.variableSensitivity = kotlin.math.max(profile.getIsfMgdl().toFloat()/2.5f,Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1).toFloat() * calculateGFactor(delta,shortAvgDelta,longAvgDelta).toFloat())
         this.currentTIRLow = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.belowPct()!!
         this.currentTIRRange = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.inRangePct()!!
         this.currentTIRAbove = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.abovePct()!!
@@ -1219,21 +1220,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val tddDouble = tdd.toDoubleSafely()
         val glucoseDouble = glucoseStatus.glucose.toDoubleSafely()
         val insulinDivisorDouble = insulinDivisor.toDoubleSafely()
-
         /*if (tddDouble != null && glucoseDouble != null && insulinDivisorDouble != null) {
-            this.variableSensitivity = kotlin.math.max(profile.getIsfMgdl().toFloat()/2.5f,Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1).toFloat() * calculateGFactor(delta,shortAvgDelta,longAvgDelta).toFloat())
-
-            // Ajout d'un log pour vérifier la valeur de variableSensitivity après le calcul
-            val variableSensitivityDouble = variableSensitivity.toDoubleSafely()
-            if (variableSensitivityDouble != null) {
-                if (recentSteps5Minutes > 100 && recentSteps10Minutes > 200 && bg < 130 && delta < 10|| recentSteps180Minutes > 1500 && bg < 130 && delta < 10) this.variableSensitivity *= 1.5f * calculateGFactor(delta,shortAvgDelta,longAvgDelta).toFloat()
-                if (recentSteps30Minutes > 500 && recentSteps5Minutes >= 0 && recentSteps5Minutes < 100 && bg < 130 && delta < 10) this.variableSensitivity *= 1.3f * calculateGFactor(delta,shortAvgDelta,longAvgDelta).toFloat()
-
-            }
-        } else {
-            this.variableSensitivity = profile.getIsfMgdl().toFloat() * calculateGFactor(delta,shortAvgDelta,longAvgDelta).toFloat()
-        }*/
-        if (tddDouble != null && glucoseDouble != null && insulinDivisorDouble != null) {
             this.variableSensitivity = kotlin.math.max(
                 profile.getIsfMgdl().toFloat() / 2.5f,
                 Round.roundTo(1800 / (tdd * kotlin.math.ln((glucoseStatus.glucose / insulinDivisor) + 1)), 0.1).toFloat() * calculateGFactor(delta, shortAvgDelta, longAvgDelta, lastHourTIRabove170, bg).toFloat()
@@ -1257,7 +1244,28 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             }
         } else {
             this.variableSensitivity = profile.getIsfMgdl().toFloat() * calculateGFactor(delta, shortAvgDelta, longAvgDelta, lastHourTIRabove170,bg).toFloat()
+        }*/
+        if (tddDouble != null && glucoseDouble != null && insulinDivisorDouble != null) {
+            val gFactor = calculateGFactor(delta, lastHourTIRabove170, bg).toFloat()
+            this.variableSensitivity = Round.roundTo(1800 / (tdd * kotlin.math.ln((glucoseStatus.glucose / insulinDivisor) + 1)), 0.1).toFloat() * gFactor
+
+            if (lastHourTIRLow == 0.0 && lastHourTIRLow100 > 0 && bg < 100) {
+                this.variableSensitivity *= 1.5f // Ajuster ce facteur si nécessaire
+            }
+
+            val variableSensitivityDouble = variableSensitivity.toDoubleSafely()
+            if (variableSensitivityDouble != null) {
+                if (recentSteps5Minutes > 100 && recentSteps10Minutes > 200 && bg < 130 && delta < 10 || recentSteps180Minutes > 1500 && bg < 130 && delta < 10) {
+                    this.variableSensitivity *= gFactor
+                }
+                if (recentSteps30Minutes > 500 && recentSteps5Minutes >= 0 && recentSteps5Minutes < 100 && bg < 130 && delta < 10) {
+                    this.variableSensitivity *= gFactor
+                }
+            }
+        } else {
+            this.variableSensitivity = profile.getIsfMgdl().toFloat() * calculateGFactor(delta, lastHourTIRabove170, bg).toFloat()
         }
+
 
         this.predictedBg = predictFutureBg(bg, iob, variableSensitivity, cob, CI)
         this.profile = JSONObject()
