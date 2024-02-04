@@ -236,7 +236,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI-MT.2 ML.2, 29 janvier 2024"
+            ",<br/> Version du plugin OpenApsAIMI-MT.2 ML.2, 04 février 2024"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -691,9 +691,15 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         // Appliquer le facteur de retard ajusté à l'effet de l'insuline
         insulinEffect *= adjustedDelayFactor
+        // Ajustement de l'effet de l'insuline en fonction de la valeur de bg
         if (bg > normalBgThreshold) {
-            insulinEffect *= 1.1f
+            // Définir un ajustement proportionnel à l'écart entre bg et le seuil
+            val excessBg = bg - normalBgThreshold
+            // Utiliser une formule pour ajuster l'effet de l'insuline, par exemple une augmentation linéaire ou une formule plus complexe
+            val adjustmentFactor = 1.0f + (excessBg / 100.0f) // Exemple: augmenter de 1% pour chaque unité de bg au-dessus du seuil
+            insulinEffect *= adjustmentFactor
         }
+
 
         return insulinEffect
     }
