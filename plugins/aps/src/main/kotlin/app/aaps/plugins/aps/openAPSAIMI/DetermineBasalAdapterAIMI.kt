@@ -1266,6 +1266,11 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             this.variableSensitivity = profile.getIsfMgdl().toFloat() * calculateGFactor(delta, lastHourTIRabove170, bg).toFloat()
         }
 
+        // Après tous les ajustements de variableSensitivity
+        if (variableSensitivity < 0) {
+
+            variableSensitivity = profile.getIsfMgdl().toFloat()
+        }
 
         this.predictedBg = predictFutureBg(bg, iob, variableSensitivity, cob, CI)
         this.profile = JSONObject()
