@@ -1267,9 +1267,9 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
 
         // Après tous les ajustements de variableSensitivity
-        if (variableSensitivity < 0) {
+        if (variableSensitivity <= profile.getIsfMgdl().toFloat()/5) {
 
-            variableSensitivity = profile.getIsfMgdl().toFloat()
+            this.variableSensitivity = profile.getIsfMgdl().toFloat()
         }
 
         this.predictedBg = predictFutureBg(bg, iob, variableSensitivity, cob, CI)
