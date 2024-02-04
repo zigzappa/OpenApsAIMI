@@ -253,7 +253,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val dateStr = dateUtil.dateAndTimeString(dateUtil.now()).format(usFormatter)
 
 
-        val headerRow = "dateStr, bg, iob, cob, delta, shortAvgDelta, longAvgDelta, predictedSMB, smbGiven\n"
+        val headerRow = "dateStr,bg,iob,cob,delta,shortAvgDelta,longAvgDelta,tdd7DaysPerHour,tdd2DaysPerHour, predictedSMB,tddPerHour,tdd24HrsPerHour,smbGiven\n"
         val valuesToRecord = "$dateStr," +
             "$bg,$iob,$cob,$delta,$shortAvgDelta,$longAvgDelta," +
             "$tdd7DaysPerHour,$tdd2DaysPerHour,$tddPerHour,$tdd24HrsPerHour," +
@@ -374,7 +374,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val droppingFast = bg < 150 && delta < -5
         val droppingFastAtHigh = bg < 200 && delta < -7
         val droppingVeryFast = delta < -10
-        val prediction = predictedBg < targetBg && delta < 10
+        val prediction = predictedBg < targetBg && delta < 10 && bg < 160
         val interval = predictedBg < targetBg && delta > 10 && iob >= maxSMB/2 && lastsmbtime < 10
         val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 15
         val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10
@@ -495,7 +495,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 val allLines = csvfile.readLines()
                 val headerLine = allLines.first()
                 val headers = headerLine.split(",").map { it.trim() }
-                val colIndices = listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB").map { headers.indexOf(it) }
+                val colIndices = listOf("dateStr","bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta","tdd7DaysPerHour","tdd2DaysPerHour", "tddPerHour", "predictedSMB").map { headers
+                    .indexOf(it) }
                 val targetColIndex = headers.indexOf("smbGiven")
                 this.profile.put("colIndices", colIndices)
 
@@ -758,26 +759,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }
     }
 
-
-    /*private fun calculateGFactor(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Double {
-        val accelerationFactor = 0.5 // Facteur pour accélération de la glycémie
-        val decelerationFactor = 1.3 // Facteur pour décélération de la glycémie
-        val stableFactor = 1.7 // Facteur pour glycémie stable
-
-        return when {
-            // Accélération rapide
-            delta > 2 && (delta > shortAvgDelta && delta > longAvgDelta) -> accelerationFactor
-            delta > 10 && shortAvgDelta >= 4 && longAvgDelta >= 4 -> accelerationFactor
-            delta >= 5 && shortAvgDelta >= 5 && longAvgDelta >= 5 -> accelerationFactor
-            delta >= 5 && lastHourTIRabove170 > 0 && bg > 170 -> accelerationFactor
-
-            // Décélération ou tendance à la stabilisation
-            delta < 2 && (delta < shortAvgDelta || delta < longAvgDelta) && bg < 170 -> decelerationFactor
-
-            // Glycémie stable
-            else -> stableFactor
-        }
-    }*/
     private fun getHourlyReactivityFactor(hourOfDay: Int, preferences: Preferences): Float {
         return when (hourOfDay) {
             0 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor01)
@@ -1008,7 +989,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.deccelerating_up = if (delta > 0 && (delta < shortAvgDelta || delta < longAvgDelta)) 1 else 0
         this.accelerating_down = if (delta < -2 && delta - longAvgDelta < -2) 1 else 0
         this.deccelerating_down = if (delta < 0 && (delta > shortAvgDelta || delta > longAvgDelta)) 1 else 0
-        this.stable = if (delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3) 1 else 0
+        this.stable = if (delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 180) 1 else 0
         val tdd7P: Double = preferences.get(DoubleKey.OApsAIMITDD7)
         var tdd7Days = tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))?.totalAmount?.toFloat() ?: 0.0f
         if (tdd7Days == 0.0f || tdd7Days < tdd7P) tdd7Days = tdd7P.toFloat()
