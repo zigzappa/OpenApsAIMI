@@ -278,14 +278,14 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "recentSteps5Minutes,recentSteps10Minutes,recentSteps15Minutes,recentSteps30Minutes,recentSteps60Minutes,recentSteps180Minutes," +
             "tags0to60minAgo,tags60to120minAgo,tags120to180minAgo,tags180to240minAgo," +
             "predictedSMB,maxIob,maxSMB,smbGiven\n"
-        val valuesToRecord = "$dateStr,$hourOfDay,$weekend," +
+        val valuesToRecord = "$dateStr,${dateUtil.now()},$hourOfDay,$weekend," +
             "$bg,$targetBg,$iob,$cob,$lastCarbAgeMin,$futureCarbs,$delta,$shortAvgDelta,$longAvgDelta," +
             "$tdd7DaysPerHour,$tdd2DaysPerHour,$tddPerHour,$tdd24HrsPerHour," +
             "$recentSteps5Minutes,$recentSteps10Minutes,$recentSteps15Minutes,$recentSteps30Minutes,$recentSteps60Minutes,$recentSteps180Minutes," +
             "$tags0to60minAgo,$tags60to120minAgo,$tags120to180minAgo,$tags180to240minAgo," +
             "$predictedSMB,$maxIob,$maxSMB,$smbToGive"
 
-        val file = File(path, "AAPS/oapsaimi_records.csv")
+        val file = File(path, "AAPS/oapsaimi_records2.csv")
         if (!file.exists()) {
             file.createNewFile()
             file.appendText(headerRow)
