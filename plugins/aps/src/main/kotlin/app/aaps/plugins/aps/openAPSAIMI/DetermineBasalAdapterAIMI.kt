@@ -236,7 +236,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI-MT.2 ML.2, 11 février 2024"
+            ",<br/> Version du plugin OpenApsAIMI-MT.2 ML.2, 13 février 2024"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -805,7 +805,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         morningFactor: Float, afternoonFactor: Float, eveningFactor: Float
     ): Triple<Double, Double, Double> {
         val bgDifference = futureBg - currentBg
-        val hypoAdjustment = if (lastHourTirLow > 0) 0.6f else 1.0f // Réduire les facteurs si hypo récente
+        val hypoAdjustment = if (lastHourTirLow > 5) 0.6f else 1.0f // Réduire les facteurs si hypo récente
         val bgAdjustment = 1.0f + (Math.log(Math.abs(bgDifference.toDouble()) + 1) - 1) * (if (bgDifference < 0) -0.1f else 0.1f)
 
         return Triple(
