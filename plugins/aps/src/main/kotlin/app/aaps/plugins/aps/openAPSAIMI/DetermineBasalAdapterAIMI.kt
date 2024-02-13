@@ -180,12 +180,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val adjustedFactors = if (isDynamicReactivityEnabled) {
             val hourlyReactivityFactor = getHourlyReactivityFactor(hourOfDay, preferences)
             adjustFactorsBasedOnBgAndHypo(
-                bg, predictedBg, lastHourTIRLow.toFloat(),
                 hourlyReactivityFactor, hourlyReactivityFactor, hourlyReactivityFactor
             )
         } else {
             adjustFactorsBasedOnBgAndHypo(
-                bg, predictedBg, lastHourTIRLow.toFloat(),
                 morningfactor.toFloat(), afternoonfactor.toFloat(), eveningfactor.toFloat()
             )
         }
@@ -801,6 +799,28 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         }.toFloat() / 100.0f
     }
     private fun adjustFactorsBasedOnBgAndHypo(
+        morningFactor: Float,
+        afternoonFactor: Float,
+        eveningFactor: Float
+    ): Triple<Double, Double, Double> {
+        val hypoAdjustment = if (iob > 3 * maxSMB) 0.8f else 1.0f
+        val factorAdjustment = if (bg < 120) 0.2f else 0.3f
+        val bgAdjustment = 1.0f + (Math.log(Math.abs(delta.toDouble()) + 1) - 1) * factorAdjustment
+
+        if (delta < 0)
+            return Triple(
+                morningFactor / bgAdjustment,
+                afternoonFactor / bgAdjustment,
+                eveningFactor / bgAdjustment
+            )
+        else
+            return Triple(
+                morningFactor * bgAdjustment * hypoAdjustment,
+                afternoonFactor * bgAdjustment * hypoAdjustment,
+                eveningFactor * bgAdjustment * hypoAdjustment)
+
+    }
+    /*private fun adjustFactorsBasedOnBgAndHypo(
         currentBg: Float, futureBg: Float, lastHourTirLow: Float,
         morningFactor: Float, afternoonFactor: Float, eveningFactor: Float
     ): Triple<Double, Double, Double> {
@@ -813,7 +833,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             afternoonFactor * bgAdjustment * hypoAdjustment,
             eveningFactor * bgAdjustment * hypoAdjustment
         )
-    }
+    }*/
     /*private fun adjustFactorsdynisfBasedOnBgAndHypo(
         currentBg: Float, futureBg: Float, lastHourTirLow: Float,
         dynISFadjust: Float
