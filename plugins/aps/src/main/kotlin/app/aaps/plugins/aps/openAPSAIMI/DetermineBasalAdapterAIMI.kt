@@ -234,7 +234,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI-MT.2 ML.2, 13 février 2024"
+            ",<br/> Version du plugin OpenApsAIMI-MT.2 ML.2, 15 février 2024"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -845,7 +845,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         return isfadjust.toFloat()
 
     }*/
-    private fun adjustFactorsdynisfBasedOnBgAndHypo(
+    /*private fun adjustFactorsdynisfBasedOnBgAndHypo(
         currentBg: Float, futureBg: Float, lastHourTirLow: Float,
         dynISFadjust: Float
     ): Float {
@@ -859,7 +859,16 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         val isfadjust = hypoAdjustment * bgAdjustment * dynISFadjust
         return isfadjust.toFloat()
-    }
+    }*/
+    private fun adjustFactorsdynisfBasedOnBgAndHypo(
+        dynISFadjust: Float
+    ): Float {
+        val hypoAdjustment = if (iob > 3 * maxSMB) 0.8f else 1.0f // Réduire les facteurs si hypo récente
+        val factorAdjustment = if (bg < 110) 0.2f else 0.3f
+        val bgAdjustment = 1.0f + (Math.log(Math.abs(delta.toDouble()) + 1) - 1)  * factorAdjustment
+        val isfadjust = if (delta < 0) {bgAdjustment / dynISFadjust} else {dynISFadjust * bgAdjustment * hypoAdjustment}
+        return isfadjust.toFloat()
+       }
 
     private fun calculateSmoothBasalRate(
         tdd2Days: Float, // Total Daily Dose (TDD) pour le jour le plus récent
@@ -1086,7 +1095,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             dynISFadjust
         }
         val adjustedDynISF = adjustFactorsdynisfBasedOnBgAndHypo(
-            bg, predictedBg, lastHourTIRLow.toFloat(), hourlyDynISFFactor.toFloat()
+           hourlyDynISFFactor.toFloat()
         )
         tdd = when {
             sportTime -> tdd * 50.0
