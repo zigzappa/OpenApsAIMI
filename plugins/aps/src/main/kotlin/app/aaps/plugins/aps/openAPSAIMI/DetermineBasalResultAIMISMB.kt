@@ -78,14 +78,14 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
 
         if (enablebasal) {
             when {
-                delta <= 0 && bg <= 140 -> {
+                delta <= 0 && bg <= 90 -> {
                     // Logique pour delta <= 0 et bg <= 150
                     this.percent = 0
                     this.rate = 0.0
                     this.duration = 120
                     aapsLogger.debug(LTag.APS, "Basale désactivée - Rate: $rate, Percent: $percent, Duration: $duration, BG: $bg, Delta: $delta")
                 }
-                delta > 1 && bg > 80 -> {
+                delta > 0 && bg > 80 -> {
                     // Logique pour delta > 0 et bg > 80
                     this.percent = delta.toInt() * 100
                     this.rate = basalaimi.toDouble() * delta
