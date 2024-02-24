@@ -1,10 +1,11 @@
 package app.aaps.core.validators
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.text.InputType
 import android.util.AttributeSet
+import androidx.annotation.StringRes
 import androidx.preference.EditTextPreference
-import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceViewHolder
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.utils.SafeParse
@@ -13,7 +14,13 @@ import app.aaps.core.keys.Preferences
 import dagger.android.HasAndroidInjector
 import javax.inject.Inject
 
-class AdaptiveDoublePreference(ctx: Context, attrs: AttributeSet?) : EditTextPreference(ctx, attrs) {
+class AdaptiveDoublePreference(
+    ctx: Context,
+    attrs: AttributeSet? = null,
+    doubleKey: DoubleKey? = null,
+    @StringRes dialogMessage: Int? = null,
+    @StringRes title: Int?,
+) : EditTextPreference(ctx, attrs) {
 
     private val validatorParameters: DefaultEditTextValidator.Parameters
     private var validator: DefaultEditTextValidator? = null
@@ -21,10 +28,20 @@ class AdaptiveDoublePreference(ctx: Context, attrs: AttributeSet?) : EditTextPre
 
     @Inject lateinit var profileUtil: ProfileUtil
     @Inject lateinit var preferences: Preferences
+    @Inject lateinit var sharedPrefs: SharedPreferences
+
+    // Inflater constructor
+    constructor(context: Context, attrs: AttributeSet?) : this(context, attrs, doubleKey = null, title = null)
 
     init {
         (context.applicationContext as HasAndroidInjector).androidInjector().inject(this)
-        preferenceKey = preferences.get(key) as DoubleKey
+
+        doubleKey?.let { key = context.getString(it.key) }
+        dialogMessage?.let { setDialogMessage(it) }
+        title?.let { dialogTitle = context.getString(it) }
+        title?.let { this.title = context.getString(it) }
+
+        preferenceKey = doubleKey ?: preferences.get(key) as DoubleKey
         if (preferences.simpleMode && (preferenceKey.defaultedBySM || preferenceKey.calculatedBySM)) {
             isVisible = false; isEnabled = false
         }
@@ -37,14 +54,12 @@ class AdaptiveDoublePreference(ctx: Context, attrs: AttributeSet?) : EditTextPre
         if (preferences.pumpControlMode && !preferenceKey.showInPumpControlMode) {
             isVisible = false; isEnabled = false
         }
-        if (preferenceKey.dependency != 0) {
-            val sp = PreferenceManager.getDefaultSharedPreferences(context)
-            if (!sp.getBoolean(context.getString(preferenceKey.dependency), false))
+        preferenceKey.dependency?.let {
+            if (!sharedPrefs.getBoolean(context.getString(it.key), false))
                 isVisible = false
         }
-        if (preferenceKey.negativeDependency != 0) {
-            val sp = PreferenceManager.getDefaultSharedPreferences(context)
-            if (sp.getBoolean(context.getString(preferenceKey.dependency), false))
+        preferenceKey.negativeDependency?.let {
+            if (sharedPrefs.getBoolean(context.getString(it.key), false))
                 isVisible = false
         }
         validatorParameters = obtainValidatorParameters(attrs)

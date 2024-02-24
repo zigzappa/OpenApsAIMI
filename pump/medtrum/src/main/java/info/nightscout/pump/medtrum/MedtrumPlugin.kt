@@ -13,7 +13,6 @@ import androidx.preference.ListPreference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreference
 import app.aaps.core.data.model.BS
-import app.aaps.core.data.plugin.PluginDescription
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.data.pump.defs.ManufacturerType
 import app.aaps.core.data.pump.defs.PumpDescription
@@ -25,6 +24,7 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.notifications.Notification
 import app.aaps.core.interfaces.objects.Instantiator
+import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.core.interfaces.pump.Medtrum
@@ -53,6 +53,7 @@ import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.core.ui.dialogs.OKDialog
 import app.aaps.core.ui.toast.ToastUtils
+import app.aaps.core.validators.AdaptiveIntPreference
 import app.aaps.core.validators.ValidatingEditTextPreference
 import info.nightscout.pump.medtrum.comm.enums.MedtrumPumpState
 import info.nightscout.pump.medtrum.services.MedtrumService
@@ -253,7 +254,7 @@ import kotlin.math.abs
 
     private fun preprocessConnectionAlertSettings(preferenceFragment: PreferenceFragmentCompat) {
         val unreachableAlertSetting = preferenceFragment.findPreference<SwitchPreference>(rh.gs(app.aaps.core.utils.R.string.key_enable_pump_unreachable_alert))
-        val unreachableThresholdSetting = preferenceFragment.findPreference<ValidatingEditTextPreference>(rh.gs(app.aaps.core.keys.R.string.key_pump_unreachable_threshold_minutes))
+        val unreachableThresholdSetting = preferenceFragment.findPreference<AdaptiveIntPreference>(rh.gs(app.aaps.core.keys.R.string.key_pump_unreachable_threshold_minutes))
 
         unreachableAlertSetting?.apply {
             isSelectable = false

@@ -12,6 +12,7 @@ import app.aaps.core.interfaces.utils.HardLimits
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.IntKey
+import app.aaps.core.keys.IntentKey
 import app.aaps.core.keys.PreferenceKey
 import app.aaps.core.keys.Preferences
 import app.aaps.core.keys.StringKey
@@ -109,16 +110,26 @@ class PreferencesImpl @Inject constructor(
             ?: IntKey.entries.find { rh.gs(it.key) == key }
             ?: DoubleKey.entries.find { rh.gs(it.key) == key }
             ?: UnitDoubleKey.entries.find { rh.gs(it.key) == key }
+            ?: IntentKey.entries.find { rh.gs(it.key) == key }
             ?: error("Key $key not found")
+
+    override fun getDependingOn(key: String): List<PreferenceKey> =
+        mutableListOf<PreferenceKey>().also { list ->
+            list.addAll(BooleanKey.entries.filter { it.dependency != null && rh.gs(it.dependency!!.key) == key || it.negativeDependency != null && rh.gs(it.negativeDependency!!.key) == key })
+            list.addAll(IntKey.entries.filter { it.dependency != null && rh.gs(it.dependency!!.key) == key || it.negativeDependency != null && rh.gs(it.negativeDependency!!.key) == key })
+            list.addAll(DoubleKey.entries.filter { it.dependency != null && rh.gs(it.dependency!!.key) == key || it.negativeDependency != null && rh.gs(it.negativeDependency!!.key) == key })
+            list.addAll(UnitDoubleKey.entries.filter { it.dependency != null && rh.gs(it.dependency!!.key) == key || it.negativeDependency != null && rh.gs(it.negativeDependency!!.key) == key })
+            list.addAll(IntentKey.entries.filter { it.dependency != null && rh.gs(it.dependency!!.key) == key || it.negativeDependency != null && rh.gs(it.negativeDependency!!.key) == key })
+        }
 
     private fun calculatedDefaultValue(key: IntKey): Int =
         if (key.calculatedDefaultValue)
             when (key) {
                 IntKey.AutosensPeriod ->
                     when (get(StringKey.SafetyAge)) {
-                        rh.gs(app.aaps.core.utils.R.string.key_teenage) -> 4
-                        rh.gs(app.aaps.core.utils.R.string.key_child)   -> 4
-                        else                                            -> 24
+                        rh.gs(app.aaps.core.keys.R.string.key_teenage) -> 4
+                        rh.gs(app.aaps.core.keys.R.string.key_child)   -> 4
+                        else                                           -> 24
                     }
 
                 else                  -> error("Unsupported default value calculation")

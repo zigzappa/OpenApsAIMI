@@ -77,7 +77,7 @@
     <string name="key_aps_mode" translatable="false">aps_mode</string>
 
     <!--    APS-->
-    <string name="key_use_dynamic_sensitivity">use_dynamic_sensitivity</string>
+    <string name="key_use_dynamic_sensitivity" translatable="false">use_dynamic_sensitivity</string>
     <string name="key_openaps_max_basal" translatable="false">openapsma_max_basal</string>
     <string name="key_openaps_smb_max_iob" translatable="false">openapsmb_max_iob</string>
     <string name="key_openaps_ama_max_iob" translatable="false">openapsma_max_iob</string>
@@ -105,6 +105,7 @@
     <string name="key_openaps_ama_autosens_adjust_targets" translatable="false">autosens_adjust_targets</string>
     <string name="key_openaps_ama_min_5m_carbs_impact" translatable="false">openapsama_min_5m_carbimpact</string>
     <string name="key_openaps_smb_min_5m_carbs_impact" translatable="false">openapsama_min_5m_carbimpact</string>
+    <string name="key_openaps_link_to_docs" translatable="false">link_to_docs</string>
     <string name="key_openapsaimi_settings">key_openapsaimi_settings</string>
     <string name="openapsaimi">"OpenapsAIMI Settings "</string>
     <string name="openapsaimi_maxsmb_summary">Value of max smb size</string>
@@ -334,6 +335,33 @@
     <!--    Alerts-->
     <string name="key_missed_bg_readings_threshold_minutes" translatable="false">missed_bg_readings_threshold</string>
     <string name="key_pump_unreachable_threshold_minutes" translatable="false">pump_unreachable_threshold</string>
+
     <!--    Equil-->
     <string name="key_equil_maxbolus" translatable="false">equil_maxbolus</string>
+
+    <!--Autotune-->
+    <string name="key_autotune_auto" translatable="false">autotune_auto</string>
+    <string name="key_autotune_categorize_uam_as_basal" translatable="false">categorize_uam_as_basal</string>
+    <string name="key_autotune_tune_insulin_curve" translatable="false">autotune_tune_insulin_curve</string>
+    <string name="key_autotune_default_tune_days" translatable="false">autotune_default_tune_days</string>
+    <string name="key_autotune_circadian_ic_isf" translatable="false">autotune_circadian_ic_isf</string>
+    <string name="key_autotune_additional_log" translatable="false">autotune_additional_log</string>
+    <string name="key_autotune_last_run" translatable="false">key_autotune_last_run</string>
+
+    <!--Safety-->
+    <string name="key_child" translatable="false">child</string>
+    <string name="key_teenage" translatable="false">teenage</string>
+    <string name="key_adult" translatable="false">adult</string>
+    <string name="key_resistantadult" translatable="false">resistantadult</string>
+    <string name="key_pregnant" translatable="false">pregnant</string>
+
+    <!--    SMS Communicator-->
+    <string name="key_smscommunicator_otp_password" translatable="false">smscommunicator_otp_password</string>
+    <string name="key_smscommunicator_otp_secret" translatable="false">smscommunicator_otp_secret</string>
+    <string name="key_smscommunicator_remote_bolus_min_distance" translatable="false">smscommunicator_remotebolusmindistance</string>
+    <string name="key_smscommunicator_allowednumbers" translatable="false">smscommunicator_allowednumbers</string>
+    <string name="key_smscommunicator_remote_commands_allowed" translatable="false">smscommunicator_remotecommandsallowed</string>
+    <string name="key_smscommunicator_report_pump_unreachable" translatable="false">smscommunicator_report_pump_unreachable</string>
+    <string name="key_smscommunicator_otp_setup" translatable="false">smscommunicator_otp_setup</string>
+
 </resources>
