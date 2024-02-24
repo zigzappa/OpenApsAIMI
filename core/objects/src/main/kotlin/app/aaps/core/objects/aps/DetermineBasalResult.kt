@@ -46,7 +46,7 @@ class DetermineBasalResult @Inject constructor(val injector: HasAndroidInjector)
     @Inject lateinit var profileFunction: ProfileFunction
     @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var decimalFormatter: DecimalFormatter
-    @Inject lateinit var dateUtil: DateUtil
+    @Inject open lateinit var dateUtil: DateUtil
 
     override var date: Long = 0
     override var reason: String = ""
@@ -110,6 +110,8 @@ class DetermineBasalResult @Inject constructor(val injector: HasAndroidInjector)
         variableSens = result.variable_sens
         scriptDebug = result.consoleError
     }
+
+    constructor() : this()
 
     override val carbsRequiredText: String
         get() = rh.gs(R.string.carbsreq, carbsReq, carbsReqWithin)

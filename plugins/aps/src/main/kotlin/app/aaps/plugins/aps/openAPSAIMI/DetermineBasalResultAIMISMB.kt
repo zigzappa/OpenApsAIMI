@@ -1,17 +1,17 @@
+/*
 package app.aaps.plugins.aps.openAPSAIMI
 
 import android.text.Spanned
-import app.aaps.core.interfaces.aps.VariableSensitivityResult
+import app.aaps.core.interfaces.aps.APSResult
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.objects.aps.APSResultObject
+import app.aaps.core.objects.aps.DetermineBasalResult
 import app.aaps.core.utils.HtmlHelper
-import app.aaps.plugins.aps.openAPSSMB.DetermineBasalResultSMB
 import dagger.android.HasAndroidInjector
 import org.json.JSONException
 import org.json.JSONObject
 import kotlin.math.round
 
-class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInjector) : DetermineBasalResultSMB(injector), VariableSensitivityResult {
+class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInjector) : DetermineBasalResult(injector), VariableSensitivityResult {
 
     var constraintStr: String = ""
     var glucoseStr: String = ""
@@ -24,7 +24,7 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
     var basalaimi:Float = 0.0f
     var enablebasal:Boolean = false
     override var variableSens: Double? = null
-    private val apsResultObject = APSResultObject(injector)
+    private val apsResultObject = APSResult(injector)
 
 
     internal constructor(
@@ -206,4 +206,4 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
     }
 
 
-}
+}*/

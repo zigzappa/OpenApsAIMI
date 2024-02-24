@@ -195,5 +195,7 @@
     <string name="oaps_aimi_tdd7_title">TDD 7 days</string>
     <string name="oaps_aimi_cho_summary">Average carbs for a meal. it\'s an estimation not a precise value</string>
     <string name="oaps_aimi_cho_title">CHO Meal average lunch or dinner</string>
+    <string name="aimi_preferences">AIMI specifics settings</string>
+    <string name="AAPS_SMB_Settings">AAPS SMB Settings</string>
 
 </resources>

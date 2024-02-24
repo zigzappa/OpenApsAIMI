@@ -1,14 +1,11 @@
+/*
 package app.aaps.plugins.aps.openAPSAIMI
 
 import android.os.Environment
-import app.aaps.core.data.iob.GlucoseStatus
-import app.aaps.core.data.iob.IobTotal
-import app.aaps.core.data.iob.MealData
 import app.aaps.core.data.model.BS
 import app.aaps.core.data.model.TB
 import app.aaps.core.data.model.UE
 import app.aaps.core.interfaces.aps.APSResult
-import app.aaps.core.interfaces.aps.DetermineBasalAdapter
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.db.ProcessedTbrEbData
@@ -26,6 +23,7 @@ import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.Preferences
+import app.aaps.core.objects.aps.DetermineBasalResult
 import app.aaps.core.objects.extensions.combine
 import app.aaps.core.objects.extensions.convertToJSONArray
 import app.aaps.core.objects.extensions.getPassedDurationToTimeInMinutes
@@ -47,17 +45,17 @@ import java.util.Locale
 import kotlin.math.pow
 import kotlin.math.round
 
-class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAndroidInjector) : DetermineBasalAdapter {
+class DetermineBasalAdapterAIMI internal constructor(override val injector: HasAndroidInjector) : {
 
-    @Inject lateinit var aapsLogger: AAPSLogger
-    @Inject lateinit var constraintChecker: ConstraintsChecker
-    @Inject lateinit var profileFunction: ProfileFunction
+    @Inject override lateinit var aapsLogger: AAPSLogger
+    @Inject override lateinit var constraintChecker: ConstraintsChecker
+    @Inject override lateinit var profileFunction: ProfileFunction
     @Inject lateinit var iobCobCalculator: IobCobCalculator
-    @Inject lateinit var preferences: Preferences
-    @Inject lateinit var processedTbrEbData: ProcessedTbrEbData
-    @Inject lateinit var activePlugin: ActivePlugin
+    @Inject override lateinit var preferences: Preferences
+    @Inject override lateinit var processedTbrEbData: ProcessedTbrEbData
+    @Inject override lateinit var activePlugin: ActivePlugin
     @Inject lateinit var persistenceLayer: PersistenceLayer
-    @Inject lateinit var dateUtil: DateUtil
+    @Inject override lateinit var dateUtil: DateUtil
     @Inject lateinit var tddCalculator: TddCalculator
     @Inject lateinit var tirCalculator: TirCalculator
 
@@ -107,7 +105,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private var recentSteps60Minutes: Int = 0
     private var recentSteps180Minutes: Int = 0
     private var basalaimi = 0.0f
-    private var basalSMB = 0.0f
     private var aimilimit = 0.0f
     private var CI = 0.0f
     private var sleepTime = false
@@ -138,17 +135,17 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     private val csvfile = File(path, "AAPS/oapsaimiML_records.csv")
     private var predictedSMB = 0.0f
 
-    override var currentTempParam: String? = null
-    override var iobDataParam: String? = null
-    override var glucoseStatusParam: String? = null
-    override var profileParam: String? = null
-    override var mealDataParam: String? = null
-    override var scriptDebug = ""
+    var currentTempParam: String? = null
+    var iobDataParam: String? = null
+    var glucoseStatusParam: String? = null
+    var profileParam: String? = null
+    var mealDataParam: String? = null
+    var scriptDebug = ""
 
     private var now: Long = 0
 
     @Suppress("SpellCheckingInspection")
-    override operator fun invoke(): APSResult {
+    operator fun invoke(): APSResult {
         aapsLogger.debug(LTag.APS, ">>> Invoking determine_basal <<<")
         this.predictedSMB = calculateSMBFromModel()
         //var smbToGive = predictedSMB
@@ -226,7 +223,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tdd 2d/h : ${roundToPoint05(tdd2DaysPerHour)} <br/> " +
             "tdd daily/h : ${roundToPoint05(tddPerHour)} <br/> " +
             "tdd 24h/h : ${roundToPoint05(tdd24HrsPerHour)}<br/>" +
-            " enablebasal: $enablebasal <br/> basalaimi: $basalaimi <br/> basalsmb: $basalSMB <br/> ISF: $variableSensitivity <br/> "
+            " enablebasal: $enablebasal <br/> basalaimi: $basalaimi <br/> ISF: $variableSensitivity <br/> "
         val profileStr = " Hour of day: $hourOfDay <br/> Weekend: $weekend <br/>" +
             " 5 Min Steps: $recentSteps5Minutes <br/> 10 Min Steps: $recentSteps10Minutes <br/> 15 Min Steps: $recentSteps15Minutes <br/>" +
             " 30 Min Steps: $recentSteps30Minutes <br/> 60 Min Steps: $recentSteps60Minutes <br/> 180 Min Steps: $recentSteps180Minutes <br/>" +
@@ -751,27 +748,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             else -> stableFactor
         }
     }
-
-
-    /*private fun calculateGFactor(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Double {
-        val accelerationFactor = 0.5 // Facteur pour accélération de la glycémie
-        val decelerationFactor = 1.3 // Facteur pour décélération de la glycémie
-        val stableFactor = 1.7 // Facteur pour glycémie stable
-
-        return when {
-            // Accélération rapide
-            delta > 2 && (delta > shortAvgDelta && delta > longAvgDelta) -> accelerationFactor
-            delta > 10 && shortAvgDelta >= 4 && longAvgDelta >= 4 -> accelerationFactor
-            delta >= 5 && shortAvgDelta >= 5 && longAvgDelta >= 5 -> accelerationFactor
-            delta >= 5 && lastHourTIRabove170 > 0 && bg > 170 -> accelerationFactor
-
-            // Décélération ou tendance à la stabilisation
-            delta < 2 && (delta < shortAvgDelta || delta < longAvgDelta) && bg < 170 -> decelerationFactor
-
-            // Glycémie stable
-            else -> stableFactor
-        }
-    }*/
     private fun getHourlyReactivityFactor(hourOfDay: Int, preferences: Preferences): Float {
         return when (hourOfDay) {
             0 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor01)
@@ -815,17 +791,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             eveningFactor * bgAdjustment * hypoAdjustment
         )
     }
-    /*private fun adjustFactorsdynisfBasedOnBgAndHypo(
-        currentBg: Float, futureBg: Float, lastHourTirLow: Float,
-        dynISFadjust: Float
-    ): Float {
-        val bgDifference = futureBg - currentBg
-        val hypoAdjustment = if (lastHourTirLow > 0) 0.6f else 1.0f // Réduire les facteurs si hypo récente
-        val bgAdjustment = 1.0f + (Math.log(Math.abs(bgDifference.toDouble()) + 1) - 1) * (if (bgDifference < 0) -0.1f else 0.1f)
-        val isfadjust = hypoAdjustment * bgAdjustment * dynISFadjust
-        return isfadjust.toFloat()
-
-    }*/
     private fun adjustFactorsdynisfBasedOnBgAndHypo(
         currentBg: Float, futureBg: Float, lastHourTirLow: Float,
         dynISFadjust: Float
@@ -910,10 +875,12 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.cob = mealData.mealCOB.toFloat()
         var lastCarbTimestamp = mealData.lastCarbTime
 
-        /*if(lastCarbTimestamp.toInt() == 0) {
+        */
+/*if(lastCarbTimestamp.toInt() == 0) {
             val oneDayAgoIfNotFound = now - 24 * 60 * 60 * 1000
             lastCarbTimestamp = iobCobCalculator.getMostRecentCarbByDate() ?: oneDayAgoIfNotFound
-        }*/
+        }*//*
+
         if (lastCarbTimestamp.toInt() == 0) {
             val oneDayAgoIfNotFound = now - 24 * 60 * 60 * 1000
             lastCarbTimestamp = persistenceLayer.getMostRecentCarbByDate() ?: oneDayAgoIfNotFound
@@ -921,13 +888,15 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         this.lastCarbAgeMin = ((now - lastCarbTimestamp) / (60 * 1000)).toDouble().roundToInt()
 
-        /*if(lastCarbAgeMin < 15 && cob == 0.0f) {
+        */
+/*if(lastCarbAgeMin < 15 && cob == 0.0f) {
             this.cob = iobCobCalculator.getMostRecentCarbAmount()?.toFloat() ?: 0.0f
         }
 
         this.futureCarbs = iobCobCalculator.getFutureCob().toFloat()
         val fourHoursAgo = now - 4 * 60 * 60 * 1000
-        this.recentNotes = iobCobCalculator.getUserEntryDataWithNotesFromTime(fourHoursAgo)*/
+        this.recentNotes = iobCobCalculator.getUserEntryDataWithNotesFromTime(fourHoursAgo)*//*
+
         if (lastCarbAgeMin < 15 && cob == 0.0f) {
             this.cob = persistenceLayer.getMostRecentCarbAmount()?.toFloat() ?: 0.0f
         }
@@ -1079,7 +1048,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             bg > 180 -> tdd * dynISFadjusthyper
             else -> tdd * adjustedDynISF
         }
-        /*tdd = when{
+        */
+/*tdd = when{
             sportTime -> tdd * 50.0
             sleepTime -> tdd * 80.0
             lowCarbTime -> tdd * 85.0
@@ -1088,7 +1058,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             mealTime -> tdd * mealTimeDynISFAdjFactor
             bg > 180 -> tdd * dynISFadjusthyper
             else -> tdd * adjustDynIsf
-        }*/
+        }*//*
+
         //this.variableSensitivity = kotlin.math.max(profile.getIsfMgdl().toFloat()/2.5f,Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1).toFloat() * calculateGFactor(delta,shortAvgDelta,longAvgDelta).toFloat())
         this.currentTIRLow = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.belowPct()!!
         this.currentTIRRange = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.inRangePct()!!
@@ -1233,7 +1204,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val glucoseDouble = glucoseStatus.glucose.toDoubleSafely()
         val insulinDivisorDouble = insulinDivisor.toDoubleSafely()
 
-        /*if (tddDouble != null && glucoseDouble != null && insulinDivisorDouble != null) {
+        */
+/*if (tddDouble != null && glucoseDouble != null && insulinDivisorDouble != null) {
             this.variableSensitivity = kotlin.math.max(profile.getIsfMgdl().toFloat()/2.5f,Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1).toFloat() * calculateGFactor(delta,shortAvgDelta,longAvgDelta).toFloat())
 
             // Ajout d'un log pour vérifier la valeur de variableSensitivity après le calcul
@@ -1245,7 +1217,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             }
         } else {
             this.variableSensitivity = profile.getIsfMgdl().toFloat() * calculateGFactor(delta,shortAvgDelta,longAvgDelta).toFloat()
-        }*/
+        }*//*
+
         if (tddDouble != null && glucoseDouble != null && insulinDivisorDouble != null) {
             this.variableSensitivity = kotlin.math.max(
                 profile.getIsfMgdl().toFloat() / 2.5f,
@@ -1420,3 +1393,4 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 }
 
 
+*/
