@@ -245,5 +245,6 @@
     <string name="oaps_aimi_cho_title">CHO Meal average lunch or dinner</string>
     <string name="aimi_preferences">AIMI specifics settings</string>
     <string name="AAPS_SMB_Settings">AAPS SMB Settings</string>
+    <string name="oaps_aimi_enableMlTraining_title">Enable ML training calculation</string>
 
 </resources>
