@@ -56,7 +56,9 @@ enum class IntKey(
 
     SmsRemoteBolusDistance(R.string.key_smscommunicator_remote_bolus_min_distance, 15, 3, 60),
 
-    BgSourceRandomInterval(R.string.key_randombg_interval_min, 5, 1, 15, defaultedBySM = true)
+    BgSourceRandomInterval(R.string.key_randombg_interval_min, 5, 1, 15, defaultedBySM = true),
+
+
     OApsAIMIDynISFAdjustment(R.string.key_DynISF_Adjust,100,1,500),
     OApsAIMIDynISFAdjustmentHyper(R.string.key_DynISFAdjusthyper,150,1,500),
     OApsAIMImealAdjISFFact(R.string.key_oaps_aimi_mealAdjFact,50,1,500),

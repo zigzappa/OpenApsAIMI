@@ -374,19 +374,20 @@ fun round(value: Double): Int {
         return (number * 1000.0).roundToInt() / 1000.0f
     }
     private fun isCriticalSafetyCondition(): Boolean {
+        val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10
         val fasting = fastingTime
-        val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..6) } && delta > 15 && cob === 0.0f
+        val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..6) } && delta > 10 && cob === 0.0f
         val isNewCalibration = iscalibration && delta > 10
         val belowMinThreshold = bg < 80
         val belowTargetAndDropping = bg < targetBg && delta < -2
-        val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 5
+        val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 10
         val droppingFast = bg < 150 && delta < -5
         val droppingFastAtHigh = bg < 200 && delta < -7
         val droppingVeryFast = delta < -10
-        val prediction = predictedBg < targetBg && delta < 10
+        val prediction = predictedBg < targetBg && bg < 135
         val interval = predictedBg < targetBg && delta > 10 && iob >= maxSMB/2 && lastsmbtime < 10
         val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 15
-        val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10
+
 
 
         return belowMinThreshold || belowTargetAndDropping || belowTargetAndStableButNoCob ||
@@ -410,6 +411,7 @@ fun round(value: Double): Int {
         val intervalSMBmeal = preferences.get(IntKey.OApsAIMImealinterval)
         val intervalSMBsleep = preferences.get(IntKey.OApsAIMISleepinterval)
         val intervalSMBhc = preferences.get(IntKey.OApsAIMIHCinterval)
+        val belowTargetAndDropping = bg < targetBg
 
         if (shouldApplyIntervalAdjustment(intervalSMBsnack, intervalSMBmeal, intervalSMBsleep, intervalSMBhc)) {
             result = 0.0f
@@ -424,6 +426,7 @@ fun round(value: Double): Int {
         if (shouldApplyStepAdjustment()) {
             result = 0.0f
         }
+        if (belowTargetAndDropping) result /= 2
 
         return result
     }

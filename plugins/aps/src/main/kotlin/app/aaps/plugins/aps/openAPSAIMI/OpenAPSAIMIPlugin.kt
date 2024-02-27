@@ -170,7 +170,16 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
 
     override fun preprocessPreferences(preferenceFragment: PreferenceFragmentCompat) {
         super.preprocessPreferences(preferenceFragment)
-        val smbAlwaysEnabled = preferences.get(BooleanKey.ApsUseSmbAlways)
+        val uamEnabled = if (preferences.get(BooleanKey.ApsUseSmb)) {
+            preferences.get(BooleanKey.ApsUseUam)
+        } else {
+            preferences.get(BooleanKey.ApsUseSmb)
+        }
+        val smbAlwaysEnabled = if (preferences.get(BooleanKey.ApsUseSmb)) {
+            preferences.get(BooleanKey.ApsUseSmbAlways)
+        } else {
+            !preferences.get(BooleanKey.ApsUseSmb)
+        }
         val advancedFiltering = activePlugin.activeBgSource.advancedFilteringSupported()
         val autoSensOrDynIsfSensEnabled = if (preferences.get(BooleanKey.ApsUseDynamicSensitivity)) {
             preferences.get(BooleanKey.ApsDynIsfAdjustSensitivity)
@@ -182,6 +191,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         preferenceFragment.findPreference<SwitchPreference>(rh.gs(app.aaps.core.keys.R.string.key_openaps_enable_smb_after_carbs))?.isVisible = !smbAlwaysEnabled || !advancedFiltering
         preferenceFragment.findPreference<SwitchPreference>(rh.gs(app.aaps.core.keys.R.string.key_openaps_resistance_lowers_target))?.isVisible = autoSensOrDynIsfSensEnabled
         preferenceFragment.findPreference<SwitchPreference>(rh.gs(app.aaps.core.keys.R.string.key_openaps_sensitivity_raises_target))?.isVisible = autoSensOrDynIsfSensEnabled
+        preferenceFragment.findPreference<AdaptiveIntPreference>(rh.gs(app.aaps.core.keys.R.string.key_openaps_uam_smb_max_minutes))?.isVisible = uamEnabled
     }
     private fun adjustFactorsdynisfBasedOnBgAndHypo(
         dynISFadjust: Double
@@ -391,64 +401,6 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 ratioFromTdd = tddRatio,
                 ratioFromCarbs = carbsRatio
             )
-
-            //if (dynIsfMode) {
-            // DynamicISF specific
-            // without these values DynISF doesn't work properly
-            // Current implementation is fallback to SMB if TDD history is not available. Thus calculated here
-            /*val tdd1D = tddCalculator.averageTDD(tddCalculator.calculate(1, allowMissingDays = false))?.data?.totalAmount
-            var tdd7D = tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))
-            val tddLast24H = tddCalculator.calculateDaily(-24, 0)
-            val tddLast4H = tddCalculator.calculateDaily(-4, 0)?.totalAmount
-            val tddLast8to4H = tddCalculator.calculateDaily(-8, -4)?.totalAmount
-            if (tdd1D == null || tdd7D == null || tddLast4H == null || tddLast8to4H == null || tddLast24H == null) {
-                uiInteraction.addNotificationValidTo(
-                    Notification.SMB_FALLBACK, dateUtil.now(),
-                    rh.gs(R.string.fallback_smb_no_tdd), Notification.INFO, dateUtil.now() + T.mins(1).msecs()
-                )
-                inputConstraints.copyReasons(
-                    ConstraintObject(false, aapsLogger).also {
-                        it.set(false, rh.gs(R.string.fallback_smb_no_tdd), this)
-                    }
-                )
-                inputConstraints.copyReasons(
-                    ConstraintObject(false, aapsLogger).apply { set(true, "tdd1D=$tdd1D tdd7D=${tdd7D?.data?.totalAmount} tddLast4H=$tddLast4H tddLast8to4H=$tddLast8to4H tddLast24H=${tddLast24H?.totalAmount}", this) }
-                )
-
-            } else {
-                uiInteraction.dismissNotification(Notification.SMB_FALLBACK)
-                tddStatus = TddStatus(tdd1D, tdd7D.data.totalAmount, tddLast24H.totalAmount, tddLast4H, tddLast8to4H)
-                val tddWeightedFromLast8H = ((1.4 * tddStatus.tddLast4H) + (0.6 * tddStatus.tddLast8to4H)) * 3
-                tdd = ((tddWeightedFromLast8H * 0.33) + (tddStatus.tdd7D * 0.34) + (tddStatus.tdd1D * 0.33)) * preferences.get(IntKey.ApsDynIsfAdjustmentFactor) / 100.0
-                variableSensitivity = Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1)
-
-                // Compare insulin consumption of last 24h with last 7 days average
-                val tddRatio = if (preferences.get(BooleanKey.ApsDynIsfAdjustSensitivity)) tddLast24H.totalAmount / tdd7D.data.totalAmount else 1.0
-                // Because consumed carbs affects total amount of insulin compensate final ratio by consumed carbs ratio
-                // take only 60% (expecting 40% basal). We cannot use bolus/total because of SMBs
-                val carbsRatio = if (
-                    preferences.get(BooleanKey.ApsDynIsfAdjustSensitivity) &&
-                    tddLast24H.carbs != 0.0 &&
-                    tdd7D.data.carbs != 0.0 &&
-                    tdd7D.allDaysHaveCarbs
-                ) ((tddLast24H.carbs / tdd7D.data.carbs - 1.0) * 0.6) + 1.0 else 1.0
-                autosensResult = AutosensResult(
-                    ratio = tddRatio / carbsRatio,
-                    ratioFromTdd = tddRatio,
-                    ratioFromCarbs = carbsRatio
-                )
-            }
-        } else {
-            if (constraintsChecker.isAutosensModeEnabled().value()) {
-                val autosensData = iobCobCalculator.getLastAutosensDataWithWaitForCalculationFinish("OpenAPSPlugin")
-                if (autosensData == null) {
-                    rxBus.send(EventResetOpenAPSGui(rh.gs(R.string.openaps_no_as_data)))
-                    return
-                }
-                autosensResult = autosensData.autosensResult
-            } else autosensResult.sensResult = "autosens disabled"
-        }*/
-
             val iobArray = iobCobCalculator.calculateIobArrayForSMB(autosensResult, SMBDefaults.exercise_mode, SMBDefaults.half_basal_exercise_target, isTempTarget)
             val mealData = iobCobCalculator.getMealDataWithWaitingForCalculationFinish()
 
@@ -616,7 +568,8 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             .store(BooleanKey.ApsUseDynamicSensitivity, preferences, rh)
             .store(IntKey.ApsDynIsfAdjustmentFactor, preferences, rh)
     }
-    override fun addPreferenceScreen(preferenceManager: PreferenceManager, parent: PreferenceScreen, context: Context) {
+    override fun addPreferenceScreen(preferenceManager: PreferenceManager, parent: PreferenceScreen, context: Context, requiredKey: String?) {
+        if (requiredKey != null && requiredKey != "absorption_smb_advanced") return
         val category = PreferenceCategory(context)
         parent.addPreference(category)
         category.apply {
