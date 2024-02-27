@@ -36,7 +36,7 @@ import javax.inject.Inject
 import kotlin.math.abs
 import kotlin.math.max
 
-class DetermineBasalResult @Inject constructor(val injector: HasAndroidInjector) : APSResult {
+class DetermineBasalResult @Inject constructor(var injector: HasAndroidInjector) : APSResult {
 
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var constraintChecker: ConstraintsChecker
@@ -46,7 +46,7 @@ class DetermineBasalResult @Inject constructor(val injector: HasAndroidInjector)
     @Inject lateinit var profileFunction: ProfileFunction
     @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var decimalFormatter: DecimalFormatter
-    @Inject open lateinit var dateUtil: DateUtil
+    @Inject lateinit var dateUtil: DateUtil
 
     override var date: Long = 0
     override var reason: String = ""
@@ -83,13 +83,25 @@ class DetermineBasalResult @Inject constructor(val injector: HasAndroidInjector)
 
     lateinit var result: RT
 
+    private val allowedAlgorithms = listOf(
+        APSResult.Algorithm.SMB,
+        APSResult.Algorithm.AMA,
+        APSResult.Algorithm.AIMI
+    )
+
     init {
         injector.androidInjector().inject(this)
         algorithm = APSResult.Algorithm.UNKNOWN
     }
 
-    constructor(injector: HasAndroidInjector, result: RT) : this(injector) {
+    constructor(injector: HasAndroidInjector, result: RT) : this(injector){
+        this.injector = injector
+        injector.androidInjector().inject(this)
+
         this.algorithm = result.algorithm
+        if (algorithm !in allowedAlgorithms) {
+            throw IllegalArgumentException("Unsupported algorithm: $algorithm")
+        }
         this.result = result
         hasPredictions = true
         date = result.timestamp ?: dateUtil.now()
@@ -111,7 +123,7 @@ class DetermineBasalResult @Inject constructor(val injector: HasAndroidInjector)
         scriptDebug = result.consoleError
     }
 
-    constructor() : this()
+    //constructor() : this()
 
     override val carbsRequiredText: String
         get() = rh.gs(R.string.carbsreq, carbsReq, carbsReqWithin)

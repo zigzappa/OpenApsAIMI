@@ -43,6 +43,8 @@ data class APSResult(
     enum class Algorithm {
         AMA,
         SMB,
-        AUTO_ISF
+        AIMI,
+        AUTO_ISF;
+
     }
 }

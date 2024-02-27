@@ -246,5 +246,29 @@
     <string name="aimi_preferences">AIMI specifics settings</string>
     <string name="AAPS_SMB_Settings">AAPS SMB Settings</string>
     <string name="oaps_aimi_enableMlTraining_title">Enable ML training calculation</string>
+    <string name="OApsAIMI_MealFactor_summary">% of insulin required by the ai for the meal mode.</string>
+    <string name="OApsAIMI_MealFactor_title">Meal mode reactivity percentage</string>
+    <string name="oaps_aimi_meal_interval_summary">Interval between SMB for the meal mode.</string>
+    <string name="oaps_aimi_meal_interval_title">SMB interval Meal Mode</string>
+    <string name="oaps_aimi_highcarbAdjFact_summary">DynISF adjustment factor for High Carb mode.</string>
+    <string name="oaps_aimi_highcarbAdjFact_title">High Carb Mode DynISF factor</string>
+    <string name="OApsAIMI_HC_Factor_summary">% of insulin required by the ai for the High Carb mode.</string>
+    <string name="OApsAIMI_HC_Factor_title">High Carb mode reactivity percentage</string>
+    <string name="oaps_aimi_HC_interval_summary">Interval between SMB for the high carb mode.</string>
+    <string name="oaps_aimi_HC_interval_title">SMB interval High Carb Mode</string>
+    <string name="prebolus_snack_mode_summary">If you set a note in action page, with the word snack, you will receive this pre-bolus one time.</string>
+    <string name="prebolus_snack_mode_title">Mode snack pre-bolus</string>
+    <string name="oaps_aimi_snackAdjFact_summary">DynISF adjustment factor for Snack mode.</string>
+    <string name="oaps_aimi_snackAdjFact_title">Snack Mode DynISF factor</string>
+    <string name="OApsAIMI_snack_Factor_summary">% of insulin required by the ai for the Snack mode.</string>
+    <string name="OApsAIMI_snack_Factor_title">Snack mode reactivity percentage</string>
+    <string name="oaps_aimi_snack_interval_summary">Interval between SMB for the snack mode.</string>
+    <string name="oaps_aimi_snack_interval_title">SMB interval Snack Mode</string>
+    <string name="oaps_aimi_sleepAdjFact_summary">DynISF adjustment factor for Sleep mode.</string>
+    <string name="oaps_aimi_sleepAdjFact_title">Sleep Mode DynISF factor</string>
+    <string name="OApsAIMI_sleep_Factor_summary">% of insulin required by the ai for the Sleep mode.</string>
+    <string name="OApsAIMI_sleep_Factor_title">Sleep mode reactivity percentage</string>
+    <string name="oaps_aimi_sleep_interval_summary">Interval between SMB for the sleep mode.</string>
+    <string name="oaps_aimi_sleep_interval_title">SMB interval Sleep Mode</string>
 
 </resources>

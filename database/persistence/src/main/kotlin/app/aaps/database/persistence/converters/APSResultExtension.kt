@@ -17,7 +17,8 @@ import kotlinx.serialization.json.Json
 fun app.aaps.database.entities.APSResult.fromDb(injector: HasAndroidInjector): APSResult =
     when (algorithm) {
         app.aaps.database.entities.APSResult.Algorithm.AMA,
-        app.aaps.database.entities.APSResult.Algorithm.SMB ->
+        app.aaps.database.entities.APSResult.Algorithm.SMB,
+        app.aaps.database.entities.APSResult.Algorithm.AIMI ->
             DetermineBasalResult(injector, Json.decodeFromString(this.resultJson)).also { result ->
                 result.date = this.timestamp
                 result.glucoseStatus = this.glucoseStatusJson?.let { Json.decodeFromString(it) }
@@ -55,6 +56,7 @@ fun app.aaps.database.entities.APSResult.Algorithm.fromDb(): APSResult.Algorithm
     when (this) {
         app.aaps.database.entities.APSResult.Algorithm.AMA      -> APSResult.Algorithm.AMA
         app.aaps.database.entities.APSResult.Algorithm.SMB      -> APSResult.Algorithm.SMB
+        app.aaps.database.entities.APSResult.Algorithm.AIMI      -> APSResult.Algorithm.AIMI
         app.aaps.database.entities.APSResult.Algorithm.AUTO_ISF -> APSResult.Algorithm.AUTO_ISF
         else                                                    -> error("Unsupported")
     }
@@ -63,6 +65,7 @@ fun APSResult.Algorithm.toDb(): app.aaps.database.entities.APSResult.Algorithm =
     when (this) {
         APSResult.Algorithm.AMA      -> app.aaps.database.entities.APSResult.Algorithm.AMA
         APSResult.Algorithm.SMB      -> app.aaps.database.entities.APSResult.Algorithm.SMB
+        APSResult.Algorithm.AIMI -> app.aaps.database.entities.APSResult.Algorithm.AIMI
         APSResult.Algorithm.AUTO_ISF -> app.aaps.database.entities.APSResult.Algorithm.AUTO_ISF
         else                         -> error("Unsupported")
     }
