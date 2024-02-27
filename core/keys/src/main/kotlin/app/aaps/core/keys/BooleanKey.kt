@@ -2,15 +2,15 @@ package app.aaps.core.keys
 
 enum class BooleanKey(
     override val key: Int,
-    val defaultValue: Boolean,
+    override val defaultValue: Boolean,
     override val defaultedBySM: Boolean = false,
     override val showInApsMode: Boolean = true,
     override val showInNsClientMode: Boolean = true,
     override val showInPumpControlMode: Boolean = true,
-    override val dependency: BooleanKey? = null,
-    override val negativeDependency: BooleanKey? = null,
+    override val dependency: BooleanPreferenceKey? = null,
+    override val negativeDependency: BooleanPreferenceKey? = null,
     override val hideParentScreenIfHidden: Boolean = false
-) : PreferenceKey {
+) : BooleanPreferenceKey {
 
     GeneralSimpleMode(R.string.key_simple_mode, true),
     GeneralSetupWizardProcessed(R.string.key_setupwizard_processed, false),
@@ -28,7 +28,7 @@ enum class BooleanKey(
     OverviewUseBolusReminder(R.string.key_use_bolus_reminder, true, defaultedBySM = true),
     OverviewUseSuperBolus(R.string.key_use_superbolus, false, defaultedBySM = true, hideParentScreenIfHidden = true),
     BgSourceUploadToNs(R.string.key_do_bg_ns_upload, true, defaultedBySM = true, hideParentScreenIfHidden = true),
-    DexcomCreateSensorChange(R.string.key_dexcom_log_ns_sensor_change, true, defaultedBySM = true),
+    BgSourceCreateSensorChange(R.string.key_dexcom_log_ns_sensor_change, true, defaultedBySM = true),
     ApsUseDynamicSensitivity(R.string.key_use_dynamic_sensitivity, false),
     ApsUseAutosens(R.string.key_openaps_use_autosens, true, defaultedBySM = true, negativeDependency = ApsUseDynamicSensitivity), // change from default false
     ApsUseSmb(R.string.key_openaps_use_smb, true, defaultedBySM = true), // change from default false
@@ -53,6 +53,8 @@ enum class BooleanKey(
 
     SmsAllowRemoteCommands(R.string.key_smscommunicator_remote_commands_allowed, false),
     SmsReportPumpUnreachable(R.string.key_smscommunicator_report_pump_unreachable, true),
+
+    VirtualPumpStatusUpload(R.string.key_virtual_pump_upload_status, false, showInNsClientMode = false),
     OApsAIMIMLtraining(R.string.key_enable_ML_training, false),
     OApsAIMIEnableBasal(R.string.key_enable_basal, false),
     OApsAIMIEnableStepsFromWatch(R.string.count_steps_watch, false),

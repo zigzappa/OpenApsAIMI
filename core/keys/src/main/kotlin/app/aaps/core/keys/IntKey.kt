@@ -2,19 +2,19 @@ package app.aaps.core.keys
 
 enum class IntKey(
     override val key: Int,
-    val defaultValue: Int,
-    val min: Int,
-    val max: Int,
+    override val defaultValue: Int,
+    override val min: Int,
+    override val max: Int,
     override val defaultedBySM: Boolean = false,
-    val calculatedDefaultValue: Boolean = false,
+    override val calculatedDefaultValue: Boolean = false,
     override val showInApsMode: Boolean = true,
     override val showInNsClientMode: Boolean = true,
     override val showInPumpControlMode: Boolean = true,
-    override val dependency: BooleanKey? = null,
-    override val negativeDependency: BooleanKey? = null,
+    override val dependency: BooleanPreferenceKey? = null,
+    override val negativeDependency: BooleanPreferenceKey? = null,
     override val hideParentScreenIfHidden: Boolean = false,
-    val engineeringModeOnly: Boolean = false
-) : PreferenceKey {
+    override val engineeringModeOnly: Boolean = false
+) : IntPreferenceKey {
 
     OverviewCarbsButtonIncrement1(R.string.key_carbs_button_increment_1, 5, -50, 50, defaultedBySM = true),
     OverviewCarbsButtonIncrement2(R.string.key_carbs_button_increment_2, 10, -50, 50, defaultedBySM = true),
@@ -41,9 +41,9 @@ enum class IntKey(
     GeneralProtectionTimeout(R.string.key_protection_timeout, 1, 1, 180, defaultedBySM = true),
     SafetyMaxCarbs(R.string.key_safety_max_carbs, 48, 1, 200),
     LoopOpenModeMinChange(R.string.key_loop_open_mode_min_change, 30, 0, 50, defaultedBySM = true),
-    ApsMaxSmbFrequency(R.string.key_openaps_smb_interval, 3, 1, 10, defaultedBySM = true),
-    ApsMaxMinutesOfBasalToLimitSmb(R.string.key_openaps_smb_max_minutes, 30, 15, 120, defaultedBySM = true),
-    ApsUamMaxMinutesOfBasalToLimitSmb(R.string.key_openaps_uam_smb_max_minutes, 30, 15, 120, defaultedBySM = true),
+    ApsMaxSmbFrequency(R.string.key_openaps_smb_interval, 3, 1, 10, defaultedBySM = true, dependency = BooleanKey.ApsUseSmb),
+    ApsMaxMinutesOfBasalToLimitSmb(R.string.key_openaps_smb_max_minutes, 30, 15, 120, defaultedBySM = true, dependency = BooleanKey.ApsUseSmb),
+    ApsUamMaxMinutesOfBasalToLimitSmb(R.string.key_openaps_uam_smb_max_minutes, 30, 15, 120, defaultedBySM = true, dependency = BooleanKey.ApsUseSmb),
     ApsCarbsRequestThreshold(R.string.key_openaps_carbs_required_threshold, 1, 1, 10, defaultedBySM = true),
     ApsDynIsfAdjustmentFactor(R.string.key_dynamic_isf_adjustment_factor, 100, 1, 300, dependency = BooleanKey.ApsUseDynamicSensitivity),
     AutosensPeriod(R.string.key_openapsama_autosens_period, 24, 4, 24, calculatedDefaultValue = true),
@@ -55,6 +55,8 @@ enum class IntKey(
     AutotuneDefaultTuneDays(R.string.key_autotune_default_tune_days, 5, 1, 30),
 
     SmsRemoteBolusDistance(R.string.key_smscommunicator_remote_bolus_min_distance, 15, 3, 60),
+
+    BgSourceRandomInterval(R.string.key_randombg_interval_min, 5, 1, 15, defaultedBySM = true)
     OApsAIMIDynISFAdjustment(R.string.key_DynISF_Adjust,100,1,500),
     OApsAIMIDynISFAdjustmentHyper(R.string.key_DynISFAdjusthyper,150,1,500),
     OApsAIMImealAdjISFFact(R.string.key_oaps_aimi_mealAdjFact,50,1,500),
