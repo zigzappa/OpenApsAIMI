@@ -569,7 +569,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             .store(IntKey.ApsDynIsfAdjustmentFactor, preferences, rh)
     }
     override fun addPreferenceScreen(preferenceManager: PreferenceManager, parent: PreferenceScreen, context: Context, requiredKey: String?) {
-        if (requiredKey != null && requiredKey != "absorption_smb_advanced") return
+        //if (requiredKey != null && requiredKey != "absorption_smb_advanced") return
         val category = PreferenceCategory(context)
         parent.addPreference(category)
         category.apply {

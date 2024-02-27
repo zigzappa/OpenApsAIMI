@@ -29,7 +29,7 @@ enum class BooleanKey(
     OverviewUseSuperBolus(R.string.key_use_superbolus, false, defaultedBySM = true, hideParentScreenIfHidden = true),
     BgSourceUploadToNs(R.string.key_do_bg_ns_upload, true, defaultedBySM = true, hideParentScreenIfHidden = true),
     BgSourceCreateSensorChange(R.string.key_dexcom_log_ns_sensor_change, true, defaultedBySM = true),
-    ApsUseDynamicSensitivity(R.string.key_use_dynamic_sensitivity, false),
+    ApsUseDynamicSensitivity(R.string.key_use_dynamic_sensitivity, true),
     ApsUseAutosens(R.string.key_openaps_use_autosens, true, defaultedBySM = true, negativeDependency = ApsUseDynamicSensitivity), // change from default false
     ApsUseSmb(R.string.key_openaps_use_smb, true, defaultedBySM = true), // change from default false
     ApsUseSmbWithHighTt(R.string.key_openaps_allow_smb_with_high_temp_target, false, defaultedBySM = true, dependency = ApsUseSmb),
@@ -41,7 +41,7 @@ enum class BooleanKey(
     ApsSensitivityRaisesTarget(R.string.key_openaps_sensitivity_raises_target, true, defaultedBySM = true),
     ApsResistanceLowersTarget(R.string.key_openaps_resistance_lowers_target, true, defaultedBySM = true), // change from default false
     ApsAlwaysUseShortDeltas(R.string.key_openaps_always_use_short_deltas, false, defaultedBySM = true, hideParentScreenIfHidden = true),
-    ApsDynIsfAdjustSensitivity(R.string.key_dynamic_isf_adjust_sensitivity, false, defaultedBySM = true, dependency = ApsUseDynamicSensitivity), // change from default false
+    ApsDynIsfAdjustSensitivity(R.string.key_dynamic_isf_adjust_sensitivity, true, defaultedBySM = true, dependency = ApsUseDynamicSensitivity), // change from default false
     ApsAmaAutosensAdjustTargets(R.string.key_openaps_ama_autosens_adjust_targets, true, defaultedBySM = true),
     MaintenanceEnableFabric(R.string.key_enable_fabric, true, defaultedBySM = true, hideParentScreenIfHidden = true),
 
@@ -57,6 +57,5 @@ enum class BooleanKey(
     VirtualPumpStatusUpload(R.string.key_virtual_pump_upload_status, false, showInNsClientMode = false),
     OApsAIMIMLtraining(R.string.key_enable_ML_training, false),
     OApsAIMIEnableBasal(R.string.key_enable_basal, false),
-    OApsAIMIEnableStepsFromWatch(R.string.count_steps_watch, false),
-    OApsAIMIEnableDynisfReactivityHour(R.string.key_enable_advance_dynisf_reactivity, false, defaultedBySM = true, hideParentScreenIfHidden = true)
+    OApsAIMIEnableStepsFromWatch(R.string.count_steps_watch, false)
 }

@@ -1968,71 +1968,73 @@ fun round(value: Double): Int {
             }
         }
 
+        val lineSeparator = System.lineSeparator()
         val logAIMI = """
-    |The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump\n
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 26 février 2024\n
+    |The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 26 février 2024<br>$lineSeparator
     |
-    |Max IOB: $maxIob\n
-    |Max SMB: $maxSMB\n
-    |sleep: $sleepTime\n
-    |sport: $sportTime\n
-    |snack: $snackTime\n
-    |lowcarb: $lowCarbTime\n
-    |highcarb: $highCarbTime\n
-    |meal: $mealTime\n
-    |fastingtime: $fastingTime\n
-    |intervalsmb: $intervalsmb\n
-    |mealruntime: $mealruntime\n
-    |highCarbrunTime: $highCarbrunTime\n
+    |Max IOB: $maxIob<br>$lineSeparator
+    |Max SMB: $maxSMB<br>$lineSeparator
+    |sleep: $sleepTime<br>$lineSeparator
+    |sport: $sportTime<br>$lineSeparator
+    |snack: $snackTime<br>$lineSeparator
+    |lowcarb: $lowCarbTime<br>$lineSeparator
+    |highcarb: $highCarbTime<br>$lineSeparator
+    |meal: $mealTime<br>$lineSeparator
+    |fastingtime: $fastingTime<br>$lineSeparator
+    |intervalsmb: $intervalsmb<br>$lineSeparator
+    |mealruntime: $mealruntime<br>$lineSeparator
+    |highCarbrunTime: $highCarbrunTime<br>$lineSeparator
     |
-    |bg: $bg\n
-    |targetBG: $targetBg\n
-    |futureBg: $predictedBg\n
-    |delta: $delta\n
-    |short avg delta: $shortAvgDelta\n
-    |long avg delta: $longAvgDelta\n
-    |accelerating_up: $accelerating_up\n
-    |deccelerating_up: $deccelerating_up\n
-    |accelerating_down: $accelerating_down\n
-    |deccelerating_down: $deccelerating_down\n
-    |stable: $stable\n
-    |neuralnetwork5: ${neuralnetwork5(delta, shortAvgDelta, longAvgDelta, predictedSMB, basalaimi)}\n
+    |bg: $bg<br>$lineSeparator
+    |targetBG: $targetBg<br>$lineSeparator
+    |futureBg: $predictedBg<br>$lineSeparator
+    |delta: $delta<br>$lineSeparator
+    |short avg delta: $shortAvgDelta<br>$lineSeparator
+    |long avg delta: $longAvgDelta<br>$lineSeparator
+    |accelerating_up: $accelerating_up<br>$lineSeparator
+    |deccelerating_up: $deccelerating_up<br>$lineSeparator
+    |accelerating_down: $accelerating_down<br>$lineSeparator
+    |deccelerating_down: $deccelerating_down<br>$lineSeparator
+    |stable: $stable<br>$lineSeparator
+    |neuralnetwork5: ${neuralnetwork5(delta, shortAvgDelta, longAvgDelta, predictedSMB, basalaimi)}<br>$lineSeparator
     |
-    |IOB: $iob\n
-    |tdd 7d/h: ${roundToPoint05(tdd7DaysPerHour)}\n
-    |tdd 2d/h: ${roundToPoint05(tdd2DaysPerHour)}\n
-    |tdd daily/h: ${roundToPoint05(tddPerHour)}\n
-    |tdd 24h/h: ${roundToPoint05(tdd24HrsPerHour)}\n
-    |enablebasal: $enablebasal\n
-    |basalaimi: $basalaimi\n
-    |ISF: $variableSensitivity\n
+    |IOB: $iob<br>$lineSeparator
+    |tdd 7d/h: ${roundToPoint05(tdd7DaysPerHour)}<br>$lineSeparator
+    |tdd 2d/h: ${roundToPoint05(tdd2DaysPerHour)}<br>$lineSeparator
+    |tdd daily/h: ${roundToPoint05(tddPerHour)}<br>$lineSeparator
+    |tdd 24h/h: ${roundToPoint05(tdd24HrsPerHour)}<br>$lineSeparator
+    |enablebasal: $enablebasal<br>$lineSeparator
+    |basalaimi: $basalaimi<br>$lineSeparator
+    |ISF: $variableSensitivity<br>$lineSeparator
     |
-    |Hour of day: $hourOfDay\n
-    |Weekend: $weekend\n
-    |5 Min Steps: $recentSteps5Minutes\n
-    |10 Min Steps: $recentSteps10Minutes\n
-    |15 Min Steps: $recentSteps15Minutes\n
-    |30 Min Steps: $recentSteps30Minutes\n
-    |60 Min Steps: $recentSteps60Minutes\n
-    |180 Min Steps: $recentSteps180Minutes\n
-    |Heart Beat(average past 5 minutes): $averageBeatsPerMinute\n
-    |Heart Beat(average past 60 minutes): $averageBeatsPerMinute60\n
-    |Heart Beat(average past 180 minutes): $averageBeatsPerMinute180\n
-    |COB: ${cob}g Future: ${futureCarbs}g\n
-    |COB Age Min: $lastCarbAgeMin\n
+    |Hour of day: $hourOfDay<br>$lineSeparator
+    |Weekend: $weekend<br>$lineSeparator
+    |5 Min Steps: $recentSteps5Minutes<br>$lineSeparator
+    |10 Min Steps: $recentSteps10Minutes<br>$lineSeparator
+    |15 Min Steps: $recentSteps15Minutes<br>$lineSeparator
+    |30 Min Steps: $recentSteps30Minutes<br>$lineSeparator
+    |60 Min Steps: $recentSteps60Minutes<br>$lineSeparator
+    |180 Min Steps: $recentSteps180Minutes<br>$lineSeparator
+    |Heart Beat(average past 5 minutes): $averageBeatsPerMinute<br>$lineSeparator
+    |Heart Beat(average past 60 minutes): $averageBeatsPerMinute60<br>$lineSeparator
+    |Heart Beat(average past 180 minutes): $averageBeatsPerMinute180<br>$lineSeparator
+    |COB: ${cob}g Future: ${futureCarbs}g<br>$lineSeparator
+    |COB Age Min: $lastCarbAgeMin<br>$lineSeparator
     |
-    |tags0to60minAgo: ${tags0to60minAgo}\n
-    |tags60to120minAgo: $tags60to120minAgo\n
-    |tags120to180minAgo: $tags120to180minAgo\n
-    |tags180to240minAgo: $tags180to240minAgo\n
-    |currentTIRLow: $currentTIRLow\n
-    |currentTIRRange: $currentTIRRange\n
-    |currentTIRAbove: $currentTIRAbove\n
-    |lastHourTIRLow: $lastHourTIRLow\n
-    |lastHourTIRLow100: $lastHourTIRLow100\n
-    |lastHourTIRabove170: $lastHourTIRabove170\n
+    |tags0to60minAgo: ${tags0to60minAgo}<br>$lineSeparator
+    |tags60to120minAgo: $tags60to120minAgo<br>$lineSeparator
+    |tags120to180minAgo: $tags120to180minAgo<br>$lineSeparator
+    |tags180to240minAgo: $tags180to240minAgo<br>$lineSeparator
+    |currentTIRLow: $currentTIRLow<br>$lineSeparator
+    |currentTIRRange: $currentTIRRange<br>$lineSeparator
+    |currentTIRAbove: $currentTIRAbove<br>$lineSeparator
+    |lastHourTIRLow: $lastHourTIRLow<br>$lineSeparator
+    |lastHourTIRLow100: $lastHourTIRLow100<br>$lineSeparator
+    |lastHourTIRabove170: $lastHourTIRabove170<br>$lineSeparator
 """.trimMargin()
-    rT.reason.append(logAIMI)
+
+        rT.reason.append(logAIMI)
         // eventual BG is at/above target
         // if iob is over max, just cancel any temps
         if (eventualBG >= max_bg) {
