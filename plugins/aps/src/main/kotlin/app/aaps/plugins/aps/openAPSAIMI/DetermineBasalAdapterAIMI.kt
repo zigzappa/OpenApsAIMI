@@ -364,10 +364,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
     private fun isCriticalSafetyCondition(): Boolean {
         val fasting = fastingTime
-        val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..4) } && delta > 15 && cob === 0.0f
-        val isNewCalibration = iscalibration && delta > 10
-        val belowMinThreshold = bg < 80
+        val belowMinThreshold = bg < 90
         val belowTargetAndDropping = bg < targetBg && delta < -2
+        val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..6) } && delta > 10 && cob === 0.0f
+        val isNewCalibration = iscalibration && delta > 10
         val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 5
         val droppingFast = bg < 150 && delta < -5
         val droppingFastAtHigh = bg < 200 && delta < -7
