@@ -234,7 +234,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI-MT.2 ML.2, 25 février 2024"
+            ",<br/> Version du plugin OpenApsAIMI-MT.2 ML.2, 27 février 2024"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -396,6 +396,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
     private fun applySpecificAdjustments(smbToGive: Float): Float {
         var result = smbToGive
+        val belowTarget = bg < targetBg
 
         val safetysmb = recentSteps180Minutes > 1500 && bg < 130
         if ((safetysmb || sleepTime || snackTime || lowCarbTime ) && lastsmbtime >= 10) {
@@ -411,7 +412,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         if (recentSteps5Minutes > 100 && recentSteps30Minutes > 500 && lastsmbtime < 20) {
             result = 0.0f
         }
-
+        if (belowTarget) result /= 2
         return result
     }
 
@@ -864,7 +865,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         dynISFadjust: Float
     ): Float {
         val hypoAdjustment = if (iob > 3 * maxSMB) 0.8f else 1.0f // Réduire les facteurs si hypo récente
-        val factorAdjustment = if (bg < 110) 0.2f else 0.3f
+        val factorAdjustment = if (bg < 120) 0.1f else 0.2f
         val bgAdjustment = 1.0f + (Math.log(Math.abs(delta.toDouble()) + 1) - 1)  * factorAdjustment
         val isfadjust = if (delta < 0) {bgAdjustment / dynISFadjust} else {dynISFadjust * bgAdjustment * hypoAdjustment}
         return isfadjust.toFloat()
@@ -1288,10 +1289,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
             val variableSensitivityDouble = variableSensitivity.toDoubleSafely()
             if (variableSensitivityDouble != null) {
-                if (recentSteps5Minutes > 100 && recentSteps10Minutes > 200 && bg < 130 && delta < 10 || recentSteps180Minutes > 1500 && bg < 130 && delta < 10) {
+                if (recentSteps5Minutes > 100 && recentSteps10Minutes > 200 && bg < 140 && delta < 10 || recentSteps180Minutes > 1500 && bg < 140 && delta < 10) {
                     this.variableSensitivity *= gFactor
                 }
-                if (recentSteps30Minutes > 500 && recentSteps5Minutes >= 0 && recentSteps5Minutes < 100 && bg < 130 && delta < 10) {
+                if (recentSteps30Minutes > 500 && recentSteps5Minutes >= 0 && recentSteps5Minutes < 100 && bg < 140 && delta < 10) {
                     this.variableSensitivity *= gFactor
                 }
             }

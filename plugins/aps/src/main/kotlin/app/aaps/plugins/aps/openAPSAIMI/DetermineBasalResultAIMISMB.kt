@@ -78,7 +78,7 @@ class DetermineBasalResultAIMISMB private constructor(injector: HasAndroidInject
 
         if (enablebasal) {
             when {
-                delta <= 0 && bg <= 90 -> {
+                delta <= 0 && bg <= 130 -> {
                     // Logique pour delta <= 0 et bg <= 150
                     this.percent = 0
                     this.rate = 0.0
