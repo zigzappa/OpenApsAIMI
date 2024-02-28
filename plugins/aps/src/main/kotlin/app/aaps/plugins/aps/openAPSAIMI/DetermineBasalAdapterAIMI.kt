@@ -327,7 +327,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         if (isHighCarbModeCondition()) return pbolusHC.toFloat()
         if (isCriticalSafetyCondition()) return 0.0f
         if (isSportSafetyCondition()) return 0.0f
-        if (enableSMB) return 0.0f
+        if (!enableSMB) return 0.0f
         // Ajustements basés sur des conditions spécifiques
         smbToGive = applySpecificAdjustments(smbToGive)
 
