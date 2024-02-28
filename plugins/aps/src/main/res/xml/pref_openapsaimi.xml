@@ -17,6 +17,11 @@
             android:title="@string/Enable_basal_title"
             android:summary="@string/Enable_basal_summary" />
 
+        <app.aaps.core.keys.AdaptiveSwitchPreference
+            android:key="@string/key_enable_smb"
+            android:title="@string/Enable_SMB_title"
+            android:summary="@string/Enable_SMB_summary" />
+
         <app.aaps.core.validators.AdaptiveDoublePreference
             android:dialogMessage="@string/openapsma_max_basal_summary"
             android:key="@string/key_openaps_max_basal"

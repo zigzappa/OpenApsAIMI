@@ -234,7 +234,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI-MT.2 ML.2, 27 février 2024"
+            ",<br/> Version du plugin OpenApsAIMI-MT.2 ML.2, 28 février 2024"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -321,11 +321,13 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         var smbToGive = smbToGiveParam
         val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
         val pbolusHC: Double = preferences.get(DoubleKey.OApsAIMIHighCarbPrebolus)
+        val enableSMB:Boolean = preferences.get(BooleanKey.OApsAIMIEnableSMB)
         // Vérifier les conditions de sécurité critiques
         if (isMealModeCondition()) return pbolusM.toFloat()
         if (isHighCarbModeCondition()) return pbolusHC.toFloat()
         if (isCriticalSafetyCondition()) return 0.0f
         if (isSportSafetyCondition()) return 0.0f
+        if (enableSMB) return 0.0f
         // Ajustements basés sur des conditions spécifiques
         smbToGive = applySpecificAdjustments(smbToGive)
 

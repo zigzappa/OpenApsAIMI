@@ -192,5 +192,8 @@
     <string name="oaps_aimi_tdd7_title">TDD 7 days</string>
     <string name="oaps_aimi_cho_summary">Average carbs for a meal. it\'s an estimation not a precise value</string>
     <string name="oaps_aimi_cho_title">CHO Meal average lunch or dinner</string>
+    <string name="key_enable_smb">key_enable_SMB</string>
+    <string name="Enable_SMB_title">Enable SMB</string>
+    <string name="Enable_SMB_summary">To receive SMB this option need to be enable.</string>
 
 </resources>
