@@ -272,7 +272,8 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             }
         }
 
-        val sensitivity = Round.roundTo(1800 / (tdd * (ln((glucose / insulinDivisor) + 1))), 0.1)
+        var sensitivity = Round.roundTo(1800 / (tdd * (ln((glucose / insulinDivisor) + 1))), 0.1)
+        if (glucoseStatusProvider.glucoseStatusData?.delta!! < 0) sensitivity = sensitivity * tdd / 6
         //aapsLogger.debug("calculateVariableIsf $caller CAL ${dateUtil.dateAndTimeAndSecondsString(timestamp)} $sensitivity")
         dynIsfCache.put(key, sensitivity)
         if (dynIsfCache.size() > 1000) dynIsfCache.clear()
@@ -311,7 +312,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 hardLimits.maxIC()
             )
         ) return
-        if (!hardLimits.checkHardLimits(profile.getIsfMgdl("OpenAPSSMBPlugin"), app.aaps.core.ui.R.string.profile_sensitivity_value, HardLimits.MIN_ISF, HardLimits.MAX_ISF)) return
+        if (!hardLimits.checkHardLimits(profile.getIsfMgdl("OpenAPSAIMIPlugin"), app.aaps.core.ui.R.string.profile_sensitivity_value, HardLimits.MIN_ISF, HardLimits.MAX_ISF)) return
         if (!hardLimits.checkHardLimits(profile.getMaxDailyBasal(), app.aaps.core.ui.R.string.profile_max_daily_basal_value, 0.02, hardLimits.maxBasal())) return
         if (!hardLimits.checkHardLimits(pump.baseBasalRate, app.aaps.core.ui.R.string.current_basal_value, 0.01, hardLimits.maxBasal())) return
 
@@ -380,12 +381,38 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 insulin.peak > 45  -> 65 // ultra rapid peak: 55
                 else               -> 75 // rapid peak: 75
             }
-
+            val bg = glucoseStatusProvider.glucoseStatusData?.glucose
+            val dynISFadjust: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustment) / 100).toDouble()
+            val dynISFadjusthyper: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustmentHyper) / 100).toDouble()
+            val mealTimeDynISFAdjFactor = (preferences.get(IntKey.OApsAIMImealAdjISFFact) / 100).toDouble()
+            val snackTimeDynISFAdjFactor = (preferences.get(IntKey.OApsAIMISnackAdjISFFact) / 100).toDouble()
+            val sleepTimeDynISFAdjFactor = (preferences.get(IntKey.OApsAIMIsleepAdjISFFact) / 100).toDouble()
+            val hcTimeDynISFAdjFactor = (preferences.get(IntKey.OApsAIMIHighCarbAdjISFFact) / 100).toDouble()
+            val therapy = Therapy(persistenceLayer).also {
+                it.updateStatesBasedOnTherapyEvents()
+            }
+            val sleepTime = therapy.sleepTime
+            val snackTime = therapy.snackTime
+            val sportTime = therapy.sportTime
+            val lowCarbTime = therapy.lowCarbTime
+            val highCarbTime = therapy.highCarbTime
+            val mealTime = therapy.mealTime
             val tddWeightedFromLast8H = ((1.4 * tddLast4H) + (0.6 * tddLast8to4H)) * 3
             tdd = (tddWeightedFromLast8H * 0.33) + (tdd2Days * 0.34) + (tddDaily * 0.33)
-
+            if (bg != null) {
+                tdd = when {
+                    sportTime -> tdd * 2.5
+                    sleepTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(sleepTimeDynISFAdjFactor)
+                    lowCarbTime -> tdd * 1.4
+                    snackTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(snackTimeDynISFAdjFactor)
+                    highCarbTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(hcTimeDynISFAdjFactor)
+                    mealTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(mealTimeDynISFAdjFactor)
+                    bg > 180 -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(dynISFadjusthyper)
+                    else -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(dynISFadjust)
+                }
+            }
             variableSensitivity = Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1)
-
+            if (glucoseStatus.delta < 0) variableSensitivity = variableSensitivity * tdd / 6
 // Compare insulin consumption of last 24h with last 7 days average
             val tddRatio = if (preferences.get(BooleanKey.ApsDynIsfAdjustSensitivity)) tdd24Hrs / tdd2Days else 1.0
 // Because consumed carbs affects total amount of insulin compensate final ratio by consumed carbs ratio
@@ -414,7 +441,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 max_bg = maxBg,
                 target_bg = targetBg,
                 carb_ratio = profile.getIc(),
-                sens = profile.getIsfMgdl("OpenAPSSMBPlugin"),
+                sens = profile.getIsfMgdl("OpenAPSAIMIPlugin"),
                 autosens_adjust_targets = false, // not used
                 max_daily_safety_multiplier = preferences.get(DoubleKey.ApsMaxDailyMultiplier),
                 current_basal_safety_multiplier = preferences.get(DoubleKey.ApsMaxCurrentBasalMultiplier),
@@ -447,7 +474,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 out_units = if (profileFunction.getUnits() == GlucoseUnit.MMOL) "mmol/L" else "mg/dl",
                 variable_sens = variableSensitivity,
                 insulinDivisor = insulinDivisor,
-                TDD = tdd
+                TDD = if (tdd == 0.0)  preferences.get(DoubleKey.OApsAIMITDD7) else tdd
             )
 
             val microBolusAllowed = constraintsChecker.isSMBModeEnabled(ConstraintObject(tempBasalFallback.not(), aapsLogger)).also { inputConstraints.copyReasons(it) }.value()

@@ -1070,12 +1070,6 @@ fun round(value: Double): Int {
         val minDelta = min(glucose_status.delta, glucose_status.shortAvgDelta)
         val minAvgDelta = min(glucose_status.shortAvgDelta, glucose_status.longAvgDelta)
         val maxDelta = max(glucose_status.delta, max(glucose_status.shortAvgDelta, glucose_status.longAvgDelta))
-        /*val dynISFadjust: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustment) / 100).toDouble()
-        val dynISFadjusthyper: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustmentHyper) / 100).toDouble()
-        val mealTimeDynISFAdjFactor = (preferences.get(IntKey.OApsAIMImealAdjISFFact) / 100).toDouble()
-        val snackTimeDynISFAdjFactor = (preferences.get(IntKey.OApsAIMISnackAdjISFFact) / 100).toDouble()
-        val sleepTimeDynISFAdjFactor = (preferences.get(IntKey.OApsAIMIsleepAdjISFFact) / 100).toDouble()
-        val hcTimeDynISFAdjFactor = (preferences.get(IntKey.OApsAIMIHighCarbAdjISFFact) / 100).toDouble()*/
         val tdd7P: Double = preferences.get(DoubleKey.OApsAIMITDD7)
         var tdd7Days = profile.TDD
         if (tdd7Days == 0.0 || tdd7Days == null || tdd7Days < tdd7P) tdd7Days = tdd7P
@@ -1091,16 +1085,6 @@ fun round(value: Double): Int {
         if (tdd24Hrs == 0.0f || tdd24Hrs == null) tdd24Hrs = tdd7P.toFloat()
         this.tdd24HrsPerHour = tdd24Hrs / 24
         var sens = profile.variable_sens
-        /*sens = when {
-            sportTime -> sens * 2.5
-            sleepTime -> sens * adjustFactorsdynisfBasedOnBgAndHypo(sleepTimeDynISFAdjFactor)
-            lowCarbTime -> sens * 1.4
-            snackTime -> sens * adjustFactorsdynisfBasedOnBgAndHypo(snackTimeDynISFAdjFactor)
-            highCarbTime -> sens * adjustFactorsdynisfBasedOnBgAndHypo(hcTimeDynISFAdjFactor)
-            mealTime -> sens * adjustFactorsdynisfBasedOnBgAndHypo(mealTimeDynISFAdjFactor)
-            bg > 180 -> sens * adjustFactorsdynisfBasedOnBgAndHypo(dynISFadjusthyper)
-            else -> sens * adjustFactorsdynisfBasedOnBgAndHypo(dynISFadjust)
-        }*/
         this.variableSensitivity = sens.toFloat()
         consoleError.add("CR:${profile.carb_ratio}")
         this.predictedBg = predictFutureBg(bg.toFloat(), iob, variableSensitivity, cob, CI)
@@ -1842,7 +1826,7 @@ fun round(value: Double): Int {
             var durationReq = round(60 * worstCaseInsulinReq / profile.current_basal)
             durationReq = round(durationReq / 30.0) * 30
             // always set a 30-120m zero temp (oref0-pump-loop will let any longer SMB zero temp run)
-            durationReq = min(120, max(30, durationReq))
+            durationReq = min(60, max(30, durationReq))
             return setTempBasal(0.0, durationReq, profile, rT, currenttemp)
         }
 
@@ -1917,7 +1901,7 @@ fun round(value: Double): Int {
                         // don't set a temp longer than 120 minutes
                     } else {
                         durationReq = round(durationReq / 30.0) * 30
-                        durationReq = min(120, max(0, durationReq))
+                        durationReq = min(60, max(0, durationReq))
                     }
                     //console.error(durationReq);
                     if (durationReq > 0) {
@@ -2052,7 +2036,8 @@ fun round(value: Double): Int {
         } else { // otherwise, calculate 30m high-temp required to get projected BG down to target
             // insulinReq is the additional insulin required to get minPredBG down to target_bg
             //console.error(minPredBG,eventualBG);
-            var insulinReq = round((min(minPredBG, eventualBG) - target_bg) / future_sens, 2)
+            //var insulinReq = round((min(minPredBG, eventualBG) - target_bg) / future_sens, 2)
+            var insulinReq = smbToGive.toDouble()
             // if that would put us over max_iob, then reduce accordingly
             if (insulinReq > max_iob - iob_data.iob) {
                 rT.reason.append("max_iob $max_iob, ")
@@ -2084,8 +2069,9 @@ fun round(value: Double): Int {
                 }
                 // bolus 1/2 the insulinReq, up to maxBolus, rounding down to nearest bolus increment
                 //val roundSMBTo = 1 / profile.bolus_increment
+                //insulinReq = smbToGive.toDouble()
                 //val microBolus = Math.floor(Math.min(insulinReq / 2, maxBolus) * roundSMBTo) / roundSMBTo
-                val microBolus = smbToGive
+                val microBolus = insulinReq
                 // calculate a long enough zero temp to eventually correct back up to target
                 val smbTarget = target_bg
                 val worstCaseInsulinReq = (smbTarget - (naive_eventualBG + minIOBPredBG) / 2.0) / sens
