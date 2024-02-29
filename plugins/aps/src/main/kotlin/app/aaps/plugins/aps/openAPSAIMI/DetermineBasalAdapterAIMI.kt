@@ -174,21 +174,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val eveningfactor: Double = preferences.get(DoubleKey.OApsAIMIEveningFactor) / 100.0
         val hyperfactor: Double = preferences.get(DoubleKey.OApsAIMIHyperFactor) / 100.0
 
-// Vérifier si l'option est activée
-        val isDynamicReactivityEnabled = preferences.get(BooleanKey.OApsAIMIEnableDynisfReactivityHour)
-
-        val adjustedFactors = if (isDynamicReactivityEnabled) {
-            val hourlyReactivityFactor = getHourlyReactivityFactor(hourOfDay, preferences)
-            adjustFactorsBasedOnBgAndHypo(
-                hourlyReactivityFactor, hourlyReactivityFactor, hourlyReactivityFactor
-            )
-        } else {
-            adjustFactorsBasedOnBgAndHypo(
-                morningfactor.toFloat(), afternoonfactor.toFloat(), eveningfactor.toFloat()
-            )
-        }
-
-        val (adjustedMorningFactor, adjustedAfternoonFactor, adjustedEveningFactor) = adjustedFactors
+        val (adjustedMorningFactor, adjustedAfternoonFactor, adjustedEveningFactor) = adjustFactorsBasedOnBgAndHypo(
+            morningfactor.toFloat(), afternoonfactor.toFloat(), eveningfactor.toFloat())
 
         // Appliquer les ajustements en fonction de l'heure de la journée
         smbToGive = when {
@@ -204,8 +191,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.profile.put("adjustedMorningFactor",  adjustedMorningFactor)
         this.profile.put("adjustedAfternoonFactor",  adjustedAfternoonFactor)
         this.profile.put("adjustedEveningFactor",  adjustedEveningFactor)
-        this.profile.put("isDynamicReactivityEnabled",  isDynamicReactivityEnabled)
-        this.profile.put("adjustedFactorsHour",  adjustedFactors)
 
         smbToGive = applySafetyPrecautions(smbToGive)
         smbToGive = roundToPoint05(smbToGive)
@@ -378,12 +363,14 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val droppingVeryFast = delta < -10
         val prediction = predictedBg < targetBg && bg < 135
         val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 15
+        val stopsmb = predictedBg < 65 && bg < 180
+
 
 
 
         return belowMinThreshold || belowTargetAndDropping || belowTargetAndStableButNoCob ||
             droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval ||
-            fasting || nosmb || nightTrigger || isNewCalibration
+            fasting || nosmb || nightTrigger || isNewCalibration || stopsmb
     }
     private fun isSportSafetyCondition(): Boolean {
         val sport = targetBg >= 140 && recentSteps5Minutes >= 200 && recentSteps10Minutes >= 500
@@ -760,7 +747,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             else -> stableFactor
         }
     }*/
-    private fun calculateGFactor(delta: Float, lastHourTIRabove170: Double, bg: Float): Double {
+    /*private fun calculateGFactor(delta: Float, lastHourTIRabove170: Double, bg: Float): Double {
         val deltaFactor = delta / 10 // Ajuster selon les besoins
         val bgFactor = if (bg > 170) 1.2 else if (bg < 100) 0.8 else 1.0
 
@@ -769,39 +756,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         // Combinez les facteurs pour obtenir un ajustement global
         return deltaFactor * bgFactor * tirFactor
-    }
+    }*/
 
-
-
-    private fun getHourlyReactivityFactor(hourOfDay: Int, preferences: Preferences): Float {
-        return when (hourOfDay) {
-            0 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor01)
-            1 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor12)
-            2 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor23)
-            3 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor34)
-            4 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor45)
-            5 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor56)
-            6 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor67)
-            7 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor78)
-            8 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor89)
-            9 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor910)
-            10 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor1011)
-            11 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor1112)
-            12 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor1213)
-            13 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor1314)
-            14 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor1415)
-            15 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor1516)
-            16 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor1617)
-            17 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor1718)
-            18 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor1819)
-            19 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor1920)
-            20 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor2021)
-            21 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor2122)
-            22 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor2223)
-            23 -> preferences.get(DoubleKey.OApsAIMIReactivityFactor2324)
-            else -> 1.0
-        }.toFloat() / 100.0f
-    }
     private fun adjustFactorsBasedOnBgAndHypo(
         morningFactor: Float,
         afternoonFactor: Float,
@@ -1064,52 +1020,16 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val dynISFadjust: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustment) / 100).toDouble()
         val dynISFadjusthyper: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustmentHyper) / 100).toDouble()
         val mealTimeDynISFAdjFactor = (preferences.get(IntKey.OApsAIMImealAdjISFFact) / 100).toDouble()
-        //val adjustDynIsf = adjustFactorsdynisfBasedOnBgAndHypo(bg, predictedBg, lastHourTIRLow.toFloat(), dynISFadjust.toFloat())
-        val isDynamicReactivityEnabled = preferences.get(BooleanKey.OApsAIMIEnableDynisfReactivityHour)
 
-        val hourlyDynISFFactor = if (isDynamicReactivityEnabled) {
-            when (hourOfDay) {
-                0 -> preferences.get(IntKey.OApsAIMIDynISFFactor01)
-                1 -> preferences.get(IntKey.OApsAIMIDynISFFactor12)
-                2 -> preferences.get(IntKey.OApsAIMIDynISFFactor23)
-                3 -> preferences.get(IntKey.OApsAIMIDynISFFactor34)
-                4 -> preferences.get(IntKey.OApsAIMIDynISFFactor45)
-                5 -> preferences.get(IntKey.OApsAIMIDynISFFactor56)
-                6 -> preferences.get(IntKey.OApsAIMIDynISFFactor67)
-                7 -> preferences.get(IntKey.OApsAIMIDynISFFactor78)
-                8 -> preferences.get(IntKey.OApsAIMIDynISFFactor89)
-                9 -> preferences.get(IntKey.OApsAIMIDynISFFactor910)
-                10 -> preferences.get(IntKey.OApsAIMIDynISFFactor1011)
-                11 -> preferences.get(IntKey.OApsAIMIDynISFFactor1112)
-                12 -> preferences.get(IntKey.OApsAIMIDynISFFactor1213)
-                13 -> preferences.get(IntKey.OApsAIMIDynISFFactor1314)
-                14 -> preferences.get(IntKey.OApsAIMIDynISFFactor1415)
-                15 -> preferences.get(IntKey.OApsAIMIDynISFFactor1516)
-                16 -> preferences.get(IntKey.OApsAIMIDynISFFactor1617)
-                17 -> preferences.get(IntKey.OApsAIMIDynISFFactor1718)
-                18 -> preferences.get(IntKey.OApsAIMIDynISFFactor1819)
-                19 -> preferences.get(IntKey.OApsAIMIDynISFFactor1920)
-                20 -> preferences.get(IntKey.OApsAIMIDynISFFactor2021)
-                21 -> preferences.get(IntKey.OApsAIMIDynISFFactor2122)
-                22 -> preferences.get(IntKey.OApsAIMIDynISFFactor2223)
-                23 -> preferences.get(IntKey.OApsAIMIDynISFFactor2324)
-                else -> 100
-            }.toDouble() / 100.0
-        } else {
-            dynISFadjust
-        }
-        val adjustedDynISF = adjustFactorsdynisfBasedOnBgAndHypo(
-           hourlyDynISFFactor.toFloat()
-        )
         tdd = when {
             sportTime -> tdd * 50.0
             sleepTime -> tdd * 80.0
             lowCarbTime -> tdd * 85.0
             snackTime -> tdd * 65.0
             highCarbTime -> tdd * 400.0
-            mealTime -> tdd * mealTimeDynISFAdjFactor
-            bg > 180 -> tdd * dynISFadjusthyper
-            else -> tdd * adjustedDynISF
+            mealTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(mealTimeDynISFAdjFactor.toFloat())
+            bg > 180 -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(dynISFadjusthyper.toFloat())
+            else -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(dynISFadjust.toFloat())
         }
         if (tdd.isInfinite()) {
             tdd = tdd7P
@@ -1283,8 +1203,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             this.variableSensitivity = profile.getIsfMgdl().toFloat() * calculateGFactor(delta, shortAvgDelta, longAvgDelta, lastHourTIRabove170,bg).toFloat()
         }*/
         if (tddDouble != null && glucoseDouble != null && insulinDivisorDouble != null) {
-            val gFactor = calculateGFactor(delta, lastHourTIRabove170, bg).toFloat()
-            this.variableSensitivity = Round.roundTo(1800 / (tdd * kotlin.math.ln((glucoseStatus.glucose / insulinDivisor) + 1)), 0.1).toFloat() * gFactor
+            //val gFactor = calculateGFactor(delta, lastHourTIRabove170, bg).toFloat()
+            this.variableSensitivity = Round.roundTo(1800 / (tdd * kotlin.math.ln((glucoseStatus.glucose / insulinDivisor) + 1)), 0.1).toFloat()
 
             if (lastHourTIRLow == 0.0 && lastHourTIRLow100 > 0 && bg < 100) {
                 this.variableSensitivity *= 1.5f // Ajuster ce facteur si nécessaire
@@ -1293,14 +1213,12 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             val variableSensitivityDouble = variableSensitivity.toDoubleSafely()
             if (variableSensitivityDouble != null) {
                 if (recentSteps5Minutes > 100 && recentSteps10Minutes > 200 && bg < 140 && delta < 10 || recentSteps180Minutes > 1500 && bg < 140 && delta < 10) {
-                    this.variableSensitivity *= gFactor
-                }
+                    this.variableSensitivity *= 1.5f               }
                 if (recentSteps30Minutes > 500 && recentSteps5Minutes >= 0 && recentSteps5Minutes < 100 && bg < 140 && delta < 10) {
-                    this.variableSensitivity *= gFactor
-                }
+                    this.variableSensitivity *= 1.2f                }
             }
         } else {
-            this.variableSensitivity = profile.getIsfMgdl().toFloat() * calculateGFactor(delta, lastHourTIRabove170, bg).toFloat()
+            this.variableSensitivity = profile.getIsfMgdl().toFloat()
         }
 
         // Après tous les ajustements de variableSensitivity
@@ -1308,6 +1226,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
             this.variableSensitivity = profile.getIsfMgdl().toFloat()
         }
+        if (delta < 0 ) this.variableSensitivity = profile.getIsfMgdl().toFloat() * (tdd.toFloat()/6)
 
         this.predictedBg = predictFutureBg(bg, iob, variableSensitivity, cob, CI)
         this.profile = JSONObject()
