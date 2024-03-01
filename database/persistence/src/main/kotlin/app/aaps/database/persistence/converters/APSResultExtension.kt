@@ -36,7 +36,8 @@ fun app.aaps.database.entities.APSResult.fromDb(injector: HasAndroidInjector): A
 fun APSResult.toDb(): app.aaps.database.entities.APSResult =
     when (algorithm) {
         APSResult.Algorithm.AMA,
-        APSResult.Algorithm.SMB ->
+        APSResult.Algorithm.SMB,
+        APSResult.Algorithm.AIMI ->
             app.aaps.database.entities.APSResult(
                 timestamp = this.date,
                 algorithm = this.algorithm.toDb(),

@@ -324,7 +324,9 @@ fun round(value: Double): Int {
         if (isMealModeCondition()) return pbolusM.toFloat()
         if (isHighCarbModeCondition()) return pbolusHC.toFloat()
         if (issnackModeCondition()) return pbolussnack.toFloat()
-        if (isCriticalSafetyCondition()) return 0.0f
+        val (conditionResult, _) = isCriticalSafetyCondition()
+        if (conditionResult) return 0.0f
+
         if (isSportSafetyCondition()) return 0.0f
         // Ajustements basés sur des conditions spécifiques
         smbToGive = applySpecificAdjustments(smbToGive)
@@ -373,26 +375,45 @@ fun round(value: Double): Int {
     private fun roundToPoint001(number: Float): Float {
         return (number * 1000.0).roundToInt() / 1000.0f
     }
-    private fun isCriticalSafetyCondition(): Boolean {
+    private fun isCriticalSafetyCondition(): Pair<Boolean, String> {
+        val conditionsTrue = mutableListOf<String>()
         val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10
+        if (nosmb) conditionsTrue.add("nosmb")
         val fasting = fastingTime
+        if (fasting) conditionsTrue.add("fasting")
         val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..6) } && delta > 10 && cob === 0.0f
+        if (nightTrigger) conditionsTrue.add("nightTrigger")
         val isNewCalibration = iscalibration && delta > 10
-        val belowMinThreshold = bg < 80
+        if (isNewCalibration) conditionsTrue.add("isNewCalibration")
         val belowTargetAndDropping = bg < targetBg && delta < -2
+        if (belowTargetAndDropping) conditionsTrue.add("belowTargetAndDropping")
         val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 10
+        if (belowTargetAndStableButNoCob) conditionsTrue.add("belowTargetAndStableButNoCob")
         val droppingFast = bg < 150 && delta < -5
+        if (droppingFast) conditionsTrue.add("droppingFast")
         val droppingFastAtHigh = bg < 200 && delta < -7
+        if (droppingFastAtHigh) conditionsTrue.add("droppingFastAtHigh")
         val droppingVeryFast = delta < -10
+        if (droppingVeryFast) conditionsTrue.add("droppingVeryFast")
         val prediction = predictedBg < targetBg && bg < 135
+        if (prediction) conditionsTrue.add("prediction")
         val interval = predictedBg < targetBg && delta > 10 && iob >= maxSMB/2 && lastsmbtime < 10
+        if (interval) conditionsTrue.add("interval")
         val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 15
-
-
-
-        return belowMinThreshold || belowTargetAndDropping || belowTargetAndStableButNoCob ||
+        if (targetinterval) conditionsTrue.add("targetinterval")
+        val stablebg = delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 180
+        if (stablebg) conditionsTrue.add("stablebg")
+        val result = belowTargetAndDropping || belowTargetAndStableButNoCob ||
             droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval ||
-            fasting || nosmb || nightTrigger || isNewCalibration
+            fasting || nosmb || nightTrigger || isNewCalibration || stablebg
+
+        val conditionsTrueString = if (conditionsTrue.isNotEmpty()) {
+            conditionsTrue.joinToString(", ")
+        } else {
+            "No conditions met"
+        }
+
+        return Pair(result, conditionsTrueString)
     }
     private fun isSportSafetyCondition(): Boolean {
         val sport = targetBg >= 140 && recentSteps5Minutes >= 200 && recentSteps10Minutes >= 500
@@ -933,6 +954,7 @@ fun round(value: Double): Int {
         val minAgo = round((systemTime - bgTime) / 60.0 / 1000.0, 1)
         // TODO eliminate
         val bg = glucose_status.glucose
+        this.bg = bg.toFloat()
         // TODO eliminate
         val noise = glucose_status.noise
         // 38 is an xDrip error state that usually indicates sensor failure
@@ -1279,7 +1301,7 @@ fun round(value: Double): Int {
                 val (refinedSMB, refinedBasalaimi) = neuralnetwork5(delta, shortAvgDelta, longAvgDelta, predictedSMB, basalaimi)
                 this.predictedSMB = refinedSMB
                 this.basalaimi = refinedBasalaimi
-                basal = basalaimi.toDouble() * circadianSensitivity
+                basal = basalaimi.toDouble()
                 basal = round_basal(basal)
             }
             rT.reason.append("csvfile ${csvfile.exists()}")
@@ -1327,7 +1349,7 @@ fun round(value: Double): Int {
         logDataToCsvHB(predictedSMB, smbToGive)
 
         rT = RT(
-            algorithm = APSResult.Algorithm.SMB,
+            algorithm = APSResult.Algorithm.AIMI,
             runningDynamicIsf = dynIsfMode,
             timestamp = currentTime,
             bg = bg,
@@ -1615,24 +1637,22 @@ fun round(value: Double): Int {
 
         var future_sens = 0.0
 
-            if (bg > target_bg && glucose_status.delta < 3 && glucose_status.delta > -3 && glucose_status.shortAvgDelta > -3 && glucose_status.shortAvgDelta < 3 && eventualBG > target_bg && eventualBG
-                < bg
-            ) {
-                future_sens = (1800 / (ln((((fSensBG * 0.5) + (bg * 0.5)) / profile.insulinDivisor) + 1) * profile.TDD))
-                future_sens = round(future_sens, 1)
-                consoleLog.add("Future state sensitivity is $future_sens based on eventual and current bg due to flat glucose level above target")
-                rT.reason.append("Dosing sensitivity: $future_sens using eventual BG;")
-            } else if (glucose_status.delta > 0 && eventualBG > target_bg || eventualBG > bg) {
-                future_sens = (1800 / (ln((bg / profile.insulinDivisor) + 1) * profile.TDD))
-                future_sens = round(future_sens, 1)
-                consoleLog.add("Future state sensitivity is $future_sens using current bg due to small delta or variation")
-                rT.reason.append("Dosing sensitivity: $future_sens using current BG;")
-            } else {
-                future_sens = (1800 / (ln((fSensBG / profile.insulinDivisor) + 1) * profile.TDD))
-                future_sens = round(future_sens, 1)
-                consoleLog.add("Future state sensitivity is $future_sens based on eventual bg due to -ve delta")
-                rT.reason.append("Dosing sensitivity: $future_sens using eventual BG;")
-            }
+        if (bg > target_bg && glucose_status.delta < 3 && glucose_status.delta > -3 && glucose_status.shortAvgDelta > -3 && glucose_status.shortAvgDelta < 3 && eventualBG > target_bg && eventualBG < bg) {
+            future_sens = (1800 / (ln((((fSensBG * 0.5) + (bg * 0.5)) / profile.insulinDivisor) + 1) * profile.TDD))
+            future_sens = round(future_sens, 1)
+            consoleLog.add("Future state sensitivity is $future_sens based on eventual and current bg due to flat glucose level above target")
+            rT.reason.append("Dosing sensitivity: $future_sens using eventual BG;")
+        } else if (glucose_status.delta > 0 && eventualBG > target_bg || eventualBG > bg) {
+            future_sens = (1800 / (ln((bg / profile.insulinDivisor) + 1) * profile.TDD))
+            future_sens = round(future_sens, 1)
+            consoleLog.add("Future state sensitivity is $future_sens using current bg due to small delta or variation")
+            rT.reason.append("Dosing sensitivity: $future_sens using current BG;")
+        } else {
+            future_sens = (1800 / (ln((fSensBG / profile.insulinDivisor) + 1) * profile.TDD))
+            future_sens = round(future_sens, 1)
+            consoleLog.add("Future state sensitivity is $future_sens based on eventual bg due to -ve delta")
+            rT.reason.append("Dosing sensitivity: $future_sens using eventual BG;")
+        }
 
 
         val fractionCarbsLeft = meal_data.mealCOB / meal_data.carbs
@@ -1863,7 +1883,8 @@ fun round(value: Double): Int {
 
             // calculate 30m low-temp required to get projected BG up to target
             // multiply by 2 to low-temp faster for increased hypo safety
-            var insulinReq = 2 * min(0.0, (eventualBG - target_bg) / future_sens)
+            //var insulinReq = 2 * min(0.0, (eventualBG - target_bg) / future_sens)
+            var insulinReq = 2 * min(0.0, smbToGive.toDouble())
             insulinReq = round(insulinReq, 2)
             // calculate naiveInsulinReq based on naive_eventualBG
             var naiveInsulinReq = min(0.0, (naive_eventualBG - target_bg) / sens)
@@ -1951,10 +1972,10 @@ fun round(value: Double): Int {
                 }
             }
         }
-
+        val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
-    |The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
+    |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
     |Version du plugin OpenApsAIMI-MT.2 ML.2, 26 février 2024<br>$lineSeparator
     |
     |Max IOB: $maxIob<br>$lineSeparator
@@ -2016,6 +2037,7 @@ fun round(value: Double): Int {
     |lastHourTIRLow: $lastHourTIRLow<br>$lineSeparator
     |lastHourTIRLow100: $lastHourTIRLow100<br>$lineSeparator
     |lastHourTIRabove170: $lastHourTIRabove170<br>$lineSeparator
+    |isCriticalSafetyCondition: $conditionResult, True Conditions: $conditionsTrue<br>$lineSeparator
 """.trimMargin()
 
         rT.reason.append(logAIMI)
@@ -2039,10 +2061,10 @@ fun round(value: Double): Int {
             //var insulinReq = round((min(minPredBG, eventualBG) - target_bg) / future_sens, 2)
             var insulinReq = smbToGive.toDouble()
             // if that would put us over max_iob, then reduce accordingly
-            if (insulinReq > max_iob - iob_data.iob) {
+            /*if (insulinReq > max_iob - iob_data.iob) {
                 rT.reason.append("max_iob $max_iob, ")
                 insulinReq = max_iob - iob_data.iob
-            }
+            }*/
 
             // rate required to deliver insulinReq more insulin over 30m:
             var rate = basal + (2 * insulinReq)
@@ -2056,7 +2078,7 @@ fun round(value: Double): Int {
             //console.error(profile.temptargetSet, target_bg, rT.COB);
             // only allow microboluses with COB or low temp targets, or within DIA hours of a bolus
             val maxBolus: Double
-            if (microBolusAllowed && enableSMB && bg > threshold) {
+            if (microBolusAllowed && enableSMB) {
                 // never bolus more than maxSMBBasalMinutes worth of basal
                 val mealInsulinReq = round(meal_data.mealCOB / profile.carb_ratio, 3)
                 if (iob_data.iob > mealInsulinReq && iob_data.iob > 0) {
@@ -2075,7 +2097,7 @@ fun round(value: Double): Int {
                 // calculate a long enough zero temp to eventually correct back up to target
                 val smbTarget = target_bg
                 val worstCaseInsulinReq = (smbTarget - (naive_eventualBG + minIOBPredBG) / 2.0) / sens
-                var durationReq = round(60 * worstCaseInsulinReq / profile.current_basal)
+                var durationReq = round(30 * worstCaseInsulinReq / profile.current_basal)
 
                 // if insulinReq > 0 but not enough for a microBolus, don't set an SMB zero temp
                 if (insulinReq > 0 && microBolus < profile.bolus_increment) {
@@ -2095,8 +2117,8 @@ fun round(value: Double): Int {
                     durationReq = 30
                 }
                 rT.reason.append(" insulinReq $insulinReq")
-                if (microBolus >= maxBolus) {
-                    rT.reason.append("; maxBolus $maxBolus")
+                if (microBolus >= maxSMB) {
+                    rT.reason.append("; maxBolus $maxSMB")
                 }
                 if (durationReq > 0) {
                     rT.reason.append("; setting ${durationReq}m low temp of ${smbLowTempReq}U/h")
@@ -2112,7 +2134,7 @@ fun round(value: Double): Int {
                 consoleError.add("naive_eventualBG $naive_eventualBG,${durationReq}m ${smbLowTempReq}U/h temp needed; last bolus ${lastBolusAge}m ago; maxBolus: $maxBolus")
                 if (lastBolusAge > SMBInterval) {
                     if (microBolus > 0) {
-                        rT.units = microBolus.toDouble()
+                        rT.units = microBolus
                         rT.reason.append("Microbolusing ${microBolus}U. ")
                     }
                 } else {
@@ -2128,12 +2150,15 @@ fun round(value: Double): Int {
                 }
 
             }
+            val (conditionResult, _) = isCriticalSafetyCondition()
+
+
             val maxSafeBasal = getMaxSafeBasal(profile)
-            if (delta > 0 && bg > 80 && eventualBG > 80){
+            if (delta > 0 && bg > 80 && eventualBG > 65){
                 rate = round_basal(basal * delta)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
-            } else if (isCriticalSafetyCondition() && delta > 0 && bg > 80){
+            } else if (conditionResult && delta > 0 && bg > 80){
                 rate = round_basal(basal * delta)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal when isCriticalSafetyCondition is true ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)

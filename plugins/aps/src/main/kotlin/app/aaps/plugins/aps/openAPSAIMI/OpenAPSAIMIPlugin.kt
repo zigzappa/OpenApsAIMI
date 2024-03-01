@@ -224,11 +224,6 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         }
         val tdd7P: Double = preferences.get(DoubleKey.OApsAIMITDD7)
         // no cached result found, let's calculate the value
-        /*val tdd1D = tddCalculator.averageTDD(tddCalculator.calculate(timestamp, 1, allowMissingDays = false))?.data?.totalAmount ?: return Pair("TDD miss", null)
-        val tdd7D = tddCalculator.averageTDD(tddCalculator.calculate(timestamp, 7, allowMissingDays = false))?.data?.totalAmount ?: return Pair("TDD miss", null)
-        val tddLast24H = tddCalculator.calculateDaily(-24, 0)?.totalAmount ?: return Pair("TDD miss", null)
-        val tddLast4H = tddCalculator.calculateDaily(-4, 0)?.totalAmount ?: return Pair("TDD miss", null)
-        val tddLast8to4H = tddCalculator.calculateDaily(-8, -4)?.totalAmount ?: return Pair("TDD miss", null)*/
         val tdd1D = tddCalculator.averageTDD(tddCalculator.calculate(timestamp, 1, allowMissingDays = false))?.data?.totalAmount ?: tdd7P
         val tdd7D = tddCalculator.averageTDD(tddCalculator.calculate(timestamp, 7, allowMissingDays = false))?.data?.totalAmount ?: tdd7P
         val tddLast24H = tddCalculator.calculateDaily(-24, 0)?.totalAmount ?: tdd7P
@@ -273,7 +268,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         }
 
         var sensitivity = Round.roundTo(1800 / (tdd * (ln((glucose / insulinDivisor) + 1))), 0.1)
-        if (glucoseStatusProvider.glucoseStatusData?.delta!! < 0) sensitivity = sensitivity * tdd / 6
+        if (glucoseStatusProvider.glucoseStatusData?.delta!! < 0 || sensitivity < 2) sensitivity = sensitivity * tdd / 6
         //aapsLogger.debug("calculateVariableIsf $caller CAL ${dateUtil.dateAndTimeAndSecondsString(timestamp)} $sensitivity")
         dynIsfCache.put(key, sensitivity)
         if (dynIsfCache.size() > 1000) dynIsfCache.clear()
@@ -374,13 +369,6 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             val tdd24HrsPerHour = tdd24Hrs / 24
             val tddLast24H = tddCalculator.calculateDaily(-24, 0)
             val tddLast8to4H = tdd24HrsPerHour * 4
-            val insulin = activePlugin.activeInsulin
-
-            val insulinDivisor = when {
-                insulin.peak >= 35 -> 55 // lyumjev peak: 45
-                insulin.peak > 45  -> 65 // ultra rapid peak: 55
-                else               -> 75 // rapid peak: 75
-            }
             val bg = glucoseStatusProvider.glucoseStatusData?.glucose
             val dynISFadjust: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustment) / 100).toDouble()
             val dynISFadjusthyper: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustmentHyper) / 100).toDouble()
@@ -412,7 +400,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 }
             }
             variableSensitivity = Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1)
-            if (glucoseStatus.delta < 0) variableSensitivity = variableSensitivity * tdd / 6
+            if (glucoseStatus.delta < 0 || variableSensitivity < 2) variableSensitivity = variableSensitivity * tdd / 6
 // Compare insulin consumption of last 24h with last 7 days average
             val tddRatio = if (preferences.get(BooleanKey.ApsDynIsfAdjustSensitivity)) tdd24Hrs / tdd2Days else 1.0
 // Because consumed carbs affects total amount of insulin compensate final ratio by consumed carbs ratio
