@@ -739,14 +739,14 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val factorAdjustment = if (bg < 120) 0.2f else 0.3f
         val bgAdjustment = 1.0f + (Math.log(Math.abs(delta.toDouble()) + 1) - 1) * factorAdjustment
 
-        if (delta < 0)
-            return Triple(
+        return if (delta < 0)
+            Triple(
                 morningFactor / bgAdjustment,
                 afternoonFactor / bgAdjustment,
                 eveningFactor / bgAdjustment
             )
         else
-            return Triple(
+            Triple(
                 morningFactor * bgAdjustment * hypoAdjustment,
                 afternoonFactor * bgAdjustment * hypoAdjustment,
                 eveningFactor * bgAdjustment * hypoAdjustment)
@@ -817,8 +817,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         //this.iob = if (preferences.get(BooleanKey.OApsAIMIEnableBasal)) iobCalcs.iob.toFloat() + iobCalcs.basaliob.toFloat() else iobCalcs.iob.toFloat()
         val bolusIob= iobCobCalculator.calculateIobFromBolus().round()
         val basalIob =  iobCobCalculator.calculateIobFromTempBasalsIncludingConvertedExtended().round()
-        //this.iob = if (preferences.get(BooleanKey.OApsAIMIEnableBasal)) bolusIob.iob.toFloat() + basalIob.iob.toFloat() else bolusIob.iob.toFloat()
-        //val iobTotal = IobTotal.combine(bolusIob, basalIob).round()
         if (preferences.get(BooleanKey.OApsAIMIEnableBasal)) {
             this.iob = IobTotal.combine(bolusIob, basalIob).round().iob.toFloat()
         }else{
@@ -830,10 +828,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         this.cob = mealData.mealCOB.toFloat()
         var lastCarbTimestamp = mealData.lastCarbTime
 
-        /*if(lastCarbTimestamp.toInt() == 0) {
-            val oneDayAgoIfNotFound = now - 24 * 60 * 60 * 1000
-            lastCarbTimestamp = iobCobCalculator.getMostRecentCarbByDate() ?: oneDayAgoIfNotFound
-        }*/
         if (lastCarbTimestamp.toInt() == 0) {
             val oneDayAgoIfNotFound = now - 24 * 60 * 60 * 1000
             lastCarbTimestamp = persistenceLayer.getMostRecentCarbByDate() ?: oneDayAgoIfNotFound
@@ -841,13 +835,6 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         this.lastCarbAgeMin = ((now - lastCarbTimestamp) / (60 * 1000)).toDouble().roundToInt()
 
-        /*if(lastCarbAgeMin < 15 && cob == 0.0f) {
-            this.cob = iobCobCalculator.getMostRecentCarbAmount()?.toFloat() ?: 0.0f
-        }
-
-        this.futureCarbs = iobCobCalculator.getFutureCob().toFloat()
-        val fourHoursAgo = now - 4 * 60 * 60 * 1000
-        this.recentNotes = iobCobCalculator.getUserEntryDataWithNotesFromTime(fourHoursAgo)*/
         if (lastCarbAgeMin < 15 && cob == 0.0f) {
             this.cob = persistenceLayer.getMostRecentCarbAmount()?.toFloat() ?: 0.0f
         }
@@ -1109,33 +1096,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val tddDouble = tdd.toDoubleSafely()
         val glucoseDouble = glucoseStatus.glucose.toDoubleSafely()
         val insulinDivisorDouble = insulinDivisor.toDoubleSafely()
-        /*if (tddDouble != null && glucoseDouble != null && insulinDivisorDouble != null) {
-            this.variableSensitivity = kotlin.math.max(
-                profile.getIsfMgdl().toFloat() / 2.5f,
-                Round.roundTo(1800 / (tdd * kotlin.math.ln((glucoseStatus.glucose / insulinDivisor) + 1)), 0.1).toFloat() * calculateGFactor(delta, shortAvgDelta, longAvgDelta, lastHourTIRabove170, bg).toFloat()
-            )
-
-            // Votre nouvelle condition ici
-            if (lastHourTIRLow == 0.0 && lastHourTIRLow100 > 0 && bg < 100) {
-                this.variableSensitivity = profile.getIsfMgdl().toFloat() * 1.5f
-                this.targetBg = 110.0F
-            }
-
-            // Vos autres conditions
-            val variableSensitivityDouble = variableSensitivity.toDoubleSafely()
-            if (variableSensitivityDouble != null) {
-                if (recentSteps5Minutes > 100 && recentSteps10Minutes > 200 && bg < 130 && delta < 10 || recentSteps180Minutes > 1500 && bg < 130 && delta < 10) {
-                    this.variableSensitivity *= 1.5f * calculateGFactor(delta, shortAvgDelta, longAvgDelta, lastHourTIRabove170, bg).toFloat()
-                }
-                if (recentSteps30Minutes > 500 && recentSteps5Minutes >= 0 && recentSteps5Minutes < 100 && bg < 130 && delta < 10) {
-                    this.variableSensitivity *= 1.3f * calculateGFactor(delta, shortAvgDelta, longAvgDelta, lastHourTIRabove170, bg).toFloat()
-                }
-            }
-        } else {
-            this.variableSensitivity = profile.getIsfMgdl().toFloat() * calculateGFactor(delta, shortAvgDelta, longAvgDelta, lastHourTIRabove170,bg).toFloat()
-        }*/
         if (tddDouble != null && glucoseDouble != null && insulinDivisorDouble != null) {
-            //val gFactor = calculateGFactor(delta, lastHourTIRabove170, bg).toFloat()
             this.variableSensitivity = Round.roundTo(1800 / (tdd * kotlin.math.ln((glucoseStatus.glucose / insulinDivisor) + 1)), 0.1).toFloat()
 
             if (lastHourTIRLow == 0.0 && lastHourTIRLow100 > 0 && bg < 100) {
