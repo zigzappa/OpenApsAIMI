@@ -219,7 +219,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI-MT.2 ML.2, 29 février 2024"
+            ",<br/> Version du plugin OpenApsAIMI-MT.2 ML.2, 01 Mars 2024"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -351,6 +351,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
     private fun isCriticalSafetyCondition(): Boolean {
         val fasting = fastingTime
+        val acceleratingDown = delta < -2 && delta - longAvgDelta < -2 && lastsmbtime < 15
+        val decceleratingdown = delta < 0 && (delta > shortAvgDelta || delta > longAvgDelta) && lastsmbtime < 15
         val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10
         val belowMinThreshold = bg < 90
         val belowTargetAndDropping = bg < targetBg && delta < -2
@@ -371,7 +373,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         return belowMinThreshold || belowTargetAndDropping || belowTargetAndStableButNoCob ||
             droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval ||
-            fasting || nosmb || nightTrigger || isNewCalibration || stopsmb || stablebg
+            fasting || nosmb || nightTrigger || isNewCalibration || stopsmb || stablebg || acceleratingDown || decceleratingdown
     }
     private fun isSportSafetyCondition(): Boolean {
         val sport = targetBg >= 140 && recentSteps5Minutes >= 200 && recentSteps10Minutes >= 500
@@ -728,43 +730,12 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         return futureBg
     }
-    /*private fun calculateGFactor(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, lastHourTIRabove170: Double, bg: Float): Double {
-        val accelerationFactor = 0.7 // Augmentation du facteur pour une réaction plus agressive
-        val decelerationFactor = 1.3 // Facteur pour décélération de la glycémie
-        val stableFactor = 1.7 // Facteur pour glycémie stable
-
-        return when {
-            // Accélération rapide avec des seuils réduits
-            delta > 8 && shortAvgDelta >= 3 && longAvgDelta >= 3 -> accelerationFactor
-            delta >= 2 && shortAvgDelta >= 2 && longAvgDelta >= 2 && bg > 130 && bg < 170 -> accelerationFactor
-            delta >= 4 && shortAvgDelta >= 2 && longAvgDelta >= 2 && bg > 120 && bg < 170 -> accelerationFactor
-            delta >= 4 && lastHourTIRabove170 > 0 && bg > 170 -> accelerationFactor
-            delta > 1.5 && (delta > shortAvgDelta && delta > longAvgDelta) -> accelerationFactor
-
-            // Décélération ou tendance à la stabilisation
-            delta < 1.5 && (delta < shortAvgDelta || delta < longAvgDelta) && bg < 170 -> decelerationFactor
-
-            // Glycémie stable
-            else -> stableFactor
-        }
-    }*/
-    /*private fun calculateGFactor(delta: Float, lastHourTIRabove170: Double, bg: Float): Double {
-        val deltaFactor = delta / 10 // Ajuster selon les besoins
-        val bgFactor = if (bg > 170) 1.2 else if (bg < 100) 0.8 else 1.0
-
-        // Introduire un facteur basé sur lastHourTIRabove170
-        val tirFactor = 1.0 + lastHourTIRabove170 * 0.05 // Exemple: 5% d'augmentation pour chaque unité de lastHourTIRabove170
-
-        // Combinez les facteurs pour obtenir un ajustement global
-        return deltaFactor * bgFactor * tirFactor
-    }*/
-
     private fun adjustFactorsBasedOnBgAndHypo(
         morningFactor: Float,
         afternoonFactor: Float,
         eveningFactor: Float
     ): Triple<Double, Double, Double> {
-        val hypoAdjustment = if (iob > 3 * maxSMB) 0.8f else 1.0f
+        val hypoAdjustment = if (bg < 110 || (iob > 3 * maxSMB)) 0.8f else 1.0f
         val factorAdjustment = if (bg < 120) 0.2f else 0.3f
         val bgAdjustment = 1.0f + (Math.log(Math.abs(delta.toDouble()) + 1) - 1) * factorAdjustment
 
@@ -781,50 +752,10 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
                 eveningFactor * bgAdjustment * hypoAdjustment)
 
     }
-    /*private fun adjustFactorsBasedOnBgAndHypo(
-        currentBg: Float, futureBg: Float, lastHourTirLow: Float,
-        morningFactor: Float, afternoonFactor: Float, eveningFactor: Float
-    ): Triple<Double, Double, Double> {
-        val bgDifference = futureBg - currentBg
-        val hypoAdjustment = if (lastHourTirLow > 5) 0.6f else 1.0f // Réduire les facteurs si hypo récente
-        val bgAdjustment = 1.0f + (Math.log(Math.abs(bgDifference.toDouble()) + 1) - 1) * (if (bgDifference < 0) -0.1f else 0.1f)
-
-        return Triple(
-            morningFactor * bgAdjustment * hypoAdjustment,
-            afternoonFactor * bgAdjustment * hypoAdjustment,
-            eveningFactor * bgAdjustment * hypoAdjustment
-        )
-    }*/
-    /*private fun adjustFactorsdynisfBasedOnBgAndHypo(
-        currentBg: Float, futureBg: Float, lastHourTirLow: Float,
-        dynISFadjust: Float
-    ): Float {
-        val bgDifference = futureBg - currentBg
-        val hypoAdjustment = if (lastHourTirLow > 0) 0.6f else 1.0f // Réduire les facteurs si hypo récente
-        val bgAdjustment = 1.0f + (Math.log(Math.abs(bgDifference.toDouble()) + 1) - 1) * (if (bgDifference < 0) -0.1f else 0.1f)
-        val isfadjust = hypoAdjustment * bgAdjustment * dynISFadjust
-        return isfadjust.toFloat()
-
-    }*/
-    /*private fun adjustFactorsdynisfBasedOnBgAndHypo(
-        currentBg: Float, futureBg: Float, lastHourTirLow: Float,
-        dynISFadjust: Float
-    ): Float {
-        val bgDifference = futureBg - currentBg
-        // Augmenter l'impact de la différence de BG
-        val bgAdjustmentMultiplier = if (bgDifference < 0) -0.3f else 0.3f // Plus agressif que -0.1f / 0.1f
-        val bgAdjustment = 1.0f + (Math.log(Math.abs(bgDifference.toDouble()) + 1) - 1) * bgAdjustmentMultiplier
-
-        // Ajuster l'impact de l'hypo
-        val hypoAdjustment = if (lastHourTirLow > 0) 0.5f else 1.0f // Plus agressif que 0.6f / 1.0f
-
-        val isfadjust = hypoAdjustment * bgAdjustment * dynISFadjust
-        return isfadjust.toFloat()
-    }*/
     private fun adjustFactorsdynisfBasedOnBgAndHypo(
         dynISFadjust: Float
     ): Float {
-        val hypoAdjustment = if (iob > 3 * maxSMB) 0.8f else 1.0f // Réduire les facteurs si hypo récente
+        val hypoAdjustment = if (bg < 110 || (iob > 3 * maxSMB)) 0.8f else 1.0f // Réduire les facteurs si hypo récente
         val factorAdjustment = if (bg < 120) 0.1f else 0.2f
         val bgAdjustment = 1.0f + (Math.log(Math.abs(delta.toDouble()) + 1) - 1)  * factorAdjustment
         val isfadjust = if (delta < 0) {bgAdjustment / dynISFadjust} else {dynISFadjust * bgAdjustment * hypoAdjustment}
