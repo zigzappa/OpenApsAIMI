@@ -383,7 +383,7 @@ fun round(value: Double): Int {
         if (fasting) conditionsTrue.add("fasting")
         val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..6) } && delta > 10 && cob === 0.0f
         if (nightTrigger) conditionsTrue.add("nightTrigger")
-        val belowMinThreshold = bg < 90
+        val belowMinThreshold = bg < 110 && delta < 8
         if (belowMinThreshold) conditionsTrue.add("belowMinThreshold")
         val isNewCalibration = iscalibration && delta > 10
         if (isNewCalibration) conditionsTrue.add("isNewCalibration")
