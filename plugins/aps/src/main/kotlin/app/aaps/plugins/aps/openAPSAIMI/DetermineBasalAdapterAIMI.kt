@@ -354,7 +354,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val acceleratingDown = delta < -2 && delta - longAvgDelta < -2 && lastsmbtime < 15
         val decceleratingdown = delta < 0 && (delta > shortAvgDelta || delta > longAvgDelta) && lastsmbtime < 15
         val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10
-        val belowMinThreshold = bg < 90
+        val belowMinThreshold = bg < 110 && delta < 8
         val belowTargetAndDropping = bg < targetBg && delta < -2
         val interval = predictedBg < targetBg && delta > 10 && iob >= maxSMB/2 && lastsmbtime < 10
         val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..6) } && delta > 10 && cob === 0.0f
