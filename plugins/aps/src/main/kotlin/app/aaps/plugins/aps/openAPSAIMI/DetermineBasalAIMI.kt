@@ -383,6 +383,8 @@ fun round(value: Double): Int {
         if (fasting) conditionsTrue.add("fasting")
         val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..6) } && delta > 10 && cob === 0.0f
         if (nightTrigger) conditionsTrue.add("nightTrigger")
+        val belowMinThreshold = bg < 90
+        if (belowMinThreshold) conditionsTrue.add("belowMinThreshold")
         val isNewCalibration = iscalibration && delta > 10
         if (isNewCalibration) conditionsTrue.add("isNewCalibration")
         val belowTargetAndDropping = bg < targetBg && delta < -2
@@ -403,9 +405,13 @@ fun round(value: Double): Int {
         if (targetinterval) conditionsTrue.add("targetinterval")
         val stablebg = delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 180
         if (stablebg) conditionsTrue.add("stablebg")
+        val acceleratingDown = delta < -2 && delta - longAvgDelta < -2 && lastsmbtime < 15
+        if (acceleratingDown) conditionsTrue.add("acceleratingDown")
+        val decceleratingdown = delta < 0 && (delta > shortAvgDelta || delta > longAvgDelta) && lastsmbtime < 15
+        if (decceleratingdown) conditionsTrue.add("decceleratingdown")
         val result = belowTargetAndDropping || belowTargetAndStableButNoCob ||
             droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval ||
-            fasting || nosmb || nightTrigger || isNewCalibration || stablebg
+            fasting || nosmb || nightTrigger || isNewCalibration || stablebg || belowMinThreshold || acceleratingDown || decceleratingdown
 
         val conditionsTrueString = if (conditionsTrue.isNotEmpty()) {
             conditionsTrue.joinToString(", ")
@@ -649,7 +655,7 @@ fun round(value: Double): Int {
         afternoonFactor: Float,
         eveningFactor: Float
     ): Triple<Double, Double, Double> {
-        val hypoAdjustment = if (iob > 3 * maxSMB) 0.8f else 1.0f
+        val hypoAdjustment = if (bg < 110 || (iob > 3 * maxSMB)) 0.8f else 1.0f
         val factorAdjustment = if (bg < 120) 0.2f else 0.3f
         val bgAdjustment = 1.0f + (Math.log(Math.abs(delta.toDouble()) + 1) - 1) * factorAdjustment
 
@@ -1299,6 +1305,7 @@ fun round(value: Double): Int {
             if (allLines.size > linesToConsider) {
                 //this.predictedSMB = neuralnetwork5(delta, shortAvgDelta, longAvgDelta)
                 val (refinedSMB, refinedBasalaimi) = neuralnetwork5(delta, shortAvgDelta, longAvgDelta, predictedSMB, basalaimi)
+                rT.reason.append("neuralnetwork SMB: $refinedSMB Basal: $refinedBasalaimi")
                 this.predictedSMB = refinedSMB
                 this.basalaimi = refinedBasalaimi
                 basal = basalaimi.toDouble()
@@ -1340,7 +1347,7 @@ fun round(value: Double): Int {
         rT.reason.append("adjustedMorningFactor $adjustedMorningFactor")
         rT.reason.append("adjustedAfternoonFactor $adjustedAfternoonFactor")
         rT.reason.append("adjustedEveningFactor $adjustedEveningFactor")
-        rT.reason.append("adjustedFactorsHour $adjustedFactors")
+
 
         smbToGive = applySafetyPrecautions(smbToGive)
         smbToGive = roundToPoint05(smbToGive)
@@ -1976,7 +1983,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 26 février 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 02 Mars 2024<br>$lineSeparator
     |
     |Max IOB: $maxIob<br>$lineSeparator
     |Max SMB: $maxSMB<br>$lineSeparator
@@ -2002,7 +2009,6 @@ fun round(value: Double): Int {
     |accelerating_down: $accelerating_down<br>$lineSeparator
     |deccelerating_down: $deccelerating_down<br>$lineSeparator
     |stable: $stable<br>$lineSeparator
-    |neuralnetwork5: ${neuralnetwork5(delta, shortAvgDelta, longAvgDelta, predictedSMB, basalaimi)}<br>$lineSeparator
     |
     |IOB: $iob<br>$lineSeparator
     |tdd 7d/h: ${roundToPoint05(tdd7DaysPerHour)}<br>$lineSeparator

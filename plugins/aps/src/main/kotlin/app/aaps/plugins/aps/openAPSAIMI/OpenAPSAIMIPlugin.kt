@@ -197,8 +197,8 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         dynISFadjust: Double
     ): Float {
         var bg = glucoseStatusProvider.glucoseStatusData
-        val hypoAdjustment = if (iobCobCalculator.calculateIobFromBolus().iob > 3 * preferences.get(DoubleKey.OApsAIMIMaxSMB)) 0.8f else 1.0f // Réduire les facteurs si hypo récente
-        val factorAdjustment = if ( bg?.glucose!! < 120) 0.1f else 0.2f
+        val hypoAdjustment = if (bg!!.glucose < 110 || iobCobCalculator.calculateIobFromBolus().iob > 3 * preferences.get(DoubleKey.OApsAIMIMaxSMB)) 0.8f else 1.0f // Réduire les facteurs si hypo récente
+        val factorAdjustment = if ( bg.glucose < 120) 0.1f else 0.2f
         val bgAdjustment = 1.0f + (Math.log(Math.abs(bg.delta) + 1) - 1)  * factorAdjustment
         val isfadjust = if (bg.delta < 0) {bgAdjustment / dynISFadjust} else {dynISFadjust * bgAdjustment * hypoAdjustment}
         return isfadjust.toFloat()
