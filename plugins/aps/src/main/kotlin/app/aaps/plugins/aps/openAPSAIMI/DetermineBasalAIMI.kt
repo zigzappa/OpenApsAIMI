@@ -393,9 +393,9 @@ fun round(value: Double): Int {
         if (belowTargetAndStableButNoCob) conditionsTrue.add("belowTargetAndStableButNoCob")
         val droppingFast = bg < 150 && delta < -5
         if (droppingFast) conditionsTrue.add("droppingFast")
-        val droppingFastAtHigh = bg < 200 && delta < -7
+        val droppingFastAtHigh = bg < 240 && delta < -7
         if (droppingFastAtHigh) conditionsTrue.add("droppingFastAtHigh")
-        val droppingVeryFast = delta < -10
+        val droppingVeryFast = delta < -11
         if (droppingVeryFast) conditionsTrue.add("droppingVeryFast")
         val prediction = predictedBg < targetBg && bg < 135
         if (prediction) conditionsTrue.add("prediction")
@@ -1983,7 +1983,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 02 Mars 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 03 Mars 2024<br>$lineSeparator
     |
     |Max IOB: $maxIob<br>$lineSeparator
     |Max SMB: $maxSMB<br>$lineSeparator
