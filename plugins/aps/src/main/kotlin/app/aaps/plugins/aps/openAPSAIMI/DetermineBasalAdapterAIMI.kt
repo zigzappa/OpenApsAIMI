@@ -219,7 +219,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
             "tags120to180minAgo: $tags120to180minAgo<br/> tags180to240minAgo: $tags180to240minAgo<br/> " +
             "currentTIRLow: $currentTIRLow<br/> currentTIRRange: $currentTIRRange<br/> currentTIRAbove: $currentTIRAbove<br/>"
         val reason = "The ai model predicted SMB of ${roundToPoint001(predictedSMB)}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump" +
-            ",<br/> Version du plugin OpenApsAIMI-MT.2 ML.2, 03 Mars 2024"
+            ",<br/> Version du plugin OpenApsAIMI-MT.2 ML.2, 04 Mars 2024"
         val determineBasalResultAIMISMB = DetermineBasalResultAIMISMB(injector, smbToGive, constraintStr, glucoseStr, iobStr, profileStr, mealStr, reason)
 
         glucoseStatusParam = glucoseStatus.toString()
@@ -738,18 +738,19 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
         val hypoAdjustment = if (bg < 110 || (iob > 3 * maxSMB)) 0.8f else 1.0f
         val factorAdjustment = if (bg < 120) 0.2f else 0.3f
         val bgAdjustment = 1.0f + (Math.log(Math.abs(delta.toDouble()) + 1) - 1) * factorAdjustment
+        val scalingFactor = 1.0f - (bg - targetBg).toFloat() / (200 - targetBg) * 0.5f
 
-        return if (delta < 0)
-            Triple(
+        if (delta < 0)
+            return Triple(
                 morningFactor / bgAdjustment,
                 afternoonFactor / bgAdjustment,
                 eveningFactor / bgAdjustment
             )
         else
-            Triple(
-                morningFactor * bgAdjustment * hypoAdjustment,
-                afternoonFactor * bgAdjustment * hypoAdjustment,
-                eveningFactor * bgAdjustment * hypoAdjustment)
+            return Triple(
+                morningFactor * bgAdjustment * hypoAdjustment * scalingFactor,
+                afternoonFactor * bgAdjustment * hypoAdjustment * scalingFactor,
+                eveningFactor * bgAdjustment * hypoAdjustment * scalingFactor)
 
     }
     private fun adjustFactorsdynisfBasedOnBgAndHypo(
