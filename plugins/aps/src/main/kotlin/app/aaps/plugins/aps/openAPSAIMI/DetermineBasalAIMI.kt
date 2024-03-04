@@ -80,7 +80,7 @@ class DetermineBasalaimiSMB @Inject constructor(
     private var lastHourTIRabove170: Double = 0.0
     private var bg = 0.0f
     private var targetBg = 100.0f
-    private var normalBgThreshold = 150.0f
+    private var normalBgThreshold = 140.0f
     private var delta = 0.0f
     private var shortAvgDelta = 0.0f
     private var longAvgDelta = 0.0f
@@ -383,7 +383,7 @@ fun round(value: Double): Int {
         if (fasting) conditionsTrue.add("fasting")
         val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..6) } && delta > 10 && cob === 0.0f
         if (nightTrigger) conditionsTrue.add("nightTrigger")
-        val belowMinThreshold = bg < 110 && delta < 8
+        val belowMinThreshold = bg < 120 && delta < 10
         if (belowMinThreshold) conditionsTrue.add("belowMinThreshold")
         val isNewCalibration = iscalibration && delta > 10
         if (isNewCalibration) conditionsTrue.add("isNewCalibration")
@@ -642,7 +642,7 @@ fun round(value: Double): Int {
     }
     private fun calculateGFactor(delta: Float, lastHourTIRabove170: Double, bg: Float): Double {
         val deltaFactor = delta / 10 // Ajuster selon les besoins
-        val bgFactor = if (bg > 170) 1.2 else if (bg < 100) 0.8 else 1.0
+        val bgFactor = if (bg > 170) 1.2 else if (bg < 120) 0.8 else 1.0
 
         // Introduire un facteur basé sur lastHourTIRabove170
         val tirFactor = 1.0 + lastHourTIRabove170 * 0.05 // Exemple: 5% d'augmentation pour chaque unité de lastHourTIRabove170
@@ -655,9 +655,10 @@ fun round(value: Double): Int {
         afternoonFactor: Float,
         eveningFactor: Float
     ): Triple<Double, Double, Double> {
-        val hypoAdjustment = if (bg < 110 || (iob > 3 * maxSMB)) 0.8f else 1.0f
+        val hypoAdjustment = if (bg < 120 || (iob > 3 * maxSMB)) 0.8f else 1.0f
         val factorAdjustment = if (bg < 120) 0.2f else 0.3f
         val bgAdjustment = 1.0f + (Math.log(Math.abs(delta.toDouble()) + 1) - 1) * factorAdjustment
+        val scalingFactor = 1.0f - (bg - targetBg).toFloat() / (200 - targetBg) * 0.5f
 
         if (delta < 0)
             return Triple(
@@ -667,19 +668,10 @@ fun round(value: Double): Int {
             )
         else
             return Triple(
-                morningFactor * bgAdjustment * hypoAdjustment,
-                afternoonFactor * bgAdjustment * hypoAdjustment,
-                eveningFactor * bgAdjustment * hypoAdjustment)
+                morningFactor * bgAdjustment * hypoAdjustment * scalingFactor,
+                afternoonFactor * bgAdjustment * hypoAdjustment * scalingFactor,
+                eveningFactor * bgAdjustment * hypoAdjustment * scalingFactor)
 
-    }
-    private fun adjustFactorsdynisfBasedOnBgAndHypo(
-        dynISFadjust: Double
-    ): Float {
-        val hypoAdjustment = if (iob > 3 * maxSMB) 0.8f else 1.0f // Réduire les facteurs si hypo récente
-        val factorAdjustment = if (bg < 120) 0.1f else 0.2f
-        val bgAdjustment = 1.0f + (Math.log(Math.abs(delta.toDouble()) + 1) - 1)  * factorAdjustment
-        val isfadjust = if (delta < 0) {bgAdjustment / dynISFadjust} else {dynISFadjust * bgAdjustment * hypoAdjustment}
-        return isfadjust.toFloat()
     }
     private fun calculateAdjustedDelayFactor(
         bg: Float, recentSteps180Minutes: Int, averageBeatsPerMinute60: Float, averageBeatsPerMinute180: Float
@@ -1983,7 +1975,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 03 Mars 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 04 Mars 2024<br>$lineSeparator
     |
     |Max IOB: $maxIob<br>$lineSeparator
     |Max SMB: $maxSMB<br>$lineSeparator
@@ -2044,6 +2036,7 @@ fun round(value: Double): Int {
     |lastHourTIRLow100: $lastHourTIRLow100<br>$lineSeparator
     |lastHourTIRabove170: $lastHourTIRabove170<br>$lineSeparator
     |isCriticalSafetyCondition: $conditionResult, True Conditions: $conditionsTrue<br>$lineSeparator
+    |adjustedFactors: $adjustedFactors<br>$lineSeparator
 """.trimMargin()
 
         rT.reason.append(logAIMI)
