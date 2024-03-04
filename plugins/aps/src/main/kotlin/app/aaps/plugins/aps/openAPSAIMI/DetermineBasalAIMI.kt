@@ -1230,6 +1230,7 @@ fun round(value: Double): Int {
         if (recentSteps30Minutes > 500 && recentSteps5Minutes >= 0 && recentSteps5Minutes < 100 && bg < 130 && delta < 10) {
             this.variableSensitivity *= 1.3f * calculateGFactor(delta, lastHourTIRabove170, bg.toFloat()).toFloat()
         }
+        if (variableSensitivity < 2) variableSensitivity = profile.sens.toFloat()
         sens = variableSensitivity.toDouble()
         //calculate BG impact: the amount BG "should" be rising or falling based on insulin activity alone
         val bgi = round((-iob_data.activity * sens * 5), 2)

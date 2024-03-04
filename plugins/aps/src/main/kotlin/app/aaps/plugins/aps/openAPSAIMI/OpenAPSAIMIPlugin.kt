@@ -46,7 +46,6 @@ import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.HardLimits
 import app.aaps.core.interfaces.utils.Round
 import app.aaps.core.keys.AdaptiveIntentPreference
-import app.aaps.core.keys.AdaptiveSwitchPreference
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.IntKey
@@ -65,6 +64,7 @@ import app.aaps.core.utils.MidnightUtils
 import app.aaps.core.validators.AdaptiveDoublePreference
 import app.aaps.core.validators.AdaptiveIntPreference
 import app.aaps.core.validators.AdaptiveUnitPreference
+import app.aaps.core.validators.AdaptiveSwitchPreference
 import app.aaps.plugins.aps.OpenAPSFragment
 import app.aaps.plugins.aps.R
 import app.aaps.plugins.aps.events.EventOpenAPSUpdateGui
@@ -266,9 +266,12 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 else -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(dynISFadjust)
             }
         }
-
+        val isfMgdl = profileFunction.getProfile()?.getProfileIsfMgdl()
         var sensitivity = Round.roundTo(1800 / (tdd * (ln((glucose / insulinDivisor) + 1))), 0.1)
         if (glucoseStatusProvider.glucoseStatusData?.delta!! < 0 || sensitivity < 2) sensitivity = sensitivity * tdd / 6
+        if (sensitivity < 0) if (isfMgdl != null) {
+            sensitivity = profileUtil.fromMgdlToUnits(isfMgdl.toDouble(), profileFunction.getUnits())
+        }
         //aapsLogger.debug("calculateVariableIsf $caller CAL ${dateUtil.dateAndTimeAndSecondsString(timestamp)} $sensitivity")
         dynIsfCache.put(key, sensitivity)
         if (dynIsfCache.size() > 1000) dynIsfCache.clear()
@@ -401,6 +404,11 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             }
             variableSensitivity = Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1)
             if (glucoseStatus.delta < 0 || variableSensitivity < 2) variableSensitivity = variableSensitivity * tdd / 6
+            val isfMgdl = profileFunction.getProfile()?.getProfileIsfMgdl()
+            if (variableSensitivity < 0) if (isfMgdl != null) {
+                variableSensitivity = profileUtil.fromMgdlToUnits(isfMgdl.toDouble(), profileFunction.getUnits())
+            }
+
 // Compare insulin consumption of last 24h with last 7 days average
             val tddRatio = if (preferences.get(BooleanKey.ApsDynIsfAdjustSensitivity)) tdd24Hrs / tdd2Days else 1.0
 // Because consumed carbs affects total amount of insulin compensate final ratio by consumed carbs ratio
