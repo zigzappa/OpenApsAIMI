@@ -195,5 +195,7 @@
     <string name="key_enable_smb">key_enable_SMB</string>
     <string name="Enable_SMB_title">Enable SMB</string>
     <string name="Enable_SMB_summary">To receive SMB this option need to be enable.</string>
+    <string name="oaps_aimi_interval_summary">This value fix the interval between two SMB. By default the value is 3. The maximum is 30 minutes.</string>
+    <string name="oaps_aimi_interval_title">AIMI SMB Interval</string>
 
 </resources>

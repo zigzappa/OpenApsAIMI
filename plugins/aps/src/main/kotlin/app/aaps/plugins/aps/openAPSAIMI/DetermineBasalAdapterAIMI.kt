@@ -350,6 +350,8 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
     }
 
     private fun isCriticalSafetyCondition(): Boolean {
+        val aimiIntervalSMB = preferences.get(IntKey.OApsAIMIinterval)
+        val aimiInterval = lastsmbtime < aimiIntervalSMB
         val fasting = fastingTime
         val acceleratingDown = delta < -2 && delta - longAvgDelta < -2 && lastsmbtime < 15
         val decceleratingdown = delta < 0 && (delta > shortAvgDelta || delta > longAvgDelta) && lastsmbtime < 15
@@ -373,7 +375,7 @@ class DetermineBasalAdapterAIMI internal constructor(private val injector: HasAn
 
         return belowMinThreshold || belowTargetAndDropping || belowTargetAndStableButNoCob ||
             droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval ||
-            fasting || nosmb || nightTrigger || isNewCalibration || stopsmb || stablebg || acceleratingDown || decceleratingdown
+            fasting || nosmb || nightTrigger || isNewCalibration || stopsmb || stablebg || acceleratingDown || decceleratingdown || aimiInterval
     }
     private fun isSportSafetyCondition(): Boolean {
         val sport = targetBg >= 140 && recentSteps5Minutes >= 200 && recentSteps10Minutes >= 500

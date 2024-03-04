@@ -2,4 +2,5 @@
 <resources>
     <string name="key_oaps_aimi_mealAdjFact">key_oaps_aimi_mealAdjFact</string>
     <string name="key_enable_SMB">key_enable_SMB</string>
+    <string name="key_oaps_aimi_interval">key_oaps_aimi_interval</string>
 </resources>
