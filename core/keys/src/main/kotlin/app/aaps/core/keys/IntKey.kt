@@ -60,7 +60,6 @@ enum class IntKey(
     GarminLocalHttpPort(R.string.key_garmin_communication_http_port, 28891, 1001, 65535, defaultedBySM = true, hideParentScreenIfHidden = true),
     NsClientAlarmStaleData(R.string.key_ns_alarm_stale_data_value, 16, 15, 120),
     NsClientUrgentAlarmStaleData(R.string.key_ns_alarm_urgent_stale_data_value, 31, 30, 180),
-    BgSourceRandomInterval(R.string.key_randombg_interval_min, 5, 1, 15, defaultedBySM = true),
 
 
     OApsAIMIDynISFAdjustment(R.string.key_DynISF_Adjust,100,1,500),
