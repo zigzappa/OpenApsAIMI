@@ -13,4 +13,5 @@
     <string name="key_oaps_aimi_sleep_interval">key_oaps_aimi_sleep_interval</string>
     <string name="key_oaps_aimi_snackAdjFact">key_oaps_aimi_snackAdjFact</string>
     <string name="key_oaps_aimi_snack_factor">key_oaps_aimi_snack_factor</string>
+    <string name="key_use_AimiPregnancy">key_use_AimiPregnancy</string>
 </resources>

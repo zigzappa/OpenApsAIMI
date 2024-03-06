@@ -22,6 +22,7 @@ import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.Preferences
+import app.aaps.plugins.aps.R
 import org.tensorflow.lite.Interpreter
 import java.io.File
 import java.text.DecimalFormat
@@ -60,7 +61,7 @@ class DetermineBasalaimiSMB @Inject constructor(
     private var averageBeatsPerMinute = 0.0
     private var averageBeatsPerMinute60 = 0.0
     private var averageBeatsPerMinute180 = 0.0
-    private var now: Long = 0
+    private var now = System.currentTimeMillis()
     private var iob = 0.0f
     private var cob = 0.0f
     private var predictedBg = 0.0f
@@ -862,10 +863,15 @@ fun round(value: Double): Int {
         this.currentTIRRange = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.inRangePct()!!
         this.currentTIRAbove = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.abovePct()!!
         this.lastHourTIRLow = tirCalculator.averageTIR(tirCalculator.calculateHour(80.0,140.0))?.belowPct()!!
+        val lastHourTIRAbove = tirCalculator.averageTIR(tirCalculator.calculateHour(72.0, 140.0))?.abovePct()
         this.lastHourTIRLow100 = tirCalculator.averageTIR(tirCalculator.calculateHour(100.0,140.0))?.belowPct()!!
         this.lastHourTIRabove170 = tirCalculator.averageTIR(tirCalculator.calculateHour(100.0,170.0))?.abovePct()!!
+        val tirbasal3IR = tirCalculator.averageTIR(tirCalculator.calculate(3, 65.0, 130.0))?.inRangePct()
+        val tirbasal3B = tirCalculator.averageTIR(tirCalculator.calculate(3, 65.0, 130.0))?.belowPct()
+        val tirbasal3A = tirCalculator.averageTIR(tirCalculator.calculate(3, 65.0, 130.0))?.abovePct()
+        val tirbasalhAP = tirCalculator.averageTIR(tirCalculator.calculateHour(65.0, 115.0))?.abovePct()
         this.enablebasal = preferences.get(BooleanKey.OApsAIMIEnableBasal)
-        this.now = System.currentTimeMillis()
+        //this.now = System.currentTimeMillis()
         val calendarInstance = Calendar.getInstance()
         this.hourOfDay = calendarInstance[Calendar.HOUR_OF_DAY]
         val dayOfWeek = calendarInstance[Calendar.DAY_OF_WEEK]
@@ -1123,29 +1129,28 @@ fun round(value: Double): Int {
         val beatsPerMinuteValues: List<Int>
         val beatsPerMinuteValues60: List<Int>
         val beatsPerMinuteValues180: List<Int>
-        val timeMillisNow = System.currentTimeMillis()
         val timeMillis5 = System.currentTimeMillis() - 5 * 60 * 1000 // 5 minutes en millisecondes
         val timeMillis10 = System.currentTimeMillis() - 10 * 60 * 1000 // 10 minutes en millisecondes
         val timeMillis15 = System.currentTimeMillis() - 15 * 60 * 1000 // 15 minutes en millisecondes
         val timeMillis30 = System.currentTimeMillis() - 30 * 60 * 1000 // 30 minutes en millisecondes
         val timeMillis60 = System.currentTimeMillis() - 60 * 60 * 1000 // 60 minutes en millisecondes
         val timeMillis180 = System.currentTimeMillis() - 180 * 60 * 1000 // 180 minutes en millisecondes
-        val stepsCountList5 = persistenceLayer.getLastStepsCountFromTimeToTime(timeMillis5, timeMillisNow)
+        val stepsCountList5 = persistenceLayer.getLastStepsCountFromTimeToTime(timeMillis5, now)
         val stepsCount5 = stepsCountList5?.steps5min ?: 0
 
-        val stepsCountList10 = persistenceLayer.getLastStepsCountFromTimeToTime(timeMillis10, timeMillisNow)
+        val stepsCountList10 = persistenceLayer.getLastStepsCountFromTimeToTime(timeMillis10, now)
         val stepsCount10 = stepsCountList10?.steps10min ?: 0
 
-        val stepsCountList15 = persistenceLayer.getLastStepsCountFromTimeToTime(timeMillis15, timeMillisNow)
+        val stepsCountList15 = persistenceLayer.getLastStepsCountFromTimeToTime(timeMillis15, now)
         val stepsCount15 = stepsCountList15?.steps15min ?: 0
 
-        val stepsCountList30 = persistenceLayer.getLastStepsCountFromTimeToTime(timeMillis30, timeMillisNow)
+        val stepsCountList30 = persistenceLayer.getLastStepsCountFromTimeToTime(timeMillis30, now)
         val stepsCount30 = stepsCountList30?.steps30min ?: 0
 
-        val stepsCountList60 = persistenceLayer.getLastStepsCountFromTimeToTime(timeMillis60, timeMillisNow)
+        val stepsCountList60 = persistenceLayer.getLastStepsCountFromTimeToTime(timeMillis60, now)
         val stepsCount60 = stepsCountList60?.steps60min ?: 0
 
-        val stepsCountList180 = persistenceLayer.getLastStepsCountFromTimeToTime(timeMillis180, timeMillisNow)
+        val stepsCountList180 = persistenceLayer.getLastStepsCountFromTimeToTime(timeMillis180, now)
         val stepsCount180 = stepsCountList180?.steps180min ?: 0
         if (preferences.get(BooleanKey.OApsAIMIEnableStepsFromWatch)) {
             this.recentSteps5Minutes = stepsCount5
@@ -1163,7 +1168,7 @@ fun round(value: Double): Int {
             this.recentSteps180Minutes = StepService.getRecentStepCount180Min()
         }
         try {
-            val heartRates = persistenceLayer.getHeartRatesFromTimeToTime(timeMillis5,timeMillisNow)
+            val heartRates = persistenceLayer.getHeartRatesFromTimeToTime(timeMillis5,now)
             beatsPerMinuteValues = heartRates.map { it.beatsPerMinute.toInt() } // Extract beatsPerMinute values from heartRates
             this.averageBeatsPerMinute = if (beatsPerMinuteValues.isNotEmpty()) {
                 beatsPerMinuteValues.average()
@@ -1177,7 +1182,7 @@ fun round(value: Double): Int {
             averageBeatsPerMinute = 80.0
         }
         try {
-            val heartRates = persistenceLayer.getHeartRatesFromTimeToTime(timeMillis60,timeMillisNow)
+            val heartRates = persistenceLayer.getHeartRatesFromTimeToTime(timeMillis60,now)
             beatsPerMinuteValues60 = heartRates.map { it.beatsPerMinute.toInt() } // Extract beatsPerMinute values from heartRates
             this.averageBeatsPerMinute60 = if (beatsPerMinuteValues60.isNotEmpty()) {
                 beatsPerMinuteValues60.average()
@@ -1192,7 +1197,7 @@ fun round(value: Double): Int {
         }
         try {
 
-            val heartRates180 = persistenceLayer.getHeartRatesFromTimeToTime(timeMillis180,timeMillisNow)
+            val heartRates180 = persistenceLayer.getHeartRatesFromTimeToTime(timeMillis180,now)
             beatsPerMinuteValues180 = heartRates180.map { it.beatsPerMinute.toInt() } // Extract beatsPerMinute values from heartRates
             this.averageBeatsPerMinute180 = if (beatsPerMinuteValues180.isNotEmpty()) {
                 beatsPerMinuteValues180.average()
@@ -1219,19 +1224,40 @@ fun round(value: Double): Int {
         } else {
             this.aimilimit = (choKey / profile.carb_ratio).toFloat()
         }
-        val timenow = LocalTime.now()
-        val sixAM = LocalTime.of(6, 0)
+        val timenow = LocalTime.now().hour
+        val sixAMHour = LocalTime.of(6, 0).hour
         if (averageBeatsPerMinute != 0.0) {
             this.basalaimi = when {
                 averageBeatsPerMinute >= averageBeatsPerMinute180 && recentSteps5Minutes > 100 && recentSteps10Minutes > 200 -> (basalaimi * 0.65).toFloat()
-                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute > averageBeatsPerMinute180 && bg >= 130 && recentSteps10Minutes === 0 && timenow > sixAM -> (basalaimi * 1.2).toFloat()
+                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute > averageBeatsPerMinute180 && bg >= 130 && recentSteps10Minutes === 0 && timenow > sixAMHour -> (basalaimi * 1.2).toFloat()
                 averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute < averageBeatsPerMinute180 && recentSteps10Minutes === 0 && bg >= 110 -> (basalaimi * 1.1).toFloat()
                 else -> basalaimi
             }
         }
 
+        val pregnancyEnable = preferences.get(BooleanKey.OApsAIMIpregnancy)
+        if (tirbasal3B != null && pregnancyEnable) {
+            if (tirbasal3IR != null) {
+                if (tirbasalhAP != null && tirbasalhAP >= 5) {
+                    basalaimi = (basalaimi * 2.0).toFloat()
+                } else if (lastHourTIRAbove != null && lastHourTIRAbove >= 2) {
+                    basalaimi = (basalaimi * 1.8).toFloat()
+                }else if (timenow < sixAMHour){
+                    basalaimi = (basalaimi * 1.4).toFloat()
+                }else if (timenow > sixAMHour) {
+                    basalaimi = (basalaimi * 1.6).toFloat()
+                } else if ((tirbasal3B <= 5) && (tirbasal3IR >= 70 && tirbasal3IR <= 80)) {
+                    basalaimi = (basalaimi * 1.1).toFloat()
+                } else if (tirbasal3B <= 5 && tirbasal3IR <= 70) {
+                    basalaimi = (basalaimi * 1.3).toFloat()
+                } else if (tirbasal3B > 5 && tirbasal3A!! < 5) {
+                    basalaimi = (basalaimi * 0.85).toFloat()
+                }
+            }
+        }
+
         this.variableSensitivity = max(
-            sens.toFloat() / 2.5f,
+            profile.sens.toFloat() / 4.0f,
             sens.toFloat() * calculateGFactor(delta, lastHourTIRabove170, bg.toFloat()).toFloat()
         )
 
@@ -1242,6 +1268,8 @@ fun round(value: Double): Int {
             this.variableSensitivity *= 1.3f * calculateGFactor(delta, lastHourTIRabove170, bg.toFloat()).toFloat()
         }
         if (variableSensitivity < 2) variableSensitivity = profile.sens.toFloat()
+        if (variableSensitivity > (3 * profile.sens.toFloat())) variableSensitivity = profile.sens.toFloat() * 3
+
         sens = variableSensitivity.toDouble()
         //calculate BG impact: the amount BG "should" be rising or falling based on insulin activity alone
         val bgi = round((-iob_data.activity * sens * 5), 2)
@@ -1987,7 +2015,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 04 Mars 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 06 Mars 2024<br>$lineSeparator
     |
     |Max IOB: $maxIob<br>$lineSeparator
     |Max SMB: $maxSMB<br>$lineSeparator
@@ -2165,7 +2193,11 @@ fun round(value: Double): Int {
 
 
             val maxSafeBasal = getMaxSafeBasal(profile)
-            if (delta > 0 && bg > 80 && eventualBG > 65){
+            if ( pregnancyEnable && delta > 0 && bg > 110) {
+                rate = round_basal(basal * 10)
+                rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because pregnancy ${round(rate, 2)}U/hr. ")
+                return setTempBasal(rate, 30, profile, rT, currenttemp)
+            }else if (delta > 0 && bg > 80 && eventualBG > 65){
                 rate = round_basal(basal * delta)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
