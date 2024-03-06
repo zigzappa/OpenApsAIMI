@@ -317,13 +317,6 @@ fun round(value: Double): Int {
     }
     private fun applySafetyPrecautions(smbToGiveParam: Float): Float {
         var smbToGive = smbToGiveParam
-        val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
-        val pbolusHC: Double = preferences.get(DoubleKey.OApsAIMIHighCarbPrebolus)
-        val pbolussnack: Double = preferences.get(DoubleKey.OApsAIMISnackPrebolus)
-        // Vérifier les conditions de sécurité critiques
-        if (isMealModeCondition()) return pbolusM.toFloat()
-        if (isHighCarbModeCondition()) return pbolusHC.toFloat()
-        if (issnackModeCondition()) return pbolussnack.toFloat()
         val (conditionResult, _) = isCriticalSafetyCondition()
         if (conditionResult) return 0.0f
 
@@ -919,6 +912,24 @@ fun round(value: Double): Int {
         this.accelerating_down = if (delta < -2 && delta - longAvgDelta < -2) 1 else 0
         this.deccelerating_down = if (delta < 0 && (delta > shortAvgDelta || delta > longAvgDelta)) 1 else 0
         this.stable = if (delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 180) 1 else 0
+         if (isMealModeCondition()){
+             val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
+                 rT.units = pbolusM
+                 rT.reason.append("Microbolusing Meal Mode ${pbolusM}U. ")
+             return rT
+         }
+        if (isHighCarbModeCondition()){
+            val pbolusHC: Double = preferences.get(DoubleKey.OApsAIMIHighCarbPrebolus)
+            rT.units = pbolusHC
+            rT.reason.append("Microbolusing High Carb Mode ${pbolusHC}U. ")
+            return rT
+        }
+        if (issnackModeCondition()){
+            val pbolussnack: Double = preferences.get(DoubleKey.OApsAIMISnackPrebolus)
+            rT.units = pbolussnack
+            rT.reason.append("Microbolusing High Carb Mode ${pbolussnack}U. ")
+            return rT
+        }
 
         var nowMinutes = calendarInstance[Calendar.HOUR_OF_DAY] + calendarInstance[Calendar.MINUTE] / 60.0 + calendarInstance[Calendar.SECOND] / 3600.0
         nowMinutes = (kotlin.math.round(nowMinutes * 100) / 100).toDouble()  // Arrondi à 2 décimales
