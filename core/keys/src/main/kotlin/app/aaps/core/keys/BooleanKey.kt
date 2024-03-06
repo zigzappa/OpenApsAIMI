@@ -96,5 +96,6 @@ enum class BooleanKey(
     WearNotifyOnSmb(key = R.string.key_wear_notify_on_smb, defaultValue = true),
     OApsAIMIMLtraining(R.string.key_enable_ML_training, false),
     OApsAIMIEnableBasal(R.string.key_enable_basal, false),
-    OApsAIMIEnableStepsFromWatch(R.string.count_steps_watch, false)
+    OApsAIMIEnableStepsFromWatch(R.string.count_steps_watch, false),
+    OApsAIMIpregnancy(R.string.key_use_AimiPregnancy,false)
 }

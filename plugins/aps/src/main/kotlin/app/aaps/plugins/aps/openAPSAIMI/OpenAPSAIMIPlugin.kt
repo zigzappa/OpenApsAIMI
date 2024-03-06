@@ -268,7 +268,6 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         }
         val isfMgdl = profileFunction.getProfile()?.getProfileIsfMgdl()
         var sensitivity = Round.roundTo(1800 / (tdd * (ln((glucose / insulinDivisor) + 1))), 0.1)
-        if (glucoseStatusProvider.glucoseStatusData?.delta!! < 0 || sensitivity < 2) sensitivity = sensitivity * tdd / 6
         if (sensitivity < 0) if (isfMgdl != null) {
             sensitivity = profileUtil.fromMgdlToUnits(isfMgdl.toDouble(), profileFunction.getUnits())
         }
@@ -403,7 +402,6 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 }
             }
             variableSensitivity = Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1)
-            if (glucoseStatus.delta < 0 || variableSensitivity < 2) variableSensitivity = variableSensitivity * tdd / 6
             val isfMgdl = profileFunction.getProfile()?.getProfileIsfMgdl()
             if (variableSensitivity < 0) if (isfMgdl != null) {
                 variableSensitivity = profileUtil.fromMgdlToUnits(isfMgdl.toDouble(), profileFunction.getUnits())
@@ -600,6 +598,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             title = rh.gs(R.string.aimi_preferences)
             initialExpandedChildrenCount = 0
             addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.OApsAIMIEnableBasal, title = R.string.Enable_basal_title))
+            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.OApsAIMIpregnancy, title = R.string.OApsAIMI_Enable_pregnancy))
             addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.OApsAIMIEnableStepsFromWatch, title = R.string.countsteps_watch_title))
             addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.OApsAIMIMaxSMB, dialogMessage = R.string.openapsaimi_maxsmb_summary, title = R.string.openapsaimi_maxsmb_title))
             addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.OApsAIMIweight, dialogMessage = R.string.oaps_aimi_weight_summary, title = R.string.oaps_aimi_weight_title))

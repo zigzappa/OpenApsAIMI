@@ -272,5 +272,6 @@
     <string name="OApsAIMI_sleep_Factor_title">Sleep mode reactivity percentage</string>
     <string name="oaps_aimi_sleep_interval_summary">Interval between SMB for the sleep mode.</string>
     <string name="oaps_aimi_sleep_interval_title">SMB interval Sleep Mode</string>
+    <string name="OApsAIMI_Enable_pregnancy">Enable Pregnancy mode</string>
 
 </resources>
