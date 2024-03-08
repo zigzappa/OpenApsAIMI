@@ -371,19 +371,19 @@ fun round(value: Double): Int {
     }
     private fun isCriticalSafetyCondition(): Pair<Boolean, String> {
         val conditionsTrue = mutableListOf<String>()
-        val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10
+        val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10 && !isMealModeCondition() && !isHighCarbModeCondition()
         if (nosmb) conditionsTrue.add("nosmb")
         val fasting = fastingTime
         if (fasting) conditionsTrue.add("fasting")
         val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..6) } && delta > 10 && cob === 0.0f
         if (nightTrigger) conditionsTrue.add("nightTrigger")
-        val belowMinThreshold = bg < 120 && delta < 10
+        val belowMinThreshold = bg < 120 && delta < 10 && !isMealModeCondition() && !isHighCarbModeCondition()
         if (belowMinThreshold) conditionsTrue.add("belowMinThreshold")
         val isNewCalibration = iscalibration && delta > 10
         if (isNewCalibration) conditionsTrue.add("isNewCalibration")
-        val belowTargetAndDropping = bg < targetBg && delta < -2
+        val belowTargetAndDropping = bg < targetBg && delta < -2 && !isMealModeCondition() && !isHighCarbModeCondition()
         if (belowTargetAndDropping) conditionsTrue.add("belowTargetAndDropping")
-        val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 10
+        val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 10 && !isMealModeCondition() && !isHighCarbModeCondition()
         if (belowTargetAndStableButNoCob) conditionsTrue.add("belowTargetAndStableButNoCob")
         val droppingFast = bg < 150 && delta < -5
         if (droppingFast) conditionsTrue.add("droppingFast")
@@ -397,7 +397,7 @@ fun round(value: Double): Int {
         if (interval) conditionsTrue.add("interval")
         val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 15
         if (targetinterval) conditionsTrue.add("targetinterval")
-        val stablebg = delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 180
+        val stablebg = delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 180 && !isMealModeCondition() && !isHighCarbModeCondition()
         if (stablebg) conditionsTrue.add("stablebg")
         val acceleratingDown = delta < -2 && delta - longAvgDelta < -2 && lastsmbtime < 15
         if (acceleratingDown) conditionsTrue.add("acceleratingDown")
@@ -855,8 +855,10 @@ fun round(value: Double): Int {
         )
         val getlastBolusSMB = persistenceLayer.getNewestBolusOfType(BS.Type.SMB)
         val lastBolusSMBTime = getlastBolusSMB?.timestamp ?: 0L
+        val lastBolusSMBMinutes = lastBolusSMBTime / 60000
         this.lastBolusSMBUnit = getlastBolusSMB?.amount?.toFloat() ?: 0.0F
-        this.lastsmbtime = ((now - lastBolusSMBTime) / (60 * 1000)).toInt()
+        val diff = Math.abs(now - lastBolusSMBTime)
+        this.lastsmbtime = (diff / (60 * 1000)).toInt()
         this.maxIob = preferences.get(DoubleKey.ApsSmbMaxIob)
         this.maxSMB = preferences.get(DoubleKey.OApsAIMIMaxSMB)
         this.currentTIRLow = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.belowPct()!!
@@ -881,12 +883,12 @@ fun round(value: Double): Int {
             val oneDayAgoIfNotFound = now - 24 * 60 * 60 * 1000
             lastCarbTimestamp = persistenceLayer.getMostRecentCarbByDate() ?: oneDayAgoIfNotFound
         }
-        if (lastCarbAgeMin < 15 && cob == 0.0f) {
-            this.cob = persistenceLayer.getMostRecentCarbAmount()?.toFloat() ?: 0.0f
-        }
         this.lastCarbAgeMin = ((now - lastCarbTimestamp) / (60 * 1000)).toInt()
 
         this.futureCarbs = persistenceLayer.getFutureCob().toFloat()
+        if (lastCarbAgeMin < 15 && cob == 0.0f) {
+            this.cob = persistenceLayer.getMostRecentCarbAmount()?.toFloat() ?: 0.0f
+        }
 
         val fourHoursAgo = now - 4 * 60 * 60 * 1000
         this.recentNotes = persistenceLayer.getUserEntryDataFromTime(fourHoursAgo).blockingGet()
@@ -2077,6 +2079,9 @@ fun round(value: Double): Int {
     |lastHourTIRabove170: $lastHourTIRabove170<br>$lineSeparator
     |isCriticalSafetyCondition: $conditionResult, True Conditions: $conditionsTrue<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
+    |lastBolusSMBMinutes: $lastBolusSMBMinutes<br>$lineSeparator
+    |lastsmbtime: $lastsmbtime<br>$lineSeparator
+    |lastCarbAgeMin: $lastCarbAgeMin<br>$lineSeparator
 """.trimMargin()
 
         rT.reason.append(logAIMI)
