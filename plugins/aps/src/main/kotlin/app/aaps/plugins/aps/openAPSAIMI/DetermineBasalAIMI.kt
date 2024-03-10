@@ -2211,7 +2211,7 @@ fun round(value: Double): Int {
                 rate = round_basal(basal * 10)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because bg > 200 ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
-            }else if (honeymoon && delta > 2 && bg < 110) {
+            }else if (honeymoon && delta > 2 && bg > 90 && bg < 110) {
                 rate = profile_current_basal
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because honeymoon ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
