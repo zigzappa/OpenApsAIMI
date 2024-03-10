@@ -939,6 +939,7 @@ fun round(value: Double): Int {
             return rT
         }
 
+
         var nowMinutes = calendarInstance[Calendar.HOUR_OF_DAY] + calendarInstance[Calendar.MINUTE] / 60.0 + calendarInstance[Calendar.SECOND] / 3600.0
         nowMinutes = (kotlin.math.round(nowMinutes * 100) / 100).toDouble()  // Arrondi à 2 décimales
         val circadianSensitivity = (0.00000379 * nowMinutes.pow(5)) -
@@ -2198,7 +2199,15 @@ fun round(value: Double): Int {
             val (conditionResult, _) = isCriticalSafetyCondition()
 
             val maxSafeBasal = getMaxSafeBasal(profile)
-            if (bg > 200){
+            if (mealTime && mealruntime < 30){
+                rate = round_basal(basal * 10)
+                rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because mealTime ${round(rate, 2)}U/hr. ")
+                return setTempBasal(rate, 30, profile, rT, currenttemp)
+            }else if (highCarbTime && highCarbrunTime < 60){
+                rate = round_basal(basal * 10)
+                rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because highcarbTime ${round(rate, 2)}U/hr. ")
+                return setTempBasal(rate, 30, profile, rT, currenttemp)
+            }else if (bg > 200){
                 rate = round_basal(basal * 10)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because bg > 200 ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
