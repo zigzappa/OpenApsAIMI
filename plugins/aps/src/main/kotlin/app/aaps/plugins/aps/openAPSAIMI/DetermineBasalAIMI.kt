@@ -1238,22 +1238,23 @@ fun round(value: Double): Int {
         }
 
         val pregnancyEnable = preferences.get(BooleanKey.OApsAIMIpregnancy)
+        val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
         if (tirbasal3B != null && pregnancyEnable) {
             if (tirbasal3IR != null) {
                 if (tirbasalhAP != null && tirbasalhAP >= 5) {
-                    basalaimi = (basalaimi * 2.0).toFloat()
+                    this.basalaimi = (basalaimi * 2.0).toFloat()
                 } else if (lastHourTIRAbove != null && lastHourTIRAbove >= 2) {
-                    basalaimi = (basalaimi * 1.8).toFloat()
+                    this.basalaimi = (basalaimi * 1.8).toFloat()
                 }else if (timenow < sixAMHour){
-                    basalaimi = (basalaimi * 1.4).toFloat()
+                    this.basalaimi = (basalaimi * 1.4).toFloat()
                 }else if (timenow > sixAMHour) {
-                    basalaimi = (basalaimi * 1.6).toFloat()
+                    this.basalaimi = (basalaimi * 1.6).toFloat()
                 } else if ((tirbasal3B <= 5) && (tirbasal3IR >= 70 && tirbasal3IR <= 80)) {
-                    basalaimi = (basalaimi * 1.1).toFloat()
+                    this.basalaimi = (basalaimi * 1.1).toFloat()
                 } else if (tirbasal3B <= 5 && tirbasal3IR <= 70) {
-                    basalaimi = (basalaimi * 1.3).toFloat()
+                    this.basalaimi = (basalaimi * 1.3).toFloat()
                 } else if (tirbasal3B > 5 && tirbasal3A!! < 5) {
-                    basalaimi = (basalaimi * 0.85).toFloat()
+                    this.basalaimi = (basalaimi * 0.85).toFloat()
                 }
             }
         }
@@ -2017,7 +2018,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 06 Mars 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 10 Mars 2024<br>$lineSeparator
     |
     |Max IOB: $maxIob<br>$lineSeparator
     |Max SMB: $maxSMB<br>$lineSeparator
@@ -2196,17 +2197,28 @@ fun round(value: Double): Int {
             }
             val (conditionResult, _) = isCriticalSafetyCondition()
 
-
             val maxSafeBasal = getMaxSafeBasal(profile)
-            if ( pregnancyEnable && delta > 0 && bg > 110) {
+            if (bg > 200){
+                rate = round_basal(basal * 10)
+                rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because bg > 200 ${round(rate, 2)}U/hr. ")
+                return setTempBasal(rate, 30, profile, rT, currenttemp)
+            }else if (honeymoon && delta > 2 && bg < 110) {
+                rate = profile_current_basal
+                rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because honeymoon ${round(rate, 2)}U/hr. ")
+                return setTempBasal(rate, 30, profile, rT, currenttemp)
+            }else if (honeymoon && delta > 0 && bg > 110 && eventualBG > 100){
+                rate = round_basal(basal * delta)
+                rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because honeymoon ${round(rate, 2)}U/hr. ")
+                return setTempBasal(rate, 30, profile, rT, currenttemp)
+            }else if (pregnancyEnable && delta > 0 && bg > 110 && !honeymoon) {
                 rate = round_basal(basal * 10)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because pregnancy ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
-            }else if (delta > 0 && bg > 80 && eventualBG > 65){
+            }else if (delta > 0 && bg > 80 && eventualBG > 65 && !honeymoon){
                 rate = round_basal(basal * delta)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
-            } else if (conditionResult && delta > 0 && bg > 80){
+            } else if (conditionResult && delta > 0 && bg > 80 && !honeymoon){
                 rate = round_basal(basal * delta)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal when isCriticalSafetyCondition is true ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)

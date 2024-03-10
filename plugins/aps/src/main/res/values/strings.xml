@@ -273,5 +273,6 @@
     <string name="oaps_aimi_sleep_interval_summary">Interval between SMB for the sleep mode.</string>
     <string name="oaps_aimi_sleep_interval_title">SMB interval Sleep Mode</string>
     <string name="OApsAIMI_Enable_pregnancy">Enable Pregnancy mode</string>
+    <string name="OApsAIMI_Enable_honeymoon">Enable honeymoon mode</string>
 
 </resources>
