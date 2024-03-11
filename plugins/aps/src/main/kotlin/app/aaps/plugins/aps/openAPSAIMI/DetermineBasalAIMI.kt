@@ -207,41 +207,46 @@ fun round(value: Double): Int {
     private fun getMaxSafeBasal(profile: OapsProfile): Double =
         min(profile.max_basal, min(profile.max_daily_safety_multiplier * profile.max_daily_basal, profile.current_basal_safety_multiplier * profile.current_basal))
 
-    fun setTempBasal(_rate: Double, duration: Int, profile: OapsProfile, rT: RT, currenttemp: CurrentTemp): RT {
+    fun setTempBasal(_rate: Double, duration: Int, profile: OapsProfile, rT: RT, currenttemp: CurrentTemp, forceRate: Boolean = false): RT {
         //var maxSafeBasal = Math.min(profile.max_basal, 3 * profile.max_daily_basal, 4 * profile.current_basal);
 
         val maxSafeBasal = getMaxSafeBasal(profile)
         var rate = _rate
-        if (rate < 0) rate = 0.0
-        else if (rate > maxSafeBasal) rate = maxSafeBasal
-
-        val suggestedRate = round_basal(rate)
-        if (currenttemp.duration > (duration - 10) && currenttemp.duration <= 120 && suggestedRate <= currenttemp.rate * 1.2 && suggestedRate >= currenttemp.rate * 0.8 && duration > 0) {
-            rT.reason.append(" ${currenttemp.duration}m left and ${currenttemp.rate.withoutZeros()} ~ req ${suggestedRate.withoutZeros()}U/hr: no temp required")
+        if (forceRate){
             return rT
-        }
+        }else {
 
-        if (suggestedRate == profile.current_basal) {
-            if (profile.skip_neutral_temps) {
-                if (currenttemp.duration > 0) {
-                    reason(rT, "Suggested rate is same as profile rate, a temp basal is active, canceling current temp")
-                    rT.duration = 0
-                    rT.rate = 0.0
-                    return rT
+            if (rate < 0) rate = 0.0
+            else if (rate > maxSafeBasal) rate = maxSafeBasal
+
+            val suggestedRate = round_basal(rate)
+            if (currenttemp.duration > (duration - 10) && currenttemp.duration <= 120 && suggestedRate <= currenttemp.rate * 1.2 && suggestedRate >= currenttemp.rate * 0.8 && duration > 0) {
+                rT.reason.append(" ${currenttemp.duration}m left and ${currenttemp.rate.withoutZeros()} ~ req ${suggestedRate.withoutZeros()}U/hr: no temp required")
+                return rT
+            }
+
+            if (suggestedRate == profile.current_basal) {
+                if (profile.skip_neutral_temps) {
+                    if (currenttemp.duration > 0) {
+                        reason(rT, "Suggested rate is same as profile rate, a temp basal is active, canceling current temp")
+                        rT.duration = 0
+                        rT.rate = 0.0
+                        return rT
+                    } else {
+                        reason(rT, "Suggested rate is same as profile rate, no temp basal is active, doing nothing")
+                        return rT
+                    }
                 } else {
-                    reason(rT, "Suggested rate is same as profile rate, no temp basal is active, doing nothing")
+                    reason(rT, "Setting neutral temp basal of ${profile.current_basal}U/hr")
+                    rT.duration = duration
+                    rT.rate = suggestedRate
                     return rT
                 }
             } else {
-                reason(rT, "Setting neutral temp basal of ${profile.current_basal}U/hr")
                 rT.duration = duration
                 rT.rate = suggestedRate
                 return rT
             }
-        } else {
-            rT.duration = duration
-            rT.rate = suggestedRate
-            return rT
         }
     }
     private fun logDataMLToCsv(predictedSMB: Float, smbToGive: Float) {
@@ -1128,39 +1133,38 @@ fun round(value: Double): Int {
         consoleError.add("CR:${profile.carb_ratio}")
         this.predictedBg = predictFutureBg(bg.toFloat(), iob, variableSensitivity, cob, CI)
 
-        val beatsPerMinuteValues: List<Int>
-        val beatsPerMinuteValues60: List<Int>
-        val beatsPerMinuteValues180: List<Int>
-        val timeMillis5 = System.currentTimeMillis() - 5 * 60 * 1000 // 5 minutes en millisecondes
-        val timeMillis10 = System.currentTimeMillis() - 10 * 60 * 1000 // 10 minutes en millisecondes
-        val timeMillis15 = System.currentTimeMillis() - 15 * 60 * 1000 // 15 minutes en millisecondes
-        val timeMillis30 = System.currentTimeMillis() - 30 * 60 * 1000 // 30 minutes en millisecondes
-        val timeMillis60 = System.currentTimeMillis() - 60 * 60 * 1000 // 60 minutes en millisecondes
-        val timeMillis180 = System.currentTimeMillis() - 180 * 60 * 1000 // 180 minutes en millisecondes
-        val stepsCountList5 = persistenceLayer.getLastStepsCountFromTimeToTime(timeMillis5, now)
-        val stepsCount5 = stepsCountList5?.steps5min ?: 0
+        val now = System.currentTimeMillis()
+        val timeMillis5 = now - 5 * 60 * 1000 // 5 minutes en millisecondes
+        val timeMillis10 = now - 10 * 60 * 1000 // 10 minutes en millisecondes
+        val timeMillis15 = now - 15 * 60 * 1000 // 15 minutes en millisecondes
+        val timeMillis30 = now - 30 * 60 * 1000 // 30 minutes en millisecondes
+        val timeMillis60 = now - 60 * 60 * 1000 // 60 minutes en millisecondes
+        val timeMillis180 = now - 180 * 60 * 1000 // 180 minutes en millisecondes
 
-        val stepsCountList10 = persistenceLayer.getLastStepsCountFromTimeToTime(timeMillis10, now)
-        val stepsCount10 = stepsCountList10?.steps10min ?: 0
+        val allStepsCounts = persistenceLayer.getStepsCountFromTimeToTime(timeMillis180, now)
 
-        val stepsCountList15 = persistenceLayer.getLastStepsCountFromTimeToTime(timeMillis15, now)
-        val stepsCount15 = stepsCountList15?.steps15min ?: 0
-
-        val stepsCountList30 = persistenceLayer.getLastStepsCountFromTimeToTime(timeMillis30, now)
-        val stepsCount30 = stepsCountList30?.steps30min ?: 0
-
-        val stepsCountList60 = persistenceLayer.getLastStepsCountFromTimeToTime(timeMillis60, now)
-        val stepsCount60 = stepsCountList60?.steps60min ?: 0
-
-        val stepsCountList180 = persistenceLayer.getLastStepsCountFromTimeToTime(timeMillis180, now)
-        val stepsCount180 = stepsCountList180?.steps180min ?: 0
         if (preferences.get(BooleanKey.OApsAIMIEnableStepsFromWatch)) {
-            this.recentSteps5Minutes = stepsCount5
-            this.recentSteps10Minutes = stepsCount10
-            this.recentSteps15Minutes = stepsCount15
-            this.recentSteps30Minutes = stepsCount30
-            this.recentSteps60Minutes = stepsCount60
-            this.recentSteps180Minutes = stepsCount180
+        allStepsCounts.forEach { stepCount ->
+            val timestamp = stepCount.timestamp
+            if (timestamp >= timeMillis5) {
+                this.recentSteps5Minutes = stepCount.steps5min
+            }
+            if (timestamp >= timeMillis10) {
+                this.recentSteps10Minutes = stepCount.steps10min
+            }
+            if (timestamp >= timeMillis15) {
+                this.recentSteps15Minutes = stepCount.steps15min
+            }
+            if (timestamp >= timeMillis30) {
+                this.recentSteps30Minutes = stepCount.steps30min
+            }
+            if (timestamp >= timeMillis60) {
+                this.recentSteps60Minutes = stepCount.steps60min
+            }
+            if (timestamp >= timeMillis180) {
+                this.recentSteps180Minutes = stepCount.steps180min
+            }
+        }
         }else{
             this.recentSteps5Minutes = StepService.getRecentStepCount5Min()
             this.recentSteps10Minutes = StepService.getRecentStepCount10Min()
@@ -1169,47 +1173,30 @@ fun round(value: Double): Int {
             this.recentSteps60Minutes = StepService.getRecentStepCount60Min()
             this.recentSteps180Minutes = StepService.getRecentStepCount180Min()
         }
+
         try {
-            val heartRates = persistenceLayer.getHeartRatesFromTimeToTime(timeMillis5,now)
-            beatsPerMinuteValues = heartRates.map { it.beatsPerMinute.toInt() } // Extract beatsPerMinute values from heartRates
-            this.averageBeatsPerMinute = if (beatsPerMinuteValues.isNotEmpty()) {
-                beatsPerMinuteValues.average()
-            } else {
-                80.0 // or some other default value
-            }
+            val heartRates5 = persistenceLayer.getHeartRatesFromTimeToTime(timeMillis5,now)
+            this.averageBeatsPerMinute = heartRates5.map { it.beatsPerMinute.toInt() }.average()
 
         } catch (e: Exception) {
-            // Log that watch is not connected
-            //beatsPerMinuteValues = listOf(80)
+
             averageBeatsPerMinute = 80.0
         }
         try {
-            val heartRates = persistenceLayer.getHeartRatesFromTimeToTime(timeMillis60,now)
-            beatsPerMinuteValues60 = heartRates.map { it.beatsPerMinute.toInt() } // Extract beatsPerMinute values from heartRates
-            this.averageBeatsPerMinute60 = if (beatsPerMinuteValues60.isNotEmpty()) {
-                beatsPerMinuteValues60.average()
-            } else {
-                80.0 // or some other default value
-            }
+            val heartRates60 = persistenceLayer.getHeartRatesFromTimeToTime(timeMillis60,now)
+            this.averageBeatsPerMinute60 = heartRates60.map { it.beatsPerMinute.toInt() }.average()
 
         } catch (e: Exception) {
-            // Log that watch is not connected
-            //beatsPerMinuteValues = listOf(80)
+
             averageBeatsPerMinute60 = 80.0
         }
         try {
 
             val heartRates180 = persistenceLayer.getHeartRatesFromTimeToTime(timeMillis180,now)
-            beatsPerMinuteValues180 = heartRates180.map { it.beatsPerMinute.toInt() } // Extract beatsPerMinute values from heartRates
-            this.averageBeatsPerMinute180 = if (beatsPerMinuteValues180.isNotEmpty()) {
-                beatsPerMinuteValues180.average()
-            } else {
-                80.0 // or some other default value
-            }
+            this.averageBeatsPerMinute180 = heartRates180.map { it.beatsPerMinute.toInt() }.average()
 
         } catch (e: Exception) {
-            // Log that watch is not connected
-            //beatsPerMinuteValues180 = listOf(80)
+
             averageBeatsPerMinute180 = 80.0
         }
         if (tdd7Days.toFloat() != 0.0f) {
@@ -1943,11 +1930,11 @@ fun round(value: Double): Int {
             if (mealTime && mealruntime < 30){
                 rate = round_basal(basal * 10)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because mealTime ${round(rate, 2)}U/hr. ")
-                return setTempBasal(rate, 30, profile, rT, currenttemp)
+                return setTempBasal(rate, 30, profile, rT, currenttemp,true)
             }else if (highCarbTime && highCarbrunTime < 60){
                 rate = round_basal(basal * 10)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because highcarbTime ${round(rate, 2)}U/hr. ")
-                return setTempBasal(rate, 30, profile, rT, currenttemp)
+                return setTempBasal(rate, 30, profile, rT, currenttemp,true)
             }
 
             // if required temp < existing temp basal
@@ -2215,7 +2202,7 @@ fun round(value: Double): Int {
                 rate = round_basal(basal * 10)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because highcarbTime ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
-            }else if (bg > 200){
+            }else if (bg > 180){
                 rate = round_basal(basal * 10)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because bg > 200 ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)

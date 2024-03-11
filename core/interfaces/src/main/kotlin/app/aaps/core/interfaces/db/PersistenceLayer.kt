@@ -1307,10 +1307,11 @@ interface PersistenceLayer {
     fun getLastStepsCountFromTimeToTime(startTime: Long, endTime: Long): SC?
 
     /**
-     * Insert or update if exists record
+     * Get latest step counts record from interval
      *
-     * @param totalDailyDose record
-     * @return List of inserted/updated records
+     * @param startTime from
+     * @param endTime to
+     * @return step count record
      */
     fun insertOrUpdateStepsCount(stepsCount: SC): Single<TransactionResult<SC>>
 
