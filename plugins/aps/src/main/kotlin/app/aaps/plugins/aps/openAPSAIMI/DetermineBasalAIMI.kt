@@ -207,14 +207,11 @@ fun round(value: Double): Int {
     private fun getMaxSafeBasal(profile: OapsProfile): Double =
         min(profile.max_basal, min(profile.max_daily_safety_multiplier * profile.max_daily_basal, profile.current_basal_safety_multiplier * profile.current_basal))
 
-    fun setTempBasal(_rate: Double, duration: Int, profile: OapsProfile, rT: RT, currenttemp: CurrentTemp, forceRate: Boolean = false): RT {
+    fun setTempBasal(_rate: Double, duration: Int, profile: OapsProfile, rT: RT, currenttemp: CurrentTemp): RT {
         //var maxSafeBasal = Math.min(profile.max_basal, 3 * profile.max_daily_basal, 4 * profile.current_basal);
 
         val maxSafeBasal = getMaxSafeBasal(profile)
         var rate = _rate
-        if (forceRate){
-            return rT
-        }else {
 
             if (rate < 0) rate = 0.0
             else if (rate > maxSafeBasal) rate = maxSafeBasal
@@ -247,7 +244,6 @@ fun round(value: Double): Int {
                 rT.rate = suggestedRate
                 return rT
             }
-        }
     }
     private fun logDataMLToCsv(predictedSMB: Float, smbToGive: Float) {
 
@@ -1930,11 +1926,11 @@ fun round(value: Double): Int {
             if (mealTime && mealruntime < 30){
                 rate = round_basal(basal * 10)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because mealTime ${round(rate, 2)}U/hr. ")
-                return setTempBasal(rate, 30, profile, rT, currenttemp,true)
+                return setTempBasal(rate, 30, profile, rT, currenttemp)
             }else if (highCarbTime && highCarbrunTime < 60){
                 rate = round_basal(basal * 10)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because highcarbTime ${round(rate, 2)}U/hr. ")
-                return setTempBasal(rate, 30, profile, rT, currenttemp,true)
+                return setTempBasal(rate, 30, profile, rT, currenttemp)
             }
 
             // if required temp < existing temp basal
@@ -2197,35 +2193,35 @@ fun round(value: Double): Int {
             if (mealTime && mealruntime < 30){
                 rate = round_basal(basal * 10)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because mealTime ${round(rate, 2)}U/hr. ")
-                return setTempBasal(rate, 30, profile, rT, currenttemp,true)
+                return setTempBasal(rate, 30, profile, rT, currenttemp)
             }else if (highCarbTime && highCarbrunTime < 60){
                 rate = round_basal(basal * 10)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because highcarbTime ${round(rate, 2)}U/hr. ")
-                return setTempBasal(rate, 30, profile, rT, currenttemp,true)
+                return setTempBasal(rate, 30, profile, rT, currenttemp)
             }else if (bg > 180){
                 rate = round_basal(basal * 10)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because bg > 200 ${round(rate, 2)}U/hr. ")
-                return setTempBasal(rate, 30, profile, rT, currenttemp,true)
+                return setTempBasal(rate, 30, profile, rT, currenttemp)
             }else if (honeymoon && delta > 2 && bg > 90 && bg < 110) {
                 rate = profile_current_basal
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because honeymoon ${round(rate, 2)}U/hr. ")
-                return setTempBasal(rate, 30, profile, rT, currenttemp,true)
+                return setTempBasal(rate, 30, profile, rT, currenttemp)
             }else if (honeymoon && delta > 0 && bg > 110 && eventualBG > 100){
                 rate = round_basal(basal * delta)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because honeymoon ${round(rate, 2)}U/hr. ")
-                return setTempBasal(rate, 30, profile, rT, currenttemp,true)
+                return setTempBasal(rate, 30, profile, rT, currenttemp)
             }else if (pregnancyEnable && delta > 0 && bg > 110 && !honeymoon) {
                 rate = round_basal(basal * 10)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because pregnancy ${round(rate, 2)}U/hr. ")
-                return setTempBasal(rate, 30, profile, rT, currenttemp,true)
+                return setTempBasal(rate, 30, profile, rT, currenttemp)
             }else if (delta > 0 && bg > 80 && eventualBG > 65 && !honeymoon){
                 rate = round_basal(basal * delta)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal ${round(rate, 2)}U/hr. ")
-                return setTempBasal(rate, 30, profile, rT, currenttemp,true)
+                return setTempBasal(rate, 30, profile, rT, currenttemp)
             } else if (conditionResult && delta > 0 && bg > 80 && !honeymoon){
                 rate = round_basal(basal * delta)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal when isCriticalSafetyCondition is true ${round(rate, 2)}U/hr. ")
-                return setTempBasal(rate, 30, profile, rT, currenttemp,true)
+                return setTempBasal(rate, 30, profile, rT, currenttemp)
             }
 
             if (rate > maxSafeBasal) {
