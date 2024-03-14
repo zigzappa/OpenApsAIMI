@@ -22,7 +22,6 @@ import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.Preferences
-import app.aaps.plugins.aps.R
 import org.tensorflow.lite.Interpreter
 import java.io.File
 import java.text.DecimalFormat
@@ -59,6 +58,7 @@ class DetermineBasalaimiSMB @Inject constructor(
     private var predictedSMB = 0.0f
     private var variableSensitivity = 0.0f
     private var averageBeatsPerMinute = 0.0
+    private var averageBeatsPerMinute10 = 0.0
     private var averageBeatsPerMinute60 = 0.0
     private var averageBeatsPerMinute180 = 0.0
     private var now = System.currentTimeMillis()
@@ -73,13 +73,14 @@ class DetermineBasalaimiSMB @Inject constructor(
     private var tags60to120minAgo = ""
     private var tags120to180minAgo = ""
     private var tags180to240minAgo = ""
+    private var tir1DAYabove: Double = 0.0
     private var currentTIRLow: Double = 0.0
     private var currentTIRRange: Double = 0.0
     private var currentTIRAbove: Double = 0.0
     private var lastHourTIRLow: Double = 0.0
     private var lastHourTIRLow100: Double = 0.0
     private var lastHourTIRabove170: Double = 0.0
-    private var bg = 0.0f
+    private var bg = 0.0
     private var targetBg = 100.0f
     private var normalBgThreshold = 140.0f
     private var delta = 0.0f
@@ -488,7 +489,7 @@ fun round(value: Double): Int {
                 selectedModelFile = modelFile
                 modelInputs = floatArrayOf(
                     hourOfDay.toFloat(), weekend.toFloat(),
-                    bg, targetBg, iob, cob, lastCarbAgeMin.toFloat(), futureCarbs, delta, shortAvgDelta, longAvgDelta
+                    bg.toFloat(), targetBg, iob, cob, lastCarbAgeMin.toFloat(), futureCarbs, delta, shortAvgDelta, longAvgDelta
                 )
             }
 
@@ -496,7 +497,7 @@ fun round(value: Double): Int {
                 selectedModelFile = modelFileUAM
                 modelInputs = floatArrayOf(
                     hourOfDay.toFloat(), weekend.toFloat(),
-                    bg, targetBg, iob, delta, shortAvgDelta, longAvgDelta,
+                    bg.toFloat(), targetBg, iob, delta, shortAvgDelta, longAvgDelta,
                     tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour,
                     recentSteps5Minutes.toFloat(),recentSteps10Minutes.toFloat(),recentSteps15Minutes.toFloat(),recentSteps30Minutes.toFloat(),recentSteps60Minutes.toFloat(),recentSteps180Minutes.toFloat()
                 )
@@ -519,7 +520,7 @@ fun round(value: Double): Int {
         return smbToGive.toFloat()
     }
     private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, predictedSMB: Float, basalaimi: Float): Pair<Float, Float> {
-        val minutesToConsider = 14000.0
+        val minutesToConsider = if (tir1DAYabove > 15) 15000.0 else 5000.0
         val linesToConsider = (minutesToConsider / 5).toInt()
         var totalDifference: Float
         val maxIterations = 10000.0
@@ -570,7 +571,7 @@ fun round(value: Double): Int {
                     return Pair(predictedSMB, basalaimi)
                 }
                 val epochs = 250.0
-                val learningRate = 0.001
+                val learningRate = if (tir1DAYabove > 15) 0.0001 else 0.001
                 // Déterminer la taille de l'ensemble de validation
                 val validationSize = (inputs.size * 0.1).toInt() // Par exemple, 10% pour la validation
 
@@ -684,7 +685,7 @@ fun round(value: Double): Int {
         val increasedPhysicalActivity = recentSteps180Minutes > stepActivityThreshold
 
         // Calculer le changement relatif de la fréquence cardiaque
-        val heartRateChange = averageBeatsPerMinute60 / averageBeatsPerMinute180
+        val heartRateChange = averageBeatsPerMinute / averageBeatsPerMinute10
 
         // Indicateur d'une augmentation possible de la fréquence cardiaque due à l'exercice
         val increasedHeartRateActivity = heartRateChange >= heartRateIncreaseThreshold
@@ -712,24 +713,26 @@ fun round(value: Double): Int {
         cob: Float,
         normalBgThreshold: Float,
         recentSteps180Min: Int,
-        averageBeatsPerMinute60: Float,
-        averageBeatsPerMinute180: Float
+        averageBeatsPerMinute: Float,
+        averageBeatsPerMinute10: Float,
+        insulinDivisor: Float
     ): Float {
         // Calculer l'effet initial de l'insuline
-        var insulinEffect = iob * variableSensitivity
+        var insulinEffect = iob * variableSensitivity / insulinDivisor
 
         // Si des glucides sont présents, nous pourrions vouloir ajuster l'effet de l'insuline pour tenir compte de l'absorption des glucides.
         if (cob > 0) {
             // Ajustement hypothétique basé sur la présence de glucides. Ce facteur doit être déterminé par des tests/logique métier.
             insulinEffect *= 0.9f
         }
-
+        val physicalActivityFactor = 1.0f - recentSteps180Min / 10000f
+        insulinEffect *= physicalActivityFactor
         // Calculer le facteur de retard ajusté en fonction de l'activité physique
         val adjustedDelayFactor = calculateAdjustedDelayFactor(
             normalBgThreshold,
             recentSteps180Min,
-            averageBeatsPerMinute60,
-            averageBeatsPerMinute180
+            averageBeatsPerMinute,
+            averageBeatsPerMinute10
         )
 
         // Appliquer le facteur de retard ajusté à l'effet de l'insuline
@@ -745,29 +748,32 @@ fun round(value: Double): Int {
         iob: Float,
         variableSensitivity: Float,
         cob: Float,
-        CI: Float
+        CI: Float,
+        mealTime: Boolean,
+        highcarbTime: Boolean,
+        snackTime: Boolean,
+        profile: OapsProfile
     ): Float {
-        // Temps moyen d'absorption des glucides en heures
-        val averageCarbAbsorptionTime = 2.5f
+        val (averageCarbAbsorptionTime, carbTypeFactor, estimatedCob) = when {
+            highcarbTime -> Triple(3.5f, 0.75f, 100f) // Repas riche en glucides
+            snackTime -> Triple(1.5f, 1.25f, 15f) // Snack
+            mealTime -> Triple(2.5f, 1.0f, 55f) // Repas normal
+            else -> Triple(2.5f, 1.0f, cob) // Valeur par défaut si aucun type de repas spécifié
+        }
         val absorptionTimeInMinutes = averageCarbAbsorptionTime * 60
 
-        // Calculer l'effet de l'insuline
         val insulinEffect = calculateInsulinEffect(
             bg, iob, variableSensitivity, cob, normalBgThreshold, recentSteps180Minutes,
-            averageBeatsPerMinute60.toFloat(), averageBeatsPerMinute180.toFloat()
+            averageBeatsPerMinute.toFloat(), averageBeatsPerMinute10.toFloat(),profile.insulinDivisor.toFloat()
         )
 
-        // Calculer l'effet des glucides
         val carbEffect = if (absorptionTimeInMinutes != 0f && CI > 0f) {
-            (cob / absorptionTimeInMinutes) * CI
+            (estimatedCob / absorptionTimeInMinutes) * CI * carbTypeFactor
         } else {
-            0f // ou une autre valeur appropriée
+            0f
         }
 
-        // Prédire la glycémie future
         var futureBg = bg - insulinEffect + carbEffect
-
-        // S'assurer que la glycémie future n'est pas inférieure à une valeur minimale, par exemple 39
         if (futureBg < 39f) {
             futureBg = 39f
         }
@@ -854,6 +860,7 @@ fun round(value: Double): Int {
             consoleLog = consoleLog,
             consoleError = consoleError
         )
+        this.bg = glucose_status.glucose
         val getlastBolusSMB = persistenceLayer.getNewestBolusOfType(BS.Type.SMB)
         val lastBolusSMBTime = getlastBolusSMB?.timestamp ?: 0L
         val lastBolusSMBMinutes = lastBolusSMBTime / 60000
@@ -862,6 +869,7 @@ fun round(value: Double): Int {
         this.lastsmbtime = (diff / (60 * 1000)).toInt()
         this.maxIob = preferences.get(DoubleKey.ApsSmbMaxIob)
         this.maxSMB = preferences.get(DoubleKey.OApsAIMIMaxSMB)
+        this.tir1DAYabove = tirCalculator.averageTIR(tirCalculator.calculate(1, 65.0, 180.0))?.abovePct()!!
         this.currentTIRLow = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.belowPct()!!
         this.currentTIRRange = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.inRangePct()!!
         this.currentTIRAbove = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.abovePct()!!
@@ -971,8 +979,8 @@ fun round(value: Double): Int {
         val bgTime = glucose_status.date
         val minAgo = round((systemTime - bgTime) / 60.0 / 1000.0, 1)
         // TODO eliminate
-        val bg = glucose_status.glucose
-        this.bg = bg.toFloat()
+        //bg = glucose_status.glucose.toFloat()
+        //this.bg = bg.toFloat()
         // TODO eliminate
         val noise = glucose_status.noise
         // 38 is an xDrip error state that usually indicates sensor failure
@@ -1127,7 +1135,8 @@ fun round(value: Double): Int {
         var sens = profile.variable_sens
         this.variableSensitivity = sens.toFloat()
         consoleError.add("CR:${profile.carb_ratio}")
-        this.predictedBg = predictFutureBg(bg.toFloat(), iob, variableSensitivity, cob, CI)
+        this.predictedBg = predictFutureBg(bg.toFloat(), iob, variableSensitivity, cob, CI,mealTime,highCarbTime,snackTime,profile)
+        val insulinEffect = calculateInsulinEffect(bg.toFloat(),iob,variableSensitivity,cob,normalBgThreshold,recentSteps180Minutes,averageBeatsPerMinute.toFloat(),averageBeatsPerMinute10.toFloat(),profile.insulinDivisor.toFloat())
 
         val now = System.currentTimeMillis()
         val timeMillis5 = now - 5 * 60 * 1000 // 5 minutes en millisecondes
@@ -1177,6 +1186,14 @@ fun round(value: Double): Int {
         } catch (e: Exception) {
 
             averageBeatsPerMinute = 80.0
+        }
+        try {
+            val heartRates10 = persistenceLayer.getHeartRatesFromTimeToTime(timeMillis60,now)
+            this.averageBeatsPerMinute10 = heartRates10.map { it.beatsPerMinute.toInt() }.average()
+
+        } catch (e: Exception) {
+
+            averageBeatsPerMinute10 = 80.0
         }
         try {
             val heartRates60 = persistenceLayer.getHeartRatesFromTimeToTime(timeMillis60,now)
@@ -2006,11 +2023,13 @@ fun round(value: Double): Int {
                 }
             }
         }
+
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 12 Mars 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 15 Mars 2024<br>$lineSeparator
+    |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |Max IOB: $maxIob<br>$lineSeparator
     |Max SMB: $maxSMB<br>$lineSeparator
@@ -2025,53 +2044,53 @@ fun round(value: Double): Int {
     |mealruntime: $mealruntime<br>$lineSeparator
     |highCarbrunTime: $highCarbrunTime<br>$lineSeparator
     |
-    |bg: $bg<br>$lineSeparator
-    |targetBG: $targetBg<br>$lineSeparator
-    |futureBg: $predictedBg<br>$lineSeparator
+    |insulinEffect: $insulinEffect
+    |bg: $bg
+    |targetBG: $targetBg
+    |futureBg: $predictedBg
     |delta: $delta<br>$lineSeparator
-    |short avg delta: $shortAvgDelta<br>$lineSeparator
+    |short avg delta: $shortAvgDelta
     |long avg delta: $longAvgDelta<br>$lineSeparator
-    |accelerating_up: $accelerating_up<br>$lineSeparator
-    |deccelerating_up: $deccelerating_up<br>$lineSeparator
-    |accelerating_down: $accelerating_down<br>$lineSeparator
-    |deccelerating_down: $deccelerating_down<br>$lineSeparator
+    |accelerating_up: $accelerating_up
+    |deccelerating_up: $deccelerating_up
+    |accelerating_down: $accelerating_down
+    |deccelerating_down: $deccelerating_down
     |stable: $stable<br>$lineSeparator
     |
     |IOB: $iob<br>$lineSeparator
-    |tdd 7d/h: ${roundToPoint05(tdd7DaysPerHour)}<br>$lineSeparator
-    |tdd 2d/h: ${roundToPoint05(tdd2DaysPerHour)}<br>$lineSeparator
-    |tdd daily/h: ${roundToPoint05(tddPerHour)}<br>$lineSeparator
+    |tdd 7d/h: ${roundToPoint05(tdd7DaysPerHour)}
+    |tdd 2d/h: ${roundToPoint05(tdd2DaysPerHour)}
+    |tdd daily/h: ${roundToPoint05(tddPerHour)}
     |tdd 24h/h: ${roundToPoint05(tdd24HrsPerHour)}<br>$lineSeparator
-    |enablebasal: $enablebasal<br>$lineSeparator
-    |basalaimi: $basalaimi<br>$lineSeparator
+    |enablebasal: $enablebasal<br>|basalaimi: $basalaimi<br>$lineSeparator
     |ISF: $variableSensitivity<br>$lineSeparator
     |
     |Hour of day: $hourOfDay<br>$lineSeparator
     |Weekend: $weekend<br>$lineSeparator
-    |5 Min Steps: $recentSteps5Minutes<br>$lineSeparator
-    |10 Min Steps: $recentSteps10Minutes<br>$lineSeparator
-    |15 Min Steps: $recentSteps15Minutes<br>$lineSeparator
-    |30 Min Steps: $recentSteps30Minutes<br>$lineSeparator
-    |60 Min Steps: $recentSteps60Minutes<br>$lineSeparator
+    |5 Min Steps: $recentSteps5Minutes
+    |10 Min Steps: $recentSteps10Minutes
+    |15 Min Steps: $recentSteps15Minutes
+    |30 Min Steps: $recentSteps30Minutes
+    |60 Min Steps: $recentSteps60Minutes
     |180 Min Steps: $recentSteps180Minutes<br>$lineSeparator
-    |Heart Beat(average past 5 minutes): $averageBeatsPerMinute<br>$lineSeparator
-    |Heart Beat(average past 60 minutes): $averageBeatsPerMinute60<br>$lineSeparator
+    |Heart Beat(average past 5 minutes): $averageBeatsPerMinute
+    |Heart Beat(average past 10 minutes): $averageBeatsPerMinute10
+    |Heart Beat(average past 60 minutes): $averageBeatsPerMinute60
     |Heart Beat(average past 180 minutes): $averageBeatsPerMinute180<br>$lineSeparator
-    |COB: ${cob}g Future: ${futureCarbs}g<br>$lineSeparator
+    |COB: ${cob}g Future: ${futureCarbs}g<br>
     |COB Age Min: $lastCarbAgeMin<br>$lineSeparator
     |
-    |tags0to60minAgo: ${tags0to60minAgo}<br>$lineSeparator
-    |tags60to120minAgo: $tags60to120minAgo<br>$lineSeparator
-    |tags120to180minAgo: $tags120to180minAgo<br>$lineSeparator
+    |tags0to60minAgo: ${tags0to60minAgo}
+    |tags60to120minAgo: $tags60to120minAgo
+    |tags120to180minAgo: $tags120to180minAgo
     |tags180to240minAgo: $tags180to240minAgo<br>$lineSeparator
-    |currentTIRLow: $currentTIRLow<br>$lineSeparator
-    |currentTIRRange: $currentTIRRange<br>$lineSeparator
-    |currentTIRAbove: $currentTIRAbove<br>$lineSeparator
+    |currentTIRLow: $currentTIRLow
+    |currentTIRRange: $currentTIRRange
+    |currentTIRAbove: $currentTIRAbove
     |lastHourTIRLow: $lastHourTIRLow<br>$lineSeparator
-    |lastHourTIRLow100: $lastHourTIRLow100<br>$lineSeparator
+    |lastHourTIRLow100: $lastHourTIRLow100
     |lastHourTIRabove170: $lastHourTIRabove170<br>$lineSeparator
     |isCriticalSafetyCondition: $conditionResult, True Conditions: $conditionsTrue<br>$lineSeparator
-    |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |lastBolusSMBMinutes: $lastBolusSMBMinutes<br>$lineSeparator
     |lastsmbtime: $lastsmbtime<br>$lineSeparator
     |lastCarbAgeMin: $lastCarbAgeMin<br>$lineSeparator
