@@ -213,37 +213,37 @@ fun round(value: Double): Int {
         val maxSafeBasal = getMaxSafeBasal(profile)
         var rate = _rate
 
-            if (rate < 0) rate = 0.0
-            else if (rate > maxSafeBasal) rate = maxSafeBasal
+        if (rate < 0) rate = 0.0
+        else if (rate > maxSafeBasal) rate = maxSafeBasal
 
-            val suggestedRate = round_basal(rate)
-            if (currenttemp.duration > (duration - 10) && currenttemp.duration <= 120 && suggestedRate <= currenttemp.rate * 1.2 && suggestedRate >= currenttemp.rate * 0.8 && duration > 0) {
-                rT.reason.append(" ${currenttemp.duration}m left and ${currenttemp.rate.withoutZeros()} ~ req ${suggestedRate.withoutZeros()}U/hr: no temp required")
-                return rT
-            }
+        val suggestedRate = round_basal(rate)
+        if (currenttemp.duration > (duration - 10) && currenttemp.duration <= 120 && suggestedRate <= currenttemp.rate * 1.2 && suggestedRate >= currenttemp.rate * 0.8 && duration > 0) {
+            rT.reason.append(" ${currenttemp.duration}m left and ${currenttemp.rate.withoutZeros()} ~ req ${suggestedRate.withoutZeros()}U/hr: no temp required")
+            return rT
+        }
 
-            if (suggestedRate == profile.current_basal) {
-                if (profile.skip_neutral_temps) {
-                    if (currenttemp.duration > 0) {
-                        reason(rT, "Suggested rate is same as profile rate, a temp basal is active, canceling current temp")
-                        rT.duration = 0
-                        rT.rate = 0.0
-                        return rT
-                    } else {
-                        reason(rT, "Suggested rate is same as profile rate, no temp basal is active, doing nothing")
-                        return rT
-                    }
+        if (suggestedRate == profile.current_basal) {
+            if (profile.skip_neutral_temps) {
+                if (currenttemp.duration > 0) {
+                    reason(rT, "Suggested rate is same as profile rate, a temp basal is active, canceling current temp")
+                    rT.duration = 0
+                    rT.rate = 0.0
+                    return rT
                 } else {
-                    reason(rT, "Setting neutral temp basal of ${profile.current_basal}U/hr")
-                    rT.duration = duration
-                    rT.rate = suggestedRate
+                    reason(rT, "Suggested rate is same as profile rate, no temp basal is active, doing nothing")
                     return rT
                 }
             } else {
+                reason(rT, "Setting neutral temp basal of ${profile.current_basal}U/hr")
                 rT.duration = duration
                 rT.rate = suggestedRate
                 return rT
             }
+        } else {
+            rT.duration = duration
+            rT.rate = suggestedRate
+            return rT
+        }
     }
     private fun logDataMLToCsv(predictedSMB: Float, smbToGive: Float) {
 
@@ -519,7 +519,7 @@ fun round(value: Double): Int {
         return smbToGive.toFloat()
     }
     private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, predictedSMB: Float, basalaimi: Float): Pair<Float, Float> {
-        val minutesToConsider = 1400.0
+        val minutesToConsider = 14000.0
         val linesToConsider = (minutesToConsider / 5).toInt()
         var totalDifference: Float
         val maxIterations = 10000.0
@@ -569,8 +569,8 @@ fun round(value: Double): Int {
                 if (inputs.isEmpty() || targets.isEmpty()) {
                     return Pair(predictedSMB, basalaimi)
                 }
-                val epochs = 200.0
-                val learningRate = 0.0001
+                val epochs = 250.0
+                val learningRate = 0.001
                 // Déterminer la taille de l'ensemble de validation
                 val validationSize = (inputs.size * 0.1).toInt() // Par exemple, 10% pour la validation
 
