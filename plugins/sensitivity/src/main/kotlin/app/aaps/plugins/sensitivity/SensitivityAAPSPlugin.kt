@@ -18,7 +18,6 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.keys.DoubleKey
-import app.aaps.core.keys.DoubleKey.AutosensMin
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.Preferences
 import app.aaps.core.objects.extensions.put
@@ -153,13 +152,13 @@ class SensitivityAAPSPlugin @Inject constructor(
         JSONObject()
             .put(IntKey.AutosensPeriod, preferences, rh)
             .put(DoubleKey.AbsorptionMaxTime, preferences, rh)
-            .put(AutosensMin, preferences, rh)
-            .put(AutosensMin, preferences, rh)
+            .put(DoubleKey.AutosensMin, preferences, rh)
+            .put(DoubleKey.AutosensMin, preferences, rh)
 
     override fun applyConfiguration(configuration: JSONObject) {
         configuration
             .store(IntKey.AutosensPeriod, preferences, rh)
-            .store(AutosensMin, preferences, rh)
+            .store(DoubleKey.AutosensMin, preferences, rh)
             .store(DoubleKey.AutosensMax, preferences, rh)
             .store(DoubleKey.AbsorptionMaxTime, preferences, rh)
     }
@@ -178,7 +177,7 @@ class SensitivityAAPSPlugin @Inject constructor(
                 key = "absorption_aaps_advanced"
                 title = rh.gs(app.aaps.core.ui.R.string.advanced_settings_title)
                 addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.AutosensMax, dialogMessage = R.string.openapsama_autosens_max_summary, title = R.string.openapsama_autosens_max))
-                addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = AutosensMin, dialogMessage = R.string.openapsama_autosens_min_summary, title = R.string.openapsama_autosens_min))
+                addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.AutosensMin, dialogMessage = R.string.openapsama_autosens_min_summary, title = R.string.openapsama_autosens_min))
             })
         }
     }
