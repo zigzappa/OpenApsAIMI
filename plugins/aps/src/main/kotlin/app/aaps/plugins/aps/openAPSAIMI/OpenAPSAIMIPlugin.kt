@@ -256,9 +256,9 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         var tdd = (tddWeightedFromLast8H * 0.33) + (tddStatus.tdd7D * 0.34) + (tddStatus.tdd1D * 0.33)
         if (bg != null) {
             tdd = when {
-                sportTime -> tdd * 2.5
+                sportTime -> tdd * 1.1
                 sleepTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(sleepTimeDynISFAdjFactor)
-                lowCarbTime -> tdd * 1.4
+                lowCarbTime -> tdd * 1.1
                 snackTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(snackTimeDynISFAdjFactor)
                 highCarbTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(hcTimeDynISFAdjFactor)
                 mealTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(mealTimeDynISFAdjFactor)
@@ -391,9 +391,9 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             tdd = (tddWeightedFromLast8H * 0.33) + (tdd2Days * 0.34) + (tddDaily * 0.33)
             if (bg != null) {
                 tdd = when {
-                    sportTime -> tdd * 0.65
+                    sportTime -> tdd * 1.1
                     sleepTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(sleepTimeDynISFAdjFactor)
-                    lowCarbTime -> tdd * 0.80
+                    lowCarbTime -> tdd * 1.1
                     snackTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(snackTimeDynISFAdjFactor)
                     highCarbTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(hcTimeDynISFAdjFactor)
                     mealTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(mealTimeDynISFAdjFactor)
