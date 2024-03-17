@@ -860,6 +860,7 @@ fun round(value: Double): Int {
             consoleLog = consoleLog,
             consoleError = consoleError
         )
+        val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
         this.bg = glucose_status.glucose
         val getlastBolusSMB = persistenceLayer.getNewestBolusOfType(BS.Type.SMB)
         val lastBolusSMBTime = getlastBolusSMB?.timestamp ?: 0L
@@ -1238,7 +1239,7 @@ fun round(value: Double): Int {
         }
 
         val pregnancyEnable = preferences.get(BooleanKey.OApsAIMIpregnancy)
-        val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
+
         if (tirbasal3B != null && pregnancyEnable) {
             if (tirbasal3IR != null) {
                 if (tirbasalhAP != null && tirbasalhAP >= 5) {
@@ -1344,6 +1345,7 @@ fun round(value: Double): Int {
                 this.predictedSMB = refinedSMB
                 this.basalaimi = refinedBasalaimi
                 basal = basalaimi.toDouble()
+                basal = if (honeymoon) basalaimi * 0.4 else basalaimi.toDouble()
                 basal = round_basal(basal)
             }
             rT.reason.append("csvfile ${csvfile.exists()}")
@@ -2028,7 +2030,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 15 Mars 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 17 Mars 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |Max IOB: $maxIob<br>$lineSeparator
