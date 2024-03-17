@@ -1344,7 +1344,6 @@ fun round(value: Double): Int {
                 rT.reason.append("neuralnetwork SMB: $refinedSMB Basal: $refinedBasalaimi")
                 this.predictedSMB = refinedSMB
                 this.basalaimi = refinedBasalaimi
-                basal = basalaimi.toDouble()
                 basal = if (honeymoon) basalaimi * 0.4 else basalaimi.toDouble()
                 basal = round_basal(basal)
             }
@@ -1352,7 +1351,7 @@ fun round(value: Double): Int {
         }else {
             rT.reason.append("ML Decision data training","ML decision has no enough data to refine the decision")
         }
-        var smbToGive = predictedSMB
+        var smbToGive = if (honeymoon) predictedSMB * 0.4f else predictedSMB
 
         val morningfactor: Double = preferences.get(DoubleKey.OApsAIMIMorningFactor) / 100.0
         val afternoonfactor: Double = preferences.get(DoubleKey.OApsAIMIAfternoonFactor) / 100.0
