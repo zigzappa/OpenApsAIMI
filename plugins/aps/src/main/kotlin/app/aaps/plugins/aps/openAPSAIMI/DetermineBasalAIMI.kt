@@ -80,6 +80,7 @@ class DetermineBasalaimiSMB @Inject constructor(
     private var lastHourTIRLow: Double = 0.0
     private var lastHourTIRLow100: Double = 0.0
     private var lastHourTIRabove170: Double = 0.0
+    private var lastHourTIRabove140: Double = 0.0
     private var bg = 0.0
     private var targetBg = 100.0f
     private var normalBgThreshold = 140.0f
@@ -379,7 +380,7 @@ fun round(value: Double): Int {
         if (fasting) conditionsTrue.add("fasting")
         val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..6) } && delta > 10 && cob === 0.0f
         if (nightTrigger) conditionsTrue.add("nightTrigger")
-        val belowMinThreshold = bg < 120 && delta < 10 && !isMealModeCondition() && !isHighCarbModeCondition()
+        val belowMinThreshold = bg < 100 && delta < 10 && !mealTime && !highCarbTime
         if (belowMinThreshold) conditionsTrue.add("belowMinThreshold")
         val isNewCalibration = iscalibration && delta > 10
         if (isNewCalibration) conditionsTrue.add("isNewCalibration")
@@ -387,7 +388,7 @@ fun round(value: Double): Int {
         if (belowTargetAndDropping) conditionsTrue.add("belowTargetAndDropping")
         val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 10 && !isMealModeCondition() && !isHighCarbModeCondition()
         if (belowTargetAndStableButNoCob) conditionsTrue.add("belowTargetAndStableButNoCob")
-        val droppingFast = bg < 150 && delta < -5
+        val droppingFast = bg < 130 && delta < -5
         if (droppingFast) conditionsTrue.add("droppingFast")
         val droppingFastAtHigh = bg < 240 && delta < -7
         if (droppingFastAtHigh) conditionsTrue.add("droppingFastAtHigh")
@@ -397,9 +398,9 @@ fun round(value: Double): Int {
         if (prediction) conditionsTrue.add("prediction")
         val interval = predictedBg < targetBg && delta > 10 && iob >= maxSMB/2 && lastsmbtime < 10
         if (interval) conditionsTrue.add("interval")
-        val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 15
+        val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 12
         if (targetinterval) conditionsTrue.add("targetinterval")
-        val stablebg = delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 180 && !isMealModeCondition() && !isHighCarbModeCondition()
+        val stablebg = delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 140 && !mealTime && !highCarbTime
         if (stablebg) conditionsTrue.add("stablebg")
         val acceleratingDown = delta < -2 && delta - longAvgDelta < -2 && lastsmbtime < 15
         if (acceleratingDown) conditionsTrue.add("acceleratingDown")
@@ -554,7 +555,7 @@ fun round(value: Double): Int {
                     // Calculez et ajoutez l'indicateur de tendance directement dans 'input'
                     val trendIndicator = when {
                         delta > 0 && shortAvgDelta > 0 && longAvgDelta > 0 -> 1
-                        delta < 0 && shortAvgDelta < 0 && longAvgDelta < 0 -> -1
+                        delta < -2 && shortAvgDelta < -2 && longAvgDelta < 0 -> -1
                         else                                               -> 0
                     }
                     val enhancedInput = input.copyOf(input.size + 1)
@@ -570,7 +571,7 @@ fun round(value: Double): Int {
                 if (inputs.isEmpty() || targets.isEmpty()) {
                     return Pair(predictedSMB, basalaimi)
                 }
-                val epochs = 250.0
+                val epochs = if (tir1DAYabove > 15) 250.0 else 150.0
                 val learningRate = if (tir1DAYabove > 15) 0.0001 else 0.001
                 // Déterminer la taille de l'ensemble de validation
                 val validationSize = (inputs.size * 0.1).toInt() // Par exemple, 10% pour la validation
@@ -595,7 +596,7 @@ fun round(value: Double): Int {
                         val predictedrefineSMB = finalRefinedSMB// Prédiction du modèle TFLite
                         val refinedSMB = refineSMB(predictedrefineSMB, neuralNetwork, enhancedInput)
                         val refinedBasalAimi = refineBasalaimi(refineBasalAimi, neuralNetwork, enhancedInput)
-                        if (delta > 10 && bg > 120 && iob < 1.5) {
+                        if (delta > 10 && bg > 100 && iob < 1.5) {
                             isAggressiveResponseNeeded = true
                         }
 
@@ -618,7 +619,7 @@ fun round(value: Double): Int {
                     if (isAggressiveResponseNeeded && (finalRefinedSMB <= 0.5 || refineBasalAimi <= 0.5)) {
                         finalRefinedSMB = maxSMB.toFloat() / 2
                         refineBasalAimi = maxSMB.toFloat()
-                    } else if (!isAggressiveResponseNeeded && delta > 3 && bg > 130) {
+                    } else if (!isAggressiveResponseNeeded && delta > 3 && bg > 100) {
                         refineBasalAimi = basalaimi * delta
                     }
                     iterationCount++
@@ -638,10 +639,10 @@ fun round(value: Double): Int {
     }
     private fun calculateGFactor(delta: Float, lastHourTIRabove170: Double, bg: Float): Double {
         val deltaFactor = delta / 10 // Ajuster selon les besoins
-        val bgFactor = if (bg > 170) 1.2 else if (bg < 120) 0.8 else 1.0
+        val bgFactor = if (bg > 140) 1.2 else if (bg < 100) 0.6 else 1.0
 
         // Introduire un facteur basé sur lastHourTIRabove170
-        val tirFactor = 1.0 + lastHourTIRabove170 * 0.05 // Exemple: 5% d'augmentation pour chaque unité de lastHourTIRabove170
+        val tirFactor = 1.0 + lastHourTIRabove140 * 0.05 // Exemple: 5% d'augmentation pour chaque unité de lastHourTIRabove170
 
         // Combinez les facteurs pour obtenir un ajustement global
         return deltaFactor * bgFactor * tirFactor
@@ -652,9 +653,9 @@ fun round(value: Double): Int {
         eveningFactor: Float
     ): Triple<Double, Double, Double> {
         val hypoAdjustment = if (bg < 120 || (iob > 3 * maxSMB)) 0.8f else 1.0f
-        val factorAdjustment = if (bg < 120) 0.2f else 0.3f
+        val factorAdjustment = if (bg < 100) 0.2f else 0.3f
         val bgAdjustment = 1.0f + (Math.log(Math.abs(delta.toDouble()) + 1) - 1) * factorAdjustment
-        val scalingFactor = 1.0f - (bg - targetBg).toFloat() / (200 - targetBg) * 0.5f
+        val scalingFactor = 1.0f - (bg - targetBg).toFloat() / (140 - targetBg) * 0.5f
 
         if (delta < 0)
             return Triple(
@@ -878,6 +879,7 @@ fun round(value: Double): Int {
         val lastHourTIRAbove = tirCalculator.averageTIR(tirCalculator.calculateHour(72.0, 140.0))?.abovePct()
         this.lastHourTIRLow100 = tirCalculator.averageTIR(tirCalculator.calculateHour(100.0,140.0))?.belowPct()!!
         this.lastHourTIRabove170 = tirCalculator.averageTIR(tirCalculator.calculateHour(100.0,170.0))?.abovePct()!!
+        this.lastHourTIRabove140 = tirCalculator.averageTIR(tirCalculator.calculateHour(100.0,140.0))?.abovePct()!!
         val tirbasal3IR = tirCalculator.averageTIR(tirCalculator.calculate(3, 65.0, 130.0))?.inRangePct()
         val tirbasal3B = tirCalculator.averageTIR(tirCalculator.calculate(3, 65.0, 130.0))?.belowPct()
         val tirbasal3A = tirCalculator.averageTIR(tirCalculator.calculate(3, 65.0, 130.0))?.abovePct()
@@ -1262,14 +1264,14 @@ fun round(value: Double): Int {
 
         this.variableSensitivity = max(
             profile.sens.toFloat() / 4.0f,
-            sens.toFloat() * calculateGFactor(delta, lastHourTIRabove170, bg.toFloat()).toFloat()
+            sens.toFloat() * calculateGFactor(delta, lastHourTIRabove140, bg.toFloat()).toFloat()
         )
 
         if (recentSteps5Minutes > 100 && recentSteps10Minutes > 200 && bg < 130 && delta < 10 || recentSteps180Minutes > 1500 && bg < 130 && delta < 10) {
-            this.variableSensitivity *= 1.5f * calculateGFactor(delta, lastHourTIRabove170, bg.toFloat()).toFloat()
+            this.variableSensitivity *= 1.5f * calculateGFactor(delta, lastHourTIRabove140, bg.toFloat()).toFloat()
         }
         if (recentSteps30Minutes > 500 && recentSteps5Minutes >= 0 && recentSteps5Minutes < 100 && bg < 130 && delta < 10) {
-            this.variableSensitivity *= 1.3f * calculateGFactor(delta, lastHourTIRabove170, bg.toFloat()).toFloat()
+            this.variableSensitivity *= 1.3f * calculateGFactor(delta, lastHourTIRabove140, bg.toFloat()).toFloat()
         }
         if (variableSensitivity < 2) variableSensitivity = profile.sens.toFloat()
         if (variableSensitivity > (3 * profile.sens.toFloat())) variableSensitivity = profile.sens.toFloat() * 3
@@ -2090,6 +2092,7 @@ fun round(value: Double): Int {
     |currentTIRAbove: $currentTIRAbove
     |lastHourTIRLow: $lastHourTIRLow<br>$lineSeparator
     |lastHourTIRLow100: $lastHourTIRLow100
+    |lastHourTIRabove140: $lastHourTIRabove140
     |lastHourTIRabove170: $lastHourTIRabove170<br>$lineSeparator
     |isCriticalSafetyCondition: $conditionResult, True Conditions: $conditionsTrue<br>$lineSeparator
     |lastBolusSMBMinutes: $lastBolusSMBMinutes<br>$lineSeparator
