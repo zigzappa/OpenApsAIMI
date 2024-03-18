@@ -1344,14 +1344,14 @@ fun round(value: Double): Int {
                 rT.reason.append("neuralnetwork SMB: $refinedSMB Basal: $refinedBasalaimi")
                 this.predictedSMB = refinedSMB
                 this.basalaimi = refinedBasalaimi
-                basal = if (honeymoon) basalaimi * 0.4 else basalaimi.toDouble()
+                basal = if (honeymoon && bg < 170) basalaimi * 0.8 else basalaimi.toDouble()
                 basal = round_basal(basal)
             }
             rT.reason.append("csvfile ${csvfile.exists()}")
         }else {
             rT.reason.append("ML Decision data training","ML decision has no enough data to refine the decision")
         }
-        var smbToGive = if (honeymoon) predictedSMB * 0.4f else predictedSMB
+        var smbToGive = if (honeymoon && bg < 170) predictedSMB * 0.8f else predictedSMB
 
         val morningfactor: Double = preferences.get(DoubleKey.OApsAIMIMorningFactor) / 100.0
         val afternoonfactor: Double = preferences.get(DoubleKey.OApsAIMIAfternoonFactor) / 100.0
@@ -2029,7 +2029,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 17 Mars 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 18 Mars 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |Max IOB: $maxIob<br>$lineSeparator
