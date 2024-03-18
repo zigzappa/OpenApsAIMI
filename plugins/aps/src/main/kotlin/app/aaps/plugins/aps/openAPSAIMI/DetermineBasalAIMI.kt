@@ -459,7 +459,7 @@ fun round(value: Double): Int {
 
     private fun shouldApplyIntervalAdjustment(intervalSMBsnack: Int, intervalSMBmeal: Int, intervalSMBsleep: Int, intervalSMBhc: Int, intervalSMBhighBG: Int): Boolean {
         return (lastsmbtime < intervalSMBsnack && snackTime) || (lastsmbtime < intervalSMBmeal && mealTime) ||
-            (lastsmbtime < intervalSMBsleep && sleepTime) || (lastsmbtime < intervalSMBhc && highCarbTime) || (lastsmbtime < intervalSMBhighBG && bg > 180)
+            (lastsmbtime < intervalSMBsleep && sleepTime) || (lastsmbtime < intervalSMBhc && highCarbTime) || (lastsmbtime < intervalSMBhighBG && bg > 140)
     }
 
     private fun shouldApplySafetyAdjustment(): Boolean {
@@ -874,7 +874,7 @@ fun round(value: Double): Int {
         this.maxIob = preferences.get(DoubleKey.ApsSmbMaxIob)
         this.maxSMB = preferences.get(DoubleKey.OApsAIMIMaxSMB)
         this.maxSMBHB = preferences.get(DoubleKey.OApsAIMIHighBGMaxSMB)
-        this.maxSMB = if (bg > 180) maxSMBHB else maxSMB
+        this.maxSMB = if (bg > 140) maxSMBHB else maxSMB
         this.tir1DAYabove = tirCalculator.averageTIR(tirCalculator.calculate(1, 65.0, 180.0))?.abovePct()!!
         this.currentTIRLow = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.belowPct()!!
         this.currentTIRRange = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.inRangePct()!!
@@ -1396,6 +1396,30 @@ fun round(value: Double): Int {
         logDataMLToCsv(predictedSMB, smbToGive)
         logDataToCsv(predictedSMB, smbToGive)
         logDataToCsvHB(predictedSMB, smbToGive)
+        if (mealTime && mealruntime < 30){
+            rT.rate = if (basal == 0.0) (profile_current_basal * 10) else round_basal(basal * 10)
+            rT.deliverAt = deliverAt
+            rT.duration = 30
+            rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because mealTime.")
+            return rT
+        }else if (highCarbTime && highCarbrunTime < 60){
+            rT.rate = if (basal == 0.0) (profile_current_basal * 10) else round_basal(basal * 10)
+            rT.deliverAt = deliverAt
+            rT.duration = 30
+            rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because highcarb.")
+            return rT
+        }else if(bg > 80 && bg < 100 && delta > 2 && delta < 8){
+            rT.rate = if (basal == 0.0) (profile_current_basal * delta) else round_basal(basal * delta)
+            rT.deliverAt = deliverAt
+            rT.duration = 30
+            rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because bg is between 80 and 100 with a small delta.")
+        }else if (bg > 180 && delta > 2 && smbToGive == 0.0f){
+            rT.rate = if (basal == 0.0) (profile_current_basal * 10) else round_basal(basal * 10)
+            rT.deliverAt = deliverAt
+            rT.duration = 30
+            rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because bg is greater than 180 and SMB = 0U.")
+            return rT
+        }
 
         rT = RT(
             algorithm = APSResult.Algorithm.AIMI,
@@ -1947,15 +1971,6 @@ fun round(value: Double): Int {
             // rate required to deliver insulinReq less insulin over 30m:
             var rate = basal + (2 * insulinReq)
             rate = round_basal(rate)
-            if (mealTime && mealruntime < 30){
-                rate = if (basal == 0.0) (profile_current_basal * 10) else round_basal(basal * 10)
-                rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because mealTime ${round(rate, 2)}U/hr. ")
-                return setTempBasal(rate, 30, profile, rT, currenttemp)
-            }else if (highCarbTime && highCarbrunTime < 60){
-                rate = if (basal == 0.0) (profile_current_basal * 10) else round_basal(basal * 10)
-                rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because highcarbTime ${round(rate, 2)}U/hr. ")
-                return setTempBasal(rate, 30, profile, rT, currenttemp)
-            }
 
             // if required temp < existing temp basal
             val insulinScheduled = currenttemp.duration * (currenttemp.rate - basal) / 60
@@ -2035,7 +2050,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 18 Mars 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 19 Mars 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |Max IOB: $maxIob<br>$lineSeparator
