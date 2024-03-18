@@ -94,6 +94,7 @@ class DetermineBasalaimiSMB @Inject constructor(
     private var stable: Int = 0
     private var maxIob = 0.0
     private var maxSMB = 1.0
+    private var maxSMBHB = 1.0
     private var lastBolusSMBUnit = 0.0f
     private var tdd7DaysPerHour = 0.0f
     private var tdd2DaysPerHour = 0.0f
@@ -434,9 +435,10 @@ fun round(value: Double): Int {
         val intervalSMBmeal = preferences.get(IntKey.OApsAIMImealinterval)
         val intervalSMBsleep = preferences.get(IntKey.OApsAIMISleepinterval)
         val intervalSMBhc = preferences.get(IntKey.OApsAIMIHCinterval)
+        val intervalSMBhighBG = preferences.get(IntKey.OApsAIMIHighBGinterval)
         val belowTargetAndDropping = bg < targetBg
 
-        if (shouldApplyIntervalAdjustment(intervalSMBsnack, intervalSMBmeal, intervalSMBsleep, intervalSMBhc)) {
+        if (shouldApplyIntervalAdjustment(intervalSMBsnack, intervalSMBmeal, intervalSMBsleep, intervalSMBhc,intervalSMBhighBG)) {
             result = 0.0f
         } else if (shouldApplySafetyAdjustment()) {
             result /= 2
@@ -454,9 +456,9 @@ fun round(value: Double): Int {
         return result
     }
 
-    private fun shouldApplyIntervalAdjustment(intervalSMBsnack: Int, intervalSMBmeal: Int, intervalSMBsleep: Int, intervalSMBhc: Int): Boolean {
+    private fun shouldApplyIntervalAdjustment(intervalSMBsnack: Int, intervalSMBmeal: Int, intervalSMBsleep: Int, intervalSMBhc: Int, intervalSMBhighBG: Int): Boolean {
         return (lastsmbtime < intervalSMBsnack && snackTime) || (lastsmbtime < intervalSMBmeal && mealTime) ||
-            (lastsmbtime < intervalSMBsleep && sleepTime) || (lastsmbtime < intervalSMBhc && highCarbTime)
+            (lastsmbtime < intervalSMBsleep && sleepTime) || (lastsmbtime < intervalSMBhc && highCarbTime) || (lastsmbtime < intervalSMBhighBG && bg > 180)
     }
 
     private fun shouldApplySafetyAdjustment(): Boolean {
@@ -870,6 +872,8 @@ fun round(value: Double): Int {
         this.lastsmbtime = (diff / (60 * 1000)).toInt()
         this.maxIob = preferences.get(DoubleKey.ApsSmbMaxIob)
         this.maxSMB = preferences.get(DoubleKey.OApsAIMIMaxSMB)
+        this.maxSMBHB = preferences.get(DoubleKey.OApsAIMIHighBGMaxSMB)
+        this.maxSMB = if (bg > 180) maxSMBHB else maxSMB
         this.tir1DAYabove = tirCalculator.averageTIR(tirCalculator.calculate(1, 65.0, 180.0))?.abovePct()!!
         this.currentTIRLow = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.belowPct()!!
         this.currentTIRRange = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.inRangePct()!!

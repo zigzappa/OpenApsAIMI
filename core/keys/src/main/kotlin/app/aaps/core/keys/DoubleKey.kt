@@ -36,6 +36,7 @@ enum class DoubleKey(
     AutosensMax(R.string.key_openaps_autosens_max, 1.2, 0.5, 3.0, defaultedBySM = true),
     EquilMaxBolus(R.string.key_equil_maxbolus, 10.0, 0.1, 25.0),
     OApsAIMIMaxSMB(R.string.key_openapsaimi_max_smb,1.0,0.05,15.0),
+    OApsAIMIHighBGMaxSMB(R.string.key_openapsaimi_high_bg_max_smb,1.0,0.05,15.0),
     OApsAIMIweight(R.string.key_aimiweight,50.0,1.0,200.0),
     OApsAIMICHO(R.string.key_cho,50.0,1.0,150.0),
     OApsAIMITDD7(R.string.key_tdd7,40.0,1.0,150.0),
