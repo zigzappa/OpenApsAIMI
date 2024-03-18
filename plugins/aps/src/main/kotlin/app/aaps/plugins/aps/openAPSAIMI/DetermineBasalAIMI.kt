@@ -95,6 +95,7 @@ class DetermineBasalaimiSMB @Inject constructor(
     private var stable: Int = 0
     private var maxIob = 0.0
     private var maxSMB = 1.0
+    private var maxSMBHB = 1.0
     private var lastBolusSMBUnit = 0.0f
     private var tdd7DaysPerHour = 0.0f
     private var tdd2DaysPerHour = 0.0f
@@ -435,9 +436,10 @@ fun round(value: Double): Int {
         val intervalSMBmeal = preferences.get(IntKey.OApsAIMImealinterval)
         val intervalSMBsleep = preferences.get(IntKey.OApsAIMISleepinterval)
         val intervalSMBhc = preferences.get(IntKey.OApsAIMIHCinterval)
+        val intervalSMBhighBG = preferences.get(IntKey.OApsAIMIHighBGinterval)
         val belowTargetAndDropping = bg < targetBg
 
-        if (shouldApplyIntervalAdjustment(intervalSMBsnack, intervalSMBmeal, intervalSMBsleep, intervalSMBhc)) {
+        if (shouldApplyIntervalAdjustment(intervalSMBsnack, intervalSMBmeal, intervalSMBsleep, intervalSMBhc,intervalSMBhighBG)) {
             result = 0.0f
         } else if (shouldApplySafetyAdjustment()) {
             result /= 2
@@ -455,9 +457,9 @@ fun round(value: Double): Int {
         return result
     }
 
-    private fun shouldApplyIntervalAdjustment(intervalSMBsnack: Int, intervalSMBmeal: Int, intervalSMBsleep: Int, intervalSMBhc: Int): Boolean {
+    private fun shouldApplyIntervalAdjustment(intervalSMBsnack: Int, intervalSMBmeal: Int, intervalSMBsleep: Int, intervalSMBhc: Int, intervalSMBhighBG: Int): Boolean {
         return (lastsmbtime < intervalSMBsnack && snackTime) || (lastsmbtime < intervalSMBmeal && mealTime) ||
-            (lastsmbtime < intervalSMBsleep && sleepTime) || (lastsmbtime < intervalSMBhc && highCarbTime)
+            (lastsmbtime < intervalSMBsleep && sleepTime) || (lastsmbtime < intervalSMBhc && highCarbTime) || (lastsmbtime < intervalSMBhighBG && bg > 180)
     }
 
     private fun shouldApplySafetyAdjustment(): Boolean {
@@ -871,6 +873,8 @@ fun round(value: Double): Int {
         this.lastsmbtime = (diff / (60 * 1000)).toInt()
         this.maxIob = preferences.get(DoubleKey.ApsSmbMaxIob)
         this.maxSMB = preferences.get(DoubleKey.OApsAIMIMaxSMB)
+        this.maxSMBHB = preferences.get(DoubleKey.OApsAIMIHighBGMaxSMB)
+        this.maxSMB = if (bg > 180) maxSMBHB else maxSMB
         this.tir1DAYabove = tirCalculator.averageTIR(tirCalculator.calculate(1, 65.0, 180.0))?.abovePct()!!
         this.currentTIRLow = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.belowPct()!!
         this.currentTIRRange = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.inRangePct()!!
@@ -1346,14 +1350,14 @@ fun round(value: Double): Int {
                 rT.reason.append("neuralnetwork SMB: $refinedSMB Basal: $refinedBasalaimi")
                 this.predictedSMB = refinedSMB
                 this.basalaimi = refinedBasalaimi
-                basal = if (honeymoon) basalaimi * 0.4 else basalaimi.toDouble()
+                basal = if (honeymoon && bg < 170) basalaimi * 0.8 else basalaimi.toDouble()
                 basal = round_basal(basal)
             }
             rT.reason.append("csvfile ${csvfile.exists()}")
         }else {
             rT.reason.append("ML Decision data training","ML decision has no enough data to refine the decision")
         }
-        var smbToGive = if (honeymoon) predictedSMB * 0.4f else predictedSMB
+        var smbToGive = if (honeymoon && bg < 170) predictedSMB * 0.8f else predictedSMB
 
         val morningfactor: Double = preferences.get(DoubleKey.OApsAIMIMorningFactor) / 100.0
         val afternoonfactor: Double = preferences.get(DoubleKey.OApsAIMIAfternoonFactor) / 100.0
@@ -2031,7 +2035,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 17 Mars 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 18 Mars 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |Max IOB: $maxIob<br>$lineSeparator

@@ -614,6 +614,8 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 title = "High BG Preferences"
                 addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.OApsAIMIHyperFactor, dialogMessage = R.string.oaps_aimi_hyper_factor_summary, title = R.string.oaps_aimi_hyper_factor_title))
                 addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.OApsAIMIDynISFAdjustmentHyper, dialogMessage = R.string.DynISFAdjusthyper_summary, title = R.string.DynISFAdjusthyper_title))
+                addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.OApsAIMIHighBGinterval, dialogMessage = R.string.oaps_aimi_HIGHBG_interval_summary, title = R.string.oaps_aimi_HIGHBG_interval_title))
+                addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.OApsAIMIHighBGMaxSMB, dialogMessage = R.string.openapsaimi_highBG_maxsmb_summary, title = R.string.openapsaimi_highBG_maxsmb_title))
             })
             addPreference(preferenceManager.createPreferenceScreen(context).apply {
                 key = "Training_ML_Modes"
