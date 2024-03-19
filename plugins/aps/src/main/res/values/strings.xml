@@ -205,10 +205,10 @@
     <string name="key_oaps_aimi_hyper_factor">key_oaps_aimi_hyper_factor</string>
     <string name="key_DynISFAdjusthyper">key_DynISFAdjusthyper</string>
     <string name="key_DynISF_Adjust">key_DynISF_Adjust</string>
-    <string name="oaps_aimi_hyper_factor_summary"><![CDATA[Reactivity factor when bg > 180]]></string>
-    <string name="oaps_aimi_hyper_factor_title"><![CDATA[Reactivity factor BG > 180]]></string>
-    <string name="DynISFAdjusthyper_summary"><![CDATA[Increasing this value will increase the velocity to send smb when bg > 180]]></string>
-    <string name="DynISFAdjusthyper_title"><![CDATA[Dynisf Adjustment factor % BG > 180]]></string>
+    <string name="oaps_aimi_hyper_factor_summary"><![CDATA[Reactivity factor when bg > 140]]></string>
+    <string name="oaps_aimi_hyper_factor_title"><![CDATA[Reactivity factor BG > 140]]></string>
+    <string name="DynISFAdjusthyper_summary"><![CDATA[Increasing this value will increase the velocity to send smb when bg > 140]]></string>
+    <string name="DynISFAdjusthyper_title"><![CDATA[Dynisf Adjustment factor % BG > 140]]></string>
     <string name="key_enable_basal">key_enable_basal</string>
     <string name="prebolus_meal_mode_summary">If you set a note in action page, with the work meal, you will receive one time this value like a pre-bolus.</string>
     <string name="key_prebolus_meal_mode">key_prebolus_meal_mode</string>
@@ -276,7 +276,7 @@
     <string name="OApsAIMI_Enable_honeymoon">Enable honeymoon mode</string>
     <string name="oaps_aimi_HIGHBG_interval_summary">High BG SMB Interval</string>
     <string name="oaps_aimi_HIGHBG_interval_title">High BG SMB Interval</string>
-    <string name="openapsaimi_highBG_maxsmb_summary">Max SMB value when bg is greater than 180.</string>
+    <string name="openapsaimi_highBG_maxsmb_summary">Max SMB value when bg is greater than 140.</string>
     <string name="openapsaimi_highBG_maxsmb_title">Max SMB High BG</string>
 
 </resources>

@@ -1001,7 +1001,7 @@ fun round(value: Double): Int {
         } else if (bg > 60 && flatBGsDetected) {
             rT.reason.append("Error: CGM data is unchanged for the past ~45m")
         }
-        if (bg <= 10 || bg == 38.0 || noise >= 3 || minAgo > 12 || minAgo < -5 || (bg > 60 && flatBGsDetected)) {
+        /*if (bg <= 10 || bg == 38.0 || noise >= 3 || minAgo > 12 || minAgo < -5 || (bg > 60 && flatBGsDetected)) {
             if (currenttemp.rate > basal) { // high temp is running
                 rT.reason.append(". Replacing high temp basal of ${currenttemp.rate} with neutral temp of $basal")
                 rT.deliverAt = deliverAt
@@ -1018,7 +1018,7 @@ fun round(value: Double): Int {
                 rT.reason.append(". Temp ${currenttemp.rate} <= current basal ${round(basal, 2)}U/hr; doing nothing. ")
                 return rT
             }
-        }
+        }*/
 
         // TODO eliminate
         val max_iob = profile.max_iob // maximum amount of non-bolus IOB OpenAPS will ever deliver
@@ -1383,7 +1383,7 @@ fun round(value: Double): Int {
             hourOfDay in 1..11 -> smbToGive * adjustedMorningFactor.toFloat()
             hourOfDay in 12..18 -> smbToGive * adjustedAfternoonFactor.toFloat()
             hourOfDay in 19..23 -> smbToGive * adjustedEveningFactor.toFloat()
-            bg > 180 -> (smbToGive * hyperfactor).toFloat()
+            bg > 140 -> (smbToGive * hyperfactor).toFloat()
             else -> smbToGive
         }
         rT.reason.append("adjustedMorningFactor $adjustedMorningFactor")
@@ -1413,8 +1413,8 @@ fun round(value: Double): Int {
             rT.deliverAt = deliverAt
             rT.duration = 30
             rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because bg is between 80 and 100 with a small delta.")
-        }else if (bg > 180 && delta > 2 && smbToGive == 0.0f){
-            rT.rate = if (basal == 0.0) (profile_current_basal * 10) else round_basal(basal * 10)
+        }else if (bg > 140 && delta > 2 && smbToGive == 0.0f && recentSteps5Minutes < 100){
+            rT.rate = if (basal == 0.0) (profile_current_basal * delta) else round_basal(basal * delta)
             rT.deliverAt = deliverAt
             rT.duration = 30
             rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because bg is greater than 180 and SMB = 0U.")

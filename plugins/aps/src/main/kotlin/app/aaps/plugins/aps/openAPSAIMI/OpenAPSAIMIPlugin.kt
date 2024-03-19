@@ -262,7 +262,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 snackTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(snackTimeDynISFAdjFactor)
                 highCarbTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(hcTimeDynISFAdjFactor)
                 mealTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(mealTimeDynISFAdjFactor)
-                bg > 180 -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(dynISFadjusthyper)
+                bg > 140 -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(dynISFadjusthyper)
                 else -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(dynISFadjust)
             }
         }
@@ -397,7 +397,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                     snackTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(snackTimeDynISFAdjFactor)
                     highCarbTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(hcTimeDynISFAdjFactor)
                     mealTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(mealTimeDynISFAdjFactor)
-                    bg > 180 -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(dynISFadjusthyper)
+                    bg > 140 -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(dynISFadjusthyper)
                     else -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(dynISFadjust)
                 }
             }
