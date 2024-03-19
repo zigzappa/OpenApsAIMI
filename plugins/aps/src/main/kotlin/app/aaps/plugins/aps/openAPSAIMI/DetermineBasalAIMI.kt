@@ -1408,13 +1408,24 @@ fun round(value: Double): Int {
             rT.duration = 30
             rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because highcarb.")
             return rT
-        }else if(bg > 80 && bg < 100 && delta > 2 && delta < 8){
+        }else if(bg > 80 && bg < 100 && delta > 2 && delta < 8 && !honeymoon){
             rT.rate = if (basal == 0.0) (profile_current_basal * delta) else round_basal(basal * delta)
             rT.deliverAt = deliverAt
             rT.duration = 30
             rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because bg is between 80 and 100 with a small delta.")
-        }else if (bg > 140 && delta > 2 && smbToGive == 0.0f && recentSteps5Minutes < 100){
-            rT.rate = if (basal == 0.0) (profile_current_basal * delta) else round_basal(basal * delta)
+        }else if(bg > 80 && bg < 100 && delta > 2 && delta < 8 && honeymoon){
+            rT.rate = if (basal == 0.0) (profile_current_basal * 2) else round_basal(basal * 2)
+            rT.deliverAt = deliverAt
+            rT.duration = 30
+            rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because bg is between 80 and 100 with a small delta.")
+        }else if (bg > 180 && delta > 2 && smbToGive == 0.0f && !honeymoon){
+            rT.rate = if (basal == 0.0) (profile_current_basal * 10) else round_basal(basal * 10)
+            rT.deliverAt = deliverAt
+            rT.duration = 30
+            rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because bg is greater than 180 and SMB = 0U.")
+            return rT
+        }else if (bg > 180 && delta > 2 && smbToGive == 0.0f && honeymoon) {
+            rT.rate = if (basal == 0.0) (profile_current_basal * 3) else round_basal(basal * 3)
             rT.deliverAt = deliverAt
             rT.duration = 30
             rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because bg is greater than 180 and SMB = 0U.")
