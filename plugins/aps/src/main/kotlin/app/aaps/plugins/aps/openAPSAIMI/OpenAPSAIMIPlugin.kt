@@ -234,12 +234,12 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             activePlugin.activeInsulin.peak > 50 -> 65 // ultra rapid peak: 55
             else                                 -> 75 // rapid peak: 75
         }
-        val dynISFadjust: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustment) / 100).toDouble()
-        val dynISFadjusthyper: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustmentHyper) / 100).toDouble()
-        val mealTimeDynISFAdjFactor = (preferences.get(IntKey.OApsAIMImealAdjISFFact) / 100).toDouble()
-        val snackTimeDynISFAdjFactor = (preferences.get(IntKey.OApsAIMISnackAdjISFFact) / 100).toDouble()
-        val sleepTimeDynISFAdjFactor = (preferences.get(IntKey.OApsAIMIsleepAdjISFFact) / 100).toDouble()
-        val hcTimeDynISFAdjFactor = (preferences.get(IntKey.OApsAIMIHighCarbAdjISFFact) / 100).toDouble()
+        val dynISFadjust: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustment).toDouble() / 100.0)
+        val dynISFadjusthyper: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustmentHyper).toDouble() / 100.0)
+        val mealTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMImealAdjISFFact).toDouble() / 100.0)
+        val snackTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMISnackAdjISFFact).toDouble() / 100.0)
+        val sleepTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMIsleepAdjISFFact).toDouble() / 100.0)
+        val hcTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMIHighCarbAdjISFFact).toDouble() / 100.0)
         val therapy = Therapy(persistenceLayer).also {
             it.updateStatesBasedOnTherapyEvents()
         }
@@ -372,12 +372,12 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             val tddLast24H = tddCalculator.calculateDaily(-24, 0)
             val tddLast8to4H = tdd24HrsPerHour * 4
             val bg = glucoseStatusProvider.glucoseStatusData?.glucose
-            val dynISFadjust: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustment) / 100).toDouble()
-            val dynISFadjusthyper: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustmentHyper) / 100).toDouble()
-            val mealTimeDynISFAdjFactor = (preferences.get(IntKey.OApsAIMImealAdjISFFact) / 100).toDouble()
-            val snackTimeDynISFAdjFactor = (preferences.get(IntKey.OApsAIMISnackAdjISFFact) / 100).toDouble()
-            val sleepTimeDynISFAdjFactor = (preferences.get(IntKey.OApsAIMIsleepAdjISFFact) / 100).toDouble()
-            val hcTimeDynISFAdjFactor = (preferences.get(IntKey.OApsAIMIHighCarbAdjISFFact) / 100).toDouble()
+            val dynISFadjust: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustment).toDouble() / 100.0)
+            val dynISFadjusthyper: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustmentHyper).toDouble() / 100.0)
+            val mealTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMImealAdjISFFact).toDouble() / 100.0)
+            val snackTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMISnackAdjISFFact).toDouble() / 100.0)
+            val sleepTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMIsleepAdjISFFact).toDouble() / 100.0)
+            val hcTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMIHighCarbAdjISFFact).toDouble() / 100.0)
             val therapy = Therapy(persistenceLayer).also {
                 it.updateStatesBasedOnTherapyEvents()
             }
