@@ -523,7 +523,7 @@ fun round(value: Double): Int {
         return smbToGive.toFloat()
     }
     private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, predictedSMB: Float, basalaimi: Float): Pair<Float, Float> {
-        val minutesToConsider = if (tir1DAYabove > 15 || bg < 130) 15000.0 else 5000.0
+        val minutesToConsider = if (tir1DAYabove > 15 || bg < 130) 20000.0 else 2500.0
         val linesToConsider = (minutesToConsider / 5).toInt()
         var totalDifference: Float
         val maxIterations = 10000.0
@@ -1383,8 +1383,19 @@ fun round(value: Double): Int {
             hourOfDay in 1..11 -> smbToGive * adjustedMorningFactor.toFloat()
             hourOfDay in 12..18 -> smbToGive * adjustedAfternoonFactor.toFloat()
             hourOfDay in 19..23 -> smbToGive * adjustedEveningFactor.toFloat()
-            bg > 140 -> (smbToGive * hyperfactor).toFloat()
+            bg > 140 -> smbToGive * hyperfactor.toFloat()
             else -> smbToGive
+        }
+        basal = when {
+            highCarbTime -> basal * highcarbfactor.toFloat()
+            mealTime -> basal * mealfactor.toFloat()
+            snackTime -> basal * snackfactor.toFloat()
+            sleepTime -> basal * sleepfactor.toFloat()
+            hourOfDay in 1..11 -> basal * adjustedMorningFactor.toFloat()
+            hourOfDay in 12..18 -> basal * adjustedAfternoonFactor.toFloat()
+            hourOfDay in 19..23 -> basal * adjustedEveningFactor.toFloat()
+            bg > 140 -> basal * hyperfactor.toFloat()
+            else -> basal
         }
         rT.reason.append("adjustedMorningFactor $adjustedMorningFactor")
         rT.reason.append("adjustedAfternoonFactor $adjustedAfternoonFactor")
