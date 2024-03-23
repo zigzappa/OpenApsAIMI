@@ -1393,6 +1393,8 @@ fun round(value: Double): Int {
 
         smbToGive = applySafetyPrecautions(smbToGive)
         smbToGive = roundToPoint05(smbToGive)
+        basal = applySafetyPrecautions(basal.toFloat()).toDouble()
+        rT.reason.append("apply safety Basal $basal")
         logDataMLToCsv(predictedSMB, smbToGive)
         logDataToCsv(predictedSMB, smbToGive)
         logDataToCsvHB(predictedSMB, smbToGive)
@@ -2061,7 +2063,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 21 Mars 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 23 Mars 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |Max IOB: $maxIob<br>$lineSeparator
@@ -2267,7 +2269,7 @@ fun round(value: Double): Int {
                 rate = if (basal == 0.0) (profile_current_basal * 10) else round_basal(basal * 10)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because pregnancy ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
-            }else if (delta > 0 && bg > 80 && eventualBG > 65 && !honeymoon){
+            }/*else if (delta > 0 && bg > 80 && eventualBG > 65 && !honeymoon){
                 rate = if (basal == 0.0) (profile_current_basal * delta) else round_basal(basal * delta)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
@@ -2275,7 +2277,7 @@ fun round(value: Double): Int {
                 rate = if (basal == 0.0) (profile_current_basal * delta) else round_basal(basal * delta)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal when isCriticalSafetyCondition is true ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
-            }
+            }*/
 
             if (rate > maxSafeBasal) {
                 rT.reason.append("adj. req. rate: ${round(rate, 2)} to maxSafeBasal: ${maxSafeBasal.withoutZeros()}, ")
