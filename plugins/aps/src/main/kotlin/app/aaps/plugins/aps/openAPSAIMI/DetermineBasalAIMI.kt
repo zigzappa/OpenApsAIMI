@@ -1409,13 +1409,13 @@ fun round(value: Double): Int {
         logDataMLToCsv(predictedSMB, smbToGive)
         logDataToCsv(predictedSMB, smbToGive)
         logDataToCsvHB(predictedSMB, smbToGive)
-        if (mealTime && mealruntime in 0..30){
+        if (mealTime && mealruntime in 0..30 && delta < 15){
             rT.rate = if (basal == 0.0) (profile_current_basal * 10) else round_basal(basal * 10)
             rT.deliverAt = deliverAt
             rT.duration = 30
             rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because mealTime $mealruntime.")
             return rT
-        }else if (highCarbTime && highCarbrunTime in 0..30){
+        }else if (highCarbTime && highCarbrunTime in 0..30 && delta < 15){
             rT.rate = if (basal == 0.0) (profile_current_basal * 10) else round_basal(basal * 10)
             rT.deliverAt = deliverAt
             rT.duration = 30
@@ -2074,7 +2074,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 24 Mars 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 26 Mars 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |Max IOB: $maxIob<br>$lineSeparator
