@@ -437,6 +437,7 @@ fun round(value: Double): Int {
         val intervalSMBsleep = preferences.get(IntKey.OApsAIMISleepinterval)
         val intervalSMBhc = preferences.get(IntKey.OApsAIMIHCinterval)
         val intervalSMBhighBG = preferences.get(IntKey.OApsAIMIHighBGinterval)
+        val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
         val belowTargetAndDropping = bg < targetBg
 
         if (shouldApplyIntervalAdjustment(intervalSMBsnack, intervalSMBmeal, intervalSMBsleep, intervalSMBhc,intervalSMBhighBG)) {
@@ -453,7 +454,9 @@ fun round(value: Double): Int {
             result = 0.0f
         }
         if (belowTargetAndDropping) result /= 2
-
+        if (honeymoon && bg < 150 && delta < 5) {
+            result /= 2
+        }
         return result
     }
 
@@ -598,7 +601,7 @@ fun round(value: Double): Int {
                         val predictedrefineSMB = finalRefinedSMB// Prédiction du modèle TFLite
                         val refinedSMB = refineSMB(predictedrefineSMB, neuralNetwork, enhancedInput)
                         val refinedBasalAimi = refineBasalaimi(refineBasalAimi, neuralNetwork, enhancedInput)
-                        if (delta > 10 && bg > 100 && iob < 1.5) {
+                        if (delta > 10 && bg > 100) {
                             isAggressiveResponseNeeded = true
                         }
 
@@ -618,10 +621,10 @@ fun round(value: Double): Int {
                             break
                         }
                     }
-                    if (isAggressiveResponseNeeded && (finalRefinedSMB <= 0.5 || refineBasalAimi <= 0.5)) {
+                    if (isAggressiveResponseNeeded && (finalRefinedSMB <= 0.5 || refineBasalAimi <= 0.5 && bg > 140)) {
                         finalRefinedSMB = maxSMB.toFloat() / 2
                         refineBasalAimi = maxSMB.toFloat()
-                    } else if (!isAggressiveResponseNeeded && delta > 3 && bg > 100) {
+                    } else if (!isAggressiveResponseNeeded && delta > 3 && bg > 140) {
                         refineBasalAimi = basalaimi * delta
                     }
                     iterationCount++
@@ -1386,17 +1389,6 @@ fun round(value: Double): Int {
             bg > 140 -> smbToGive * hyperfactor.toFloat()
             else -> smbToGive
         }
-        basal = when {
-            highCarbTime -> basal * highcarbfactor.toFloat()
-            mealTime -> basal * mealfactor.toFloat()
-            snackTime -> basal * snackfactor.toFloat()
-            sleepTime -> basal * sleepfactor.toFloat()
-            hourOfDay in 1..11 -> basal * adjustedMorningFactor.toFloat()
-            hourOfDay in 12..18 -> basal * adjustedAfternoonFactor.toFloat()
-            hourOfDay in 19..23 -> basal * adjustedEveningFactor.toFloat()
-            bg > 140 -> basal * hyperfactor.toFloat()
-            else -> basal
-        }
         rT.reason.append("adjustedMorningFactor $adjustedMorningFactor")
         rT.reason.append("adjustedAfternoonFactor $adjustedAfternoonFactor")
         rT.reason.append("adjustedEveningFactor $adjustedEveningFactor")
@@ -1404,8 +1396,7 @@ fun round(value: Double): Int {
 
         smbToGive = applySafetyPrecautions(smbToGive)
         smbToGive = roundToPoint05(smbToGive)
-        basal = applySafetyPrecautions(basal.toFloat()).toDouble()
-        rT.reason.append("apply safety Basal $basal")
+
         logDataMLToCsv(predictedSMB, smbToGive)
         logDataToCsv(predictedSMB, smbToGive)
         logDataToCsvHB(predictedSMB, smbToGive)
@@ -2074,7 +2065,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 26 Mars 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 27 Mars 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |Max IOB: $maxIob<br>$lineSeparator
