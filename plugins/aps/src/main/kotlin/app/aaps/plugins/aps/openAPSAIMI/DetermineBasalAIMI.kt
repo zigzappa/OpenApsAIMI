@@ -61,6 +61,7 @@ class DetermineBasalaimiSMB @Inject constructor(
     private var averageBeatsPerMinute10 = 0.0
     private var averageBeatsPerMinute60 = 0.0
     private var averageBeatsPerMinute180 = 0.0
+    private var eventualBG = 0.0
     private var now = System.currentTimeMillis()
     private var iob = 0.0f
     private var cob = 0.0f
@@ -395,9 +396,9 @@ fun round(value: Double): Int {
         if (droppingFastAtHigh) conditionsTrue.add("droppingFastAtHigh")
         val droppingVeryFast = delta < -11
         if (droppingVeryFast) conditionsTrue.add("droppingVeryFast")
-        val prediction = predictedBg < targetBg && bg < 135
+        val prediction = eventualBG < targetBg && bg < 135
         if (prediction) conditionsTrue.add("prediction")
-        val interval = predictedBg < targetBg && delta > 10 && iob >= maxSMB/2 && lastsmbtime < 10
+        val interval = eventualBG < targetBg && delta > 10 && iob >= maxSMB/2 && lastsmbtime < 10
         if (interval) conditionsTrue.add("interval")
         val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 12
         if (targetinterval) conditionsTrue.add("targetinterval")
@@ -526,7 +527,7 @@ fun round(value: Double): Int {
         return smbToGive.toFloat()
     }
     private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, predictedSMB: Float, basalaimi: Float): Pair<Float, Float> {
-        val minutesToConsider = if (tir1DAYabove > 15 || bg < 130) 20000.0 else 2500.0
+        val minutesToConsider = if (tir1DAYabove > 15 || bg < 130) 10000.0 else 2500.0
         val linesToConsider = (minutesToConsider / 5).toInt()
         var totalDifference: Float
         val maxIterations = 10000.0
@@ -576,7 +577,7 @@ fun round(value: Double): Int {
                 if (inputs.isEmpty() || targets.isEmpty()) {
                     return Pair(predictedSMB, basalaimi)
                 }
-                val epochs = if (tir1DAYabove > 15 || bg < 130) 250.0 else 150.0
+                val epochs = if (tir1DAYabove > 15 || bg < 130) 200.0 else 100.0
                 val learningRate = if (tir1DAYabove > 15 || bg < 130) 0.0001 else 0.001
                 // Déterminer la taille de l'ensemble de validation
                 val validationSize = (inputs.size * 0.1).toInt() // Par exemple, 10% pour la validation
@@ -1299,7 +1300,7 @@ fun round(value: Double): Int {
         // calculate the naive (bolus calculator math) eventual BG based on net IOB and sensitivity
         val naive_eventualBG = round(bg - (iob_data.iob * sens), 0)
         // and adjust it for the deviation above
-        var eventualBG = naive_eventualBG + deviation
+        this.eventualBG = naive_eventualBG + deviation
 
         // raise target for noisy / raw CGM data
         if (bg > max_bg && profile.adv_target_adjustments && !profile.temptargetSet) {
@@ -1695,7 +1696,7 @@ fun round(value: Double): Int {
             }
             rT.predBGs?.COB = COBpredBGs.map { it.toInt() }
             lastCOBpredBG = COBpredBGs[COBpredBGs.size - 1]
-            eventualBG = max(eventualBG, round(COBpredBGs[COBpredBGs.size - 1], 0))
+            this.eventualBG = max(eventualBG, round(COBpredBGs[COBpredBGs.size - 1], 0))
         }
         if (ci > 0 || remainingCIpeak > 0) {
             if (enableUAM) {
@@ -1706,7 +1707,7 @@ fun round(value: Double): Int {
                 }
                 rT.predBGs?.UAM = UAMpredBGs.map { it.toInt() }
                 lastUAMpredBG = UAMpredBGs[UAMpredBGs.size - 1]
-                eventualBG = max(eventualBG, round(UAMpredBGs[UAMpredBGs.size - 1], 0))
+                this.eventualBG = max(eventualBG, round(UAMpredBGs[UAMpredBGs.size - 1], 0))
             }
 
             // set eventualBG based on COB or UAM predBGs
@@ -2085,7 +2086,8 @@ fun round(value: Double): Int {
     |bg: $bg
     |targetBG: $targetBg
     |futureBg: $predictedBg
-    |delta: $delta<br>$lineSeparator
+    |eventuelBG: $eventualBG<br>$lineSeparator
+    |delta: $delta
     |short avg delta: $shortAvgDelta
     |long avg delta: $longAvgDelta<br>$lineSeparator
     |accelerating_up: $accelerating_up
