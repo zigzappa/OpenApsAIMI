@@ -451,13 +451,11 @@ fun round(value: Double): Int {
             this.intervalsmb = 10
         }
 
-        if (shouldApplyStepAdjustment()) {
-            result = 0.0f
-        }
+        if (shouldApplyStepAdjustment()) result = 0.0f
         if (belowTargetAndDropping) result /= 2
-        if (honeymoon && bg < 150 && delta < 5) {
-            result /= 2
-        }
+        if (honeymoon && bg < 150 && delta < 5) result /= 2
+        if (LocalTime.now().run { (hour in 23..23 || hour in 0..11) } && delta < 10 && iob < maxSMB) result /= 2
+
         return result
     }
 
@@ -662,18 +660,25 @@ fun round(value: Double): Int {
         val factorAdjustment = if (bg < 100) 0.2f else 0.3f
         val bgAdjustment = 1.0f + (Math.log(Math.abs(delta.toDouble()) + 1) - 1) * factorAdjustment
         val scalingFactor = 1.0f - (bg - targetBg).toFloat() / (140 - targetBg) * 0.5f
+        val maxIncreaseFactor = 1.7f
+        val adjustFactor = { factor: Float ->
+            val adjustedFactor = factor * bgAdjustment * hypoAdjustment * scalingFactor
+            if (adjustedFactor > factor * maxIncreaseFactor) factor * maxIncreaseFactor else adjustedFactor
+        }
 
-        if (delta < 0)
-            return Triple(
-                morningFactor / bgAdjustment,
-                afternoonFactor / bgAdjustment,
-                eveningFactor / bgAdjustment
+        return if (delta < 0) {
+            Triple(
+                (morningFactor / bgAdjustment),
+                (afternoonFactor / bgAdjustment),
+                (eveningFactor / bgAdjustment)
             )
-        else
-            return Triple(
-                morningFactor * bgAdjustment * hypoAdjustment * scalingFactor,
-                afternoonFactor * bgAdjustment * hypoAdjustment * scalingFactor,
-                eveningFactor * bgAdjustment * hypoAdjustment * scalingFactor)
+        } else {
+            Triple(
+                adjustFactor(morningFactor).toDouble(),
+                adjustFactor(afternoonFactor).toDouble(),
+                adjustFactor(eveningFactor).toDouble()
+            )
+        }
 
     }
     private fun calculateAdjustedDelayFactor(
@@ -2066,7 +2071,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 27 Mars 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 29 Mars 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |Max IOB: $maxIob<br>$lineSeparator
