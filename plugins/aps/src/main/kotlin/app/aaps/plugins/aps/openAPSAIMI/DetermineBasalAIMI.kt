@@ -1338,7 +1338,7 @@ fun round(value: Double): Int {
         }
 
         val expectedDelta = calculate_expected_delta(target_bg, eventualBG, bgi)
-
+        val modelcal = calculateSMBFromModel()
         // min_bg of 90 -> threshold of 65, 100 -> 70 110 -> 75, and 130 -> 85
         var threshold = min_bg - 0.5 * (min_bg - 40)
         if (profile.lgsThreshold != null) {
@@ -1348,7 +1348,7 @@ fun round(value: Double): Int {
                 threshold = lgsThreshold.toDouble()
             }
         }
-        this.predictedSMB = calculateSMBFromModel()
+        this.predictedSMB = modelcal
         if ((preferences.get(BooleanKey.OApsAIMIMLtraining) === true) && csvfile.exists()){
             val allLines = csvfile.readLines()
             val minutesToConsider: Double = preferences.get(DoubleKey.OApsAIMIMlminutesTraining)
@@ -1366,7 +1366,9 @@ fun round(value: Double): Int {
         }else {
             rT.reason.append("ML Decision data training","ML decision has no enough data to refine the decision")
         }
-        var smbToGive = if (honeymoon && bg < 170) predictedSMB * 0.8f else predictedSMB
+
+        var smbToGive = if (bg > 160  && delta > 10 && predictedSMB == 0.0f) modelcal else predictedSMB
+        smbToGive = if (honeymoon && bg < 170) smbToGive * 0.8f else smbToGive
 
         val morningfactor: Double = preferences.get(DoubleKey.OApsAIMIMorningFactor) / 100.0
         val afternoonfactor: Double = preferences.get(DoubleKey.OApsAIMIAfternoonFactor) / 100.0
@@ -2071,9 +2073,11 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 29 Mars 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 30 Mars 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
+    |modelcal: $modelcal
+    |predictedSMB: $predictedSMB<br>$lineSeparator
     |Max IOB: $maxIob<br>$lineSeparator
     |Max SMB: $maxSMB<br>$lineSeparator
     |sleep: $sleepTime<br>$lineSeparator
