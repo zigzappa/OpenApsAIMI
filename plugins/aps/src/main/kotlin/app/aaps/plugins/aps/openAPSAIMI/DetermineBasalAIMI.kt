@@ -1430,13 +1430,13 @@ fun round(value: Double): Int {
             rT.deliverAt = deliverAt
             rT.duration = 30
             rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because bg is between 80 and 100 with a small delta.")
-        }else if (bg > 180 && delta > 2 && smbToGive == 0.0f && !honeymoon){
+        }else if (bg > 165 && delta > 2 && smbToGive == 0.0f && !honeymoon){
             rT.rate = if (basal == 0.0) (profile_current_basal * 10) else round_basal(basal * 10)
             rT.deliverAt = deliverAt
             rT.duration = 30
             rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because bg is greater than 180 and SMB = 0U.")
             return rT
-        }else if (bg > 180 && delta > 2 && smbToGive == 0.0f && honeymoon) {
+        }else if (bg > 165 && delta > 2 && smbToGive == 0.0f && honeymoon) {
             rT.rate = if (basal == 0.0) (profile_current_basal * 3) else round_basal(basal * 3)
             rT.deliverAt = deliverAt
             rT.duration = 30
@@ -2073,7 +2073,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 30 Mars 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 01 April 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |modelcal: $modelcal
