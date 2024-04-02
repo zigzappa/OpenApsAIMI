@@ -2,6 +2,7 @@ package app.aaps.plugins.aps.openAPSAIMI
 
 import android.os.Environment
 import app.aaps.core.data.model.BS
+import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.model.UE
 import app.aaps.core.interfaces.aps.APSResult
 import app.aaps.core.interfaces.aps.AutosensResult
@@ -13,10 +14,10 @@ import app.aaps.core.interfaces.aps.OapsProfile
 import app.aaps.core.interfaces.aps.Predictions
 import app.aaps.core.interfaces.aps.RT
 import app.aaps.core.interfaces.db.PersistenceLayer
+import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.stats.TddCalculator
 import app.aaps.core.interfaces.stats.TirCalculator
-import app.aaps.core.interfaces.utils.Round
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
@@ -49,6 +50,7 @@ class DetermineBasalaimiSMB @Inject constructor(
     @Inject lateinit var tddCalculator: TddCalculator
     @Inject lateinit var tirCalculator: TirCalculator
     @Inject lateinit var dateUtil: DateUtil
+    @Inject lateinit var profileFunction: ProfileFunction
     private val consoleError = mutableListOf<String>()
     private val consoleLog = mutableListOf<String>()
     private val path = File(Environment.getExternalStorageDirectory().toString())
@@ -656,9 +658,14 @@ fun round(value: Double): Int {
         afternoonFactor: Float,
         eveningFactor: Float
     ): Triple<Double, Double, Double> {
+        val adjustedDelta = if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
+            delta * 18
+        } else {
+            delta
+        }
         val hypoAdjustment = if (bg < 120 || (iob > 3 * maxSMB)) 0.8f else 1.0f
         val factorAdjustment = if (bg < 100) 0.2f else 0.3f
-        val bgAdjustment = 1.0f + (Math.log(Math.abs(delta.toDouble()) + 1) - 1) * factorAdjustment
+        val bgAdjustment = 1.0f + (Math.log(Math.abs(adjustedDelta.toDouble()) + 1) - 1) * factorAdjustment
         val scalingFactor = 1.0f - (bg - targetBg).toFloat() / (140 - targetBg) * 0.5f
         val maxIncreaseFactor = 1.7f
         val adjustFactor = { factor: Float ->

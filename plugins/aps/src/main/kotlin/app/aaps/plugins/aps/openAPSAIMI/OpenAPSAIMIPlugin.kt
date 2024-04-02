@@ -273,7 +273,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         }
         //aapsLogger.debug("calculateVariableIsf $caller CAL ${dateUtil.dateAndTimeAndSecondsString(timestamp)} $sensitivity")
         dynIsfCache.put(key, sensitivity)
-        if (dynIsfCache.size() > 1000) dynIsfCache.clear()
+        if (dynIsfCache.size() > 500) dynIsfCache.clear()
         return Pair("CALC", sensitivity)
     }
     override fun invoke(initiator: String, tempBasalFallback: Boolean) {
