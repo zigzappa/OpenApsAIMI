@@ -527,7 +527,7 @@ fun round(value: Double): Int {
         return smbToGive.toFloat()
     }
     private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, predictedSMB: Float, basalaimi: Float): Pair<Float, Float> {
-        val minutesToConsider = if (tir1DAYabove > 15 || bg < 130) 10000.0 else 2500.0
+        val minutesToConsider = if (tir1DAYabove > 15 || bg < 130) 5000.0 else 1400.0
         val linesToConsider = (minutesToConsider / 5).toInt()
         var totalDifference: Float
         val maxIterations = 10000.0
@@ -577,8 +577,8 @@ fun round(value: Double): Int {
                 if (inputs.isEmpty() || targets.isEmpty()) {
                     return Pair(predictedSMB, basalaimi)
                 }
-                val epochs = if (tir1DAYabove > 15 || bg < 130) 200.0 else 100.0
-                val learningRate = if (tir1DAYabove > 15 || bg < 130) 0.0001 else 0.001
+                val epochs = if (tir1DAYabove > 15 || bg < 130) 150.0 else 100.0
+                val learningRate = if (tir1DAYabove > 15 || bg < 130) 0.001 else 0.01
                 // Déterminer la taille de l'ensemble de validation
                 val validationSize = (inputs.size * 0.1).toInt() // Par exemple, 10% pour la validation
 
@@ -2080,7 +2080,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 01 April 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 04 April 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |modelcal: $modelcal
