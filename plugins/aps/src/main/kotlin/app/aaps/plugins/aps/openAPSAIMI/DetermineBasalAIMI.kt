@@ -1366,7 +1366,12 @@ fun round(value: Double): Int {
                 rT.reason.append("neuralnetwork SMB: $refinedSMB Basal: $refinedBasalaimi")
                 this.predictedSMB = refinedSMB
                 this.basalaimi = refinedBasalaimi
-                basal = if (honeymoon && bg < 170) basalaimi * 0.8 else basalaimi.toDouble()
+                basal =
+                    when {
+                        (honeymoon && bg < 170) -> basalaimi * 0.8
+                        (sportTime && delta < 15) -> basalaimi / 2.0
+                        else -> basalaimi.toDouble()
+                    }
                 basal = round_basal(basal)
             }
             rT.reason.append("csvfile ${csvfile.exists()}")
@@ -2080,7 +2085,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 04 April 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 05 April 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |modelcal: $modelcal
