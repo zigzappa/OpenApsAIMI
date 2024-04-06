@@ -23,6 +23,8 @@ import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.Preferences
+import app.aaps.plugins.aps.openAPSAIMI.aimiNeuralNetwork.Companion.refineBasalaimi
+import app.aaps.plugins.aps.openAPSAIMI.aimiNeuralNetwork.Companion.refineSMB
 import org.tensorflow.lite.Interpreter
 import java.io.File
 import java.text.DecimalFormat
@@ -591,7 +593,7 @@ fun round(value: Double): Int {
 
                 // Création et entraînement du réseau de neurones
                 val neuralNetwork = aimiNeuralNetwork(inputs.first().size, 5, 1)
-                neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs, learningRate)
+                neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs.toInt(), learningRate.toInt())
 
                 val inputForPrediction = inputs.last()
                 val prediction = neuralNetwork.predict(inputForPrediction)
@@ -653,7 +655,7 @@ fun round(value: Double): Int {
         // Combinez les facteurs pour obtenir un ajustement global
         return deltaFactor * bgFactor * tirFactor
     }
-    private fun adjustFactorsBasedOnBgAndHypo(
+    /*private fun adjustFactorsBasedOnBgAndHypo(
         morningFactor: Float,
         afternoonFactor: Float,
         eveningFactor: Float
@@ -687,6 +689,34 @@ fun round(value: Double): Int {
             )
         }
 
+    }*/
+    private fun adjustFactorsBasedOnBgAndHypo(
+        morningFactor: Float,
+        afternoonFactor: Float,
+        eveningFactor: Float
+    ): Triple<Double, Double, Double> {
+        val adjustedDelta = if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
+            delta * 18
+        } else {
+            delta
+        }
+        val hypoAdjustment = if (bg < 120 || (iob > 3 * maxSMB)) 0.8f else 1.0f
+        val factorAdjustment = if (bg < 100) 0.2f else 0.3f
+        val bgAdjustment = 1.0f + (Math.log(Math.abs(adjustedDelta.toDouble()) + 1) - 1) * factorAdjustment
+        val scalingFactor = 1.0f - (bg - targetBg).toFloat() / (140 - targetBg) * 0.5f
+        val maxIncreaseFactor = 1.7f
+        val maxDecreaseFactor = 0.7f // Limite la diminution à 30% de la valeur d'origine
+
+        val adjustFactor = { factor: Float ->
+            val adjustedFactor = factor * bgAdjustment * hypoAdjustment * scalingFactor
+            adjustedFactor.coerceIn((factor * maxDecreaseFactor).toDouble(), (factor * maxIncreaseFactor).toDouble())
+        }
+
+        return Triple(
+            adjustFactor(morningFactor).toDouble(),
+            adjustFactor(afternoonFactor).toDouble(),
+            adjustFactor(eveningFactor).toDouble()
+        )
     }
     private fun calculateAdjustedDelayFactor(
         bg: Float, recentSteps180Minutes: Int, averageBeatsPerMinute60: Float, averageBeatsPerMinute180: Float
@@ -2085,7 +2115,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 05 April 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 06 April 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |modelcal: $modelcal
