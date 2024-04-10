@@ -343,8 +343,8 @@ class aimiNeuralNetwork(
         )
         val gson = Gson()
         val json = gson.toJson(modelData)
-        File("model.json").writeText(json)
-        modelFilePath = "model.json"
+        File("AAPS/ml/model.json").writeText(json)
+        modelFilePath = "AAPS/ml/model.json"
     }
     fun predictWithLoadedModel(input: FloatArray): DoubleArray {
         loadModel()
@@ -352,12 +352,12 @@ class aimiNeuralNetwork(
     }
     fun loadModel() {
         // Charger les poids et les biais à partir du fichier sérialisé
-        val modelData = Gson().fromJson(File("model.json").readText(), Map::class.java)
+        val modelData = Gson().fromJson(File("AAPS/ml/model.json").readText(), Map::class.java)
         weightsInputHidden = modelData["weightsInputHidden"] as Array<DoubleArray>
         biasHidden = modelData["biasHidden"] as DoubleArray
         weightsHiddenOutput = modelData["weightsHiddenOutput"] as Array<DoubleArray>
         biasOutput = modelData["biasOutput"] as DoubleArray
-        modelFilePath = "model.json"
+        modelFilePath = "AAPS/ml/model.json"
     }
 
     fun trainWithAdam(
