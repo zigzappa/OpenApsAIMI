@@ -346,7 +346,7 @@ class aimiNeuralNetwork(
         val gson = Gson()
         val json = gson.toJson(modelData)
 
-        val directory = File("AAPS/ml")
+        val directory = File("AAPS/")
         if (!directory.exists()) {
             directory.mkdirs() // Crée le dossier s'il n'existe pas
         }
@@ -362,7 +362,7 @@ class aimiNeuralNetwork(
     }
     fun loadModel() {
         try {
-            val filePath = "AAPS/ml/model.json" // Chemin d'accès au fichier model.json
+            val filePath = "AAPS/model.json" // Chemin d'accès au fichier model.json
             val file = File(filePath)
 
             if (!file.exists()) {
