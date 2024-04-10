@@ -380,6 +380,7 @@ fun round(value: Double): Int {
     }
     private fun isCriticalSafetyCondition(): Pair<Boolean, String> {
         val conditionsTrue = mutableListOf<String>()
+        val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
         val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10 && !isMealModeCondition() && !isHighCarbModeCondition()
         if (nosmb) conditionsTrue.add("nosmb")
         val fasting = fastingTime
@@ -412,9 +413,13 @@ fun round(value: Double): Int {
         if (acceleratingDown) conditionsTrue.add("acceleratingDown")
         val decceleratingdown = delta < 0 && (delta > shortAvgDelta || delta > longAvgDelta) && lastsmbtime < 15
         if (decceleratingdown) conditionsTrue.add("decceleratingdown")
+        val nosmbhoneymoon = honeymoon && iob > maxIob / 2 && delta < 0
+        if (nosmbhoneymoon) conditionsTrue.add("nosmbhoneymoon")
+        val bg90 = bg < 90
+        if (bg90) conditionsTrue.add("bg90")
         val result = belowTargetAndDropping || belowTargetAndStableButNoCob ||
-            droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval ||
-            fasting || nosmb || nightTrigger || isNewCalibration || stablebg || belowMinThreshold || acceleratingDown || decceleratingdown
+            droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval || bg90 ||
+            fasting || nosmb || nightTrigger || isNewCalibration || stablebg || belowMinThreshold || acceleratingDown || decceleratingdown || nosmbhoneymoon
 
         val conditionsTrueString = if (conditionsTrue.isNotEmpty()) {
             conditionsTrue.joinToString(", ")
@@ -596,13 +601,13 @@ fun round(value: Double): Int {
                 neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs.toInt(), learningRate.toInt())
 
                 val inputForPrediction = inputs.last()
-                val prediction = neuralNetwork.predict(inputForPrediction)
+                val prediction = neuralNetwork.predictWithLoadedModel(inputForPrediction)
                 do {
                     totalDifference = 0.0f
 
                     for (enhancedInput in inputs) {
-                        val predictedrefineSMB = finalRefinedSMB// Prédiction du modèle TFLite
-                        val refinedSMB = refineSMB(predictedrefineSMB, neuralNetwork, enhancedInput)
+                        val predictedrefineSMB = prediction[0]// Prédiction du modèle TFLite
+                        val refinedSMB = refineSMB(predictedrefineSMB.toFloat(), neuralNetwork, enhancedInput)
                         val refinedBasalAimi = refineBasalaimi(refineBasalAimi, neuralNetwork, enhancedInput)
                         if (delta > 10 && bg > 100) {
                             isAggressiveResponseNeeded = true
@@ -617,7 +622,7 @@ fun round(value: Double): Int {
                             basalaimi
                         }
                         val difference = kotlin.math.abs(predictedrefineSMB - refinedSMB)
-                        totalDifference += difference
+                        totalDifference += difference.toFloat()
                         if (difference in 0.0..2.5) {
                             finalRefinedSMB = if (refinedSMB > 0.0f) refinedSMB else 0.0f
                             differenceWithinRange = true
@@ -2115,7 +2120,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 06 April 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 10 April 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |modelcal: $modelcal
