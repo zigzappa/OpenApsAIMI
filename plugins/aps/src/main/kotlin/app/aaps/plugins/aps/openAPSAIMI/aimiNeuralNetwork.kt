@@ -3,6 +3,7 @@ package app.aaps.plugins.aps.openAPSAIMI
 import android.content.Context
 import com.google.gson.Gson
 import java.io.File
+import java.io.FileNotFoundException
 import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -201,7 +202,6 @@ class aimiNeuralNetwork(
     }
 
     fun train(
-        context: Context,
         inputs: List<FloatArray>,
         targets: List<DoubleArray>,
         validationRawInputs: List<FloatArray>,
@@ -260,7 +260,7 @@ class aimiNeuralNetwork(
                 break
             }
         }
-        saveModel(context)
+        saveModel()
     }
     private fun backpropagation(
         input: FloatArray,
@@ -335,21 +335,8 @@ class aimiNeuralNetwork(
             }
         }
     }
-    /*fun saveModel() {
-        // Sérialiser les poids et les biais dans un fichier
-        val modelData = mapOf(
-            "weightsInputHidden" to weightsInputHidden,
-            "biasHidden" to biasHidden,
-            "weightsHiddenOutput" to weightsHiddenOutput,
-            "biasOutput" to biasOutput
-        )
-        val gson = Gson()
-        val json = gson.toJson(modelData)
-        File("AAPS/ml/model.json").writeText(json)
-        modelFilePath = "AAPS/ml/model.json"
-    }*/
-    fun saveModel(context: Context) {
-        // Sérialiser les poids et les biais dans un fichier
+
+    fun saveModel() {
         val modelData = mapOf(
             "weightsInputHidden" to weightsInputHidden,
             "biasHidden" to biasHidden,
@@ -359,38 +346,41 @@ class aimiNeuralNetwork(
         val gson = Gson()
         val json = gson.toJson(modelData)
 
-        val file = File(context.filesDir, "model.json")
+        val directory = File("AAPS/ml")
+        if (!directory.exists()) {
+            directory.mkdirs() // Crée le dossier s'il n'existe pas
+        }
+
+        val file = File(directory, "model.json")
         file.writeText(json)
         modelFilePath = file.absolutePath
     }
-    fun predictWithLoadedModel(input: FloatArray, context: Context): DoubleArray {
-        loadModel(context)
+
+    fun predictWithLoadedModel(input: FloatArray): DoubleArray {
+        loadModel()
         return predict(input)
     }
-   /* fun loadModel() {
-        // Charger les poids et les biais à partir du fichier sérialisé
-        val modelData = Gson().fromJson(File("AAPS/ml/model.json").readText(), Map::class.java)
-        weightsInputHidden = modelData["weightsInputHidden"] as Array<DoubleArray>
-        biasHidden = modelData["biasHidden"] as DoubleArray
-        weightsHiddenOutput = modelData["weightsHiddenOutput"] as Array<DoubleArray>
-        biasOutput = modelData["biasOutput"] as DoubleArray
-        modelFilePath = "AAPS/ml/model.json"
-    }*/
-   fun loadModel(context: Context) {
-       val file = File(context.filesDir, "model.json")
+    fun loadModel() {
+        try {
+            val filePath = "AAPS/ml/model.json" // Chemin d'accès au fichier model.json
+            val file = File(filePath)
 
-       // Assurer que le fichier existe avant de le lire
-       if (file.exists()) {
-           val modelData = Gson().fromJson(file.readText(), Map::class.java)
-           weightsInputHidden = modelData["weightsInputHidden"] as Array<DoubleArray>
-           biasHidden = modelData["biasHidden"] as DoubleArray
-           weightsHiddenOutput = modelData["weightsHiddenOutput"] as Array<DoubleArray>
-           biasOutput = modelData["biasOutput"] as DoubleArray
-           modelFilePath = file.absolutePath
-       } else {
-           println("Le fichier modèle n'existe pas.")
-       }
-   }
+            if (!file.exists()) {
+                throw FileNotFoundException("Le fichier model.json n'a pas été trouvé à l'emplacement $filePath")
+            }
+
+            val modelData = Gson().fromJson(file.readText(), Map::class.java)
+            weightsInputHidden = modelData["weightsInputHidden"] as Array<DoubleArray>
+            biasHidden = modelData["biasHidden"] as DoubleArray
+            weightsHiddenOutput = modelData["weightsHiddenOutput"] as Array<DoubleArray>
+            biasOutput = modelData["biasOutput"] as DoubleArray
+            modelFilePath = filePath
+        } catch (e: Exception) {
+            // Gestion des erreurs si le fichier n'existe pas ou si une autre erreur survient
+            e.printStackTrace()
+            // Vous pouvez également gérer l'erreur de manière plus spécifique en fonction de votre application
+        }
+    }
 
     fun trainWithAdam(
         inputs: List<FloatArray>,
