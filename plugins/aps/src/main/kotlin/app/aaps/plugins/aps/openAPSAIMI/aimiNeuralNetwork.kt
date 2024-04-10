@@ -260,7 +260,6 @@ class aimiNeuralNetwork(
                 break
             }
         }
-        saveModel()
     }
     private fun backpropagation(
         input: FloatArray,
@@ -336,7 +335,7 @@ class aimiNeuralNetwork(
         }
     }
 
-    fun saveModel() {
+    /*fun saveModel() {
         val modelData = mapOf(
             "weightsInputHidden" to weightsInputHidden,
             "biasHidden" to biasHidden,
@@ -380,7 +379,7 @@ class aimiNeuralNetwork(
             e.printStackTrace()
             // Vous pouvez également gérer l'erreur de manière plus spécifique en fonction de votre application
         }
-    }
+    }*/
 
     fun trainWithAdam(
         inputs: List<FloatArray>,

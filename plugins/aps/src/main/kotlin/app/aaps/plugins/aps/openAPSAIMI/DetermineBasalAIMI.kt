@@ -601,7 +601,7 @@ fun round(value: Double): Int {
                 neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs.toInt(), learningRate.toInt())
 
                 val inputForPrediction = inputs.last()
-                val prediction = neuralNetwork.predictWithLoadedModel(inputForPrediction)
+                val prediction = neuralNetwork.predict(inputForPrediction)
                 do {
                     totalDifference = 0.0f
 
