@@ -1,5 +1,6 @@
 package app.aaps.plugins.aps.openAPSAIMI
 
+import android.content.Context
 import com.google.gson.Gson
 import java.io.File
 import kotlin.math.max
@@ -200,6 +201,7 @@ class aimiNeuralNetwork(
     }
 
     fun train(
+        context: Context,
         inputs: List<FloatArray>,
         targets: List<DoubleArray>,
         validationRawInputs: List<FloatArray>,
@@ -258,7 +260,7 @@ class aimiNeuralNetwork(
                 break
             }
         }
-        saveModel()
+        saveModel(context)
     }
     private fun backpropagation(
         input: FloatArray,
@@ -333,7 +335,7 @@ class aimiNeuralNetwork(
             }
         }
     }
-    fun saveModel() {
+    /*fun saveModel() {
         // Sérialiser les poids et les biais dans un fichier
         val modelData = mapOf(
             "weightsInputHidden" to weightsInputHidden,
@@ -345,12 +347,27 @@ class aimiNeuralNetwork(
         val json = gson.toJson(modelData)
         File("AAPS/ml/model.json").writeText(json)
         modelFilePath = "AAPS/ml/model.json"
+    }*/
+    fun saveModel(context: Context) {
+        // Sérialiser les poids et les biais dans un fichier
+        val modelData = mapOf(
+            "weightsInputHidden" to weightsInputHidden,
+            "biasHidden" to biasHidden,
+            "weightsHiddenOutput" to weightsHiddenOutput,
+            "biasOutput" to biasOutput
+        )
+        val gson = Gson()
+        val json = gson.toJson(modelData)
+
+        val file = File(context.filesDir, "model.json")
+        file.writeText(json)
+        modelFilePath = file.absolutePath
     }
-    fun predictWithLoadedModel(input: FloatArray): DoubleArray {
-        loadModel()
+    fun predictWithLoadedModel(input: FloatArray, context: Context): DoubleArray {
+        loadModel(context)
         return predict(input)
     }
-    fun loadModel() {
+   /* fun loadModel() {
         // Charger les poids et les biais à partir du fichier sérialisé
         val modelData = Gson().fromJson(File("AAPS/ml/model.json").readText(), Map::class.java)
         weightsInputHidden = modelData["weightsInputHidden"] as Array<DoubleArray>
@@ -358,7 +375,22 @@ class aimiNeuralNetwork(
         weightsHiddenOutput = modelData["weightsHiddenOutput"] as Array<DoubleArray>
         biasOutput = modelData["biasOutput"] as DoubleArray
         modelFilePath = "AAPS/ml/model.json"
-    }
+    }*/
+   fun loadModel(context: Context) {
+       val file = File(context.filesDir, "model.json")
+
+       // Assurer que le fichier existe avant de le lire
+       if (file.exists()) {
+           val modelData = Gson().fromJson(file.readText(), Map::class.java)
+           weightsInputHidden = modelData["weightsInputHidden"] as Array<DoubleArray>
+           biasHidden = modelData["biasHidden"] as DoubleArray
+           weightsHiddenOutput = modelData["weightsHiddenOutput"] as Array<DoubleArray>
+           biasOutput = modelData["biasOutput"] as DoubleArray
+           modelFilePath = file.absolutePath
+       } else {
+           println("Le fichier modèle n'existe pas.")
+       }
+   }
 
     fun trainWithAdam(
         inputs: List<FloatArray>,
