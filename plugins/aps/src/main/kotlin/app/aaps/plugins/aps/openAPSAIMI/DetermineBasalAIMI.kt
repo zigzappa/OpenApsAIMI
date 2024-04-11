@@ -2120,7 +2120,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 10 April 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 11 April 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |modelcal: $modelcal
@@ -2305,25 +2305,33 @@ fun round(value: Double): Int {
             val (conditionResult, _) = isCriticalSafetyCondition()
 
             val maxSafeBasal = getMaxSafeBasal(profile)
-            if (mealTime && mealruntime < 30){
+            if (mealTime && mealruntime < 30) {
                 rate = if (basal == 0.0) (profile_current_basal * 10) else round_basal(basal * 10)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because mealTime ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
-            }else if (highCarbTime && highCarbrunTime < 60){
+            } else if (highCarbTime && highCarbrunTime < 60) {
                 rate = if (basal == 0.0) (profile_current_basal * 10) else round_basal(basal * 10)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because highcarbTime ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
-            }else if (bg > 180){
+            } else if (bg > 180 && !honeymoon) {
                 rate = if (basal == 0.0) (profile_current_basal * 10) else round_basal(basal * 10)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because bg > 200 ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
-            }else if (honeymoon && delta > 2 && bg > 90 && bg < 110) {
+            } else if (honeymoon && bg > 140 && bg < 170 && delta > 0) {
                 rate = profile_current_basal
-                rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because honeymoon ${round(rate, 2)}U/hr. ")
+                rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because honeymoon and bg > 140 ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
-            }else if (honeymoon && delta > 0 && bg > 110 && eventualBG > 100){
+            }else if (honeymoon && bg > 170 && delta > 0) {
                 rate = if (basal == 0.0) (profile_current_basal * delta) else round_basal(basal * delta)
-                rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because honeymoon ${round(rate, 2)}U/hr. ")
+                rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because honeymoon and bg > 140 ${round(rate, 2)}U/hr. ")
+                return setTempBasal(rate, 30, profile, rT, currenttemp)
+            }else if (honeymoon && delta > 2 && bg > 90 && bg < 120) {
+                rate = profile_current_basal
+                rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because honeymoon and bg > 90 and bg < 120 ${round(rate, 2)}U/hr. ")
+                return setTempBasal(rate, 30, profile, rT, currenttemp)
+            }else if (honeymoon && delta > 0 && bg > 110 && eventualBG > 120 && bg < 160){
+                rate = profile_current_basal * delta
+                rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because honeymoon and bg > 110 and eventuelBG > 120 ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
             }else if (pregnancyEnable && delta > 0 && bg > 110 && !honeymoon) {
                 rate = if (basal == 0.0) (profile_current_basal * 10) else round_basal(basal * 10)
