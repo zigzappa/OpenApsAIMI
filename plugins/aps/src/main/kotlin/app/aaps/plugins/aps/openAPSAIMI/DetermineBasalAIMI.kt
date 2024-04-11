@@ -1104,7 +1104,7 @@ fun round(value: Double): Int {
             }
             !profile.temptargetSet && circadianSmb > 0.1 && predictedBg < 130 -> {
                 val hypoTarget = 100 * kotlin.math.max(1.0, circadianSensitivity)
-                this.targetBg = (hypoTarget + circadianSmb).toFloat()
+                this.targetBg = max(hypoTarget.toFloat(), 166.0f)
                 target_bg = targetBg.toDouble()
                 val c = (halfBasalTarget - normalTarget).toDouble()
                 sensitivityRatio = c / (c + target_bg - normalTarget)
