@@ -606,7 +606,7 @@ fun round(value: Double): Int {
                     totalDifference = 0.0f
 
                     for (enhancedInput in inputs) {
-                        val predictedrefineSMB = prediction[0]// Prédiction du modèle TFLite
+                        val predictedrefineSMB = finalRefinedSMB// Prédiction du modèle TFLite
                         val refinedSMB = refineSMB(predictedrefineSMB.toFloat(), neuralNetwork, enhancedInput)
                         val refinedBasalAimi = refineBasalaimi(refineBasalAimi, neuralNetwork, enhancedInput)
                         if (delta > 10 && bg > 100) {
