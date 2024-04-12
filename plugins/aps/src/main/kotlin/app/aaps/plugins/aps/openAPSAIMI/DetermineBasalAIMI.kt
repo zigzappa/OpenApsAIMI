@@ -601,7 +601,7 @@ fun round(value: Double): Int {
                 neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs.toInt(), learningRate.toInt())
 
                 val inputForPrediction = inputs.last()
-                val prediction = neuralNetwork.predict(inputForPrediction)
+                //val prediction = neuralNetwork.predict(inputForPrediction)
                 do {
                     totalDifference = 0.0f
 
@@ -2120,7 +2120,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 11 April 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 12 April 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |modelcal: $modelcal
