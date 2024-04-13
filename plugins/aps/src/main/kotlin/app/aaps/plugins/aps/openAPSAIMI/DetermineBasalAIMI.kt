@@ -1765,22 +1765,30 @@ class DetermineBasalaimiSMB @Inject constructor(
 
         val fractionCarbsLeft = meal_data.mealCOB / meal_data.carbs
         // if we have COB and UAM is enabled, average both
-        if (minUAMPredBG < 999 && minCOBPredBG < 999) {
-            // weight COBpredBG vs. UAMpredBG based on how many carbs remain as COB
-            avgPredBG = round((1 - fractionCarbsLeft) * UAMpredBG!! + fractionCarbsLeft * COBpredBG!!, 0)
-            // if UAM is disabled, average IOB and COB
-        } else if (minCOBPredBG < 999) {
-            avgPredBG = round((IOBpredBG + COBpredBG!!) / 2.0, 0)
-            // if we have UAM but no COB, average IOB and UAM
-        } else if (minUAMPredBG < 999) {
-            avgPredBG = round((IOBpredBG + UAMpredBG!!) / 2.0, 0)
-        } else {
-            avgPredBG = round(IOBpredBG, 0)
+        avgPredBG = when {
+            minUAMPredBG < 999 && minCOBPredBG < 999 -> {
+                // Weight COBpredBG vs. UAMpredBG based on how many carbs remain as COB
+                round((1 - fractionCarbsLeft) * UAMpredBG!! + fractionCarbsLeft * COBpredBG!!, 0)
+            }
+            minCOBPredBG < 999 -> {
+                // If we have COB but no UAM, average IOB and COB
+                round((IOBpredBG + COBpredBG!!) / 2.0, 0)
+            }
+            minUAMPredBG < 999 -> {
+                // If we have UAM but no COB, average IOB and UAM
+                round((IOBpredBG + UAMpredBG!!) / 2.0, 0)
+            }
+            else -> {
+                // Default to IOB only
+                round(IOBpredBG, 0)
+            }
         }
-        // if avgPredBG is below minZTGuardBG, bring it up to that level
+
+// Adjust avgPredBG if it is below minZTGuardBG
         if (minZTGuardBG > avgPredBG) {
             avgPredBG = minZTGuardBG
         }
+
 
         // if we have both minCOBGuardBG and minUAMGuardBG, blend according to fractionCarbsLeft
         if ((cid > 0.0 || remainingCIpeak > 0)) {
