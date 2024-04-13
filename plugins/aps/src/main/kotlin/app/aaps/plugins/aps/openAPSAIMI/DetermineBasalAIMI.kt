@@ -162,9 +162,6 @@ class DetermineBasalaimiSMB @Inject constructor(
 
     fun convert_bg(value: Double): String =
         profileUtil.fromMgdlToStringInUnits(value).replace("-0.0", "0.0")
-    //DecimalFormat("0.#").format(profileUtil.fromMgdlToUnits(value))
-    //if (profile.out_units === "mmol/L") round(value / 18, 1).toFixed(1);
-    //else Math.round(value);
 
     fun enable_smb(profile: OapsProfile, microBolusAllowed: Boolean, meal_data: MealData, target_bg: Double): Boolean {
         // disable SMB when a high temptarget is set
@@ -215,7 +212,6 @@ class DetermineBasalaimiSMB @Inject constructor(
         min(profile.max_basal, min(profile.max_daily_safety_multiplier * profile.max_daily_basal, profile.current_basal_safety_multiplier * profile.current_basal))
 
     fun setTempBasal(_rate: Double, duration: Int, profile: OapsProfile, rT: RT, currenttemp: CurrentTemp): RT {
-        //var maxSafeBasal = Math.min(profile.max_basal, 3 * profile.max_daily_basal, 4 * profile.current_basal);
 
         val maxSafeBasal = getMaxSafeBasal(profile)
         var rate = _rate
@@ -606,8 +602,6 @@ class DetermineBasalaimiSMB @Inject constructor(
                 val neuralNetwork = aimiNeuralNetwork(inputs.first().size, 5, 1)
                 neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs.toInt(), learningRate.toInt())
 
-                //val inputForPrediction = inputs.last()
-                //val prediction = neuralNetwork.predict(inputForPrediction)
                 do {
                     totalDifference = 0.0f
 
@@ -1115,7 +1109,7 @@ class DetermineBasalaimiSMB @Inject constructor(
 
         // adjust min, max, and target BG for sensitivity, such that 50% increase in ISF raises target from 100 to 120
         if (profile.temptargetSet) {
-            //console.log("Temp Target set, not adjusting with autosens; ");
+            consoleLog.add("Temp Target set, not adjusting with autosens")
         } else {
             if (profile.sensitivity_raises_target && autosens_data.ratio < 1 || profile.resistance_lowers_target && autosens_data.ratio > 1) {
                 // with a target of 100, default 0.7-1.2 autosens min/max range would allow a 93-117 target range
@@ -1498,20 +1492,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         // CI = current carb impact on BG in mg/dL/5m
         ci = round((minDelta - bgi), 1)
         val uci = round((minDelta - bgi), 1)
-        // ISF (mg/dL/U) / CR (g/U) = CSF (mg/dL/g)
 
-        // TODO: remove commented-out code for old behavior
-        //if (profile.temptargetSet) {
-        // if temptargetSet, use unadjusted profile.sens to allow activity mode sensitivityRatio to adjust CR
-        //var csf = profile.sens / profile.carb_ratio;
-        //} else {
-        // otherwise, use autosens-adjusted sens to counteract autosens meal insulin dosing adjustments
-        // so that autotuned CR is still in effect even when basals and ISF are being adjusted by autosens
-        //var csf = sens / profile.carb_ratio;
-        //}
-        // use autosens-adjusted sens to counteract autosens meal insulin dosing adjustments so that
-        // autotuned CR is still in effect even when basals and ISF are being adjusted by TT or autosens
-        // this avoids overdosing insulin for large meals when low temp targets are active
         val csf = sens / profile.carb_ratio
         consoleError.add("profile.sens: ${profile.sens}, sens: $sens, CSF: $csf")
 
@@ -1668,7 +1649,6 @@ class DetermineBasalaimiSMB @Inject constructor(
             // add 30m to allow for insulin delivery (SMBs or temps)
             val insulinPeakTime = 90
             val insulinPeak5m = (insulinPeakTime / 60.0) * 12.0
-            //console.error(insulinPeakTime, insulinPeak5m, profile.insulinPeakTime, profile.curve);
 
             // wait 90m before setting minIOBPredBG
             if (IOBpredBGs.size > insulinPeak5m && (IOBpredBG < minIOBPredBG)) minIOBPredBG = round(IOBpredBG, 0)
@@ -1677,10 +1657,8 @@ class DetermineBasalaimiSMB @Inject constructor(
             if ((cid != 0.0 || remainingCIpeak > 0) && COBpredBGs.size > insulinPeak5m && (COBpredBG!! < minCOBPredBG)) minCOBPredBG = round(COBpredBG!!, 0)
             if ((cid != 0.0 || remainingCIpeak > 0) && COBpredBG!! > maxIOBPredBG) maxCOBPredBG = COBpredBG!!
             if (enableUAM && UAMpredBGs.size > 12 && (UAMpredBG!! < minUAMPredBG)) minUAMPredBG = round(UAMpredBG!!, 0)
-            //if (enableUAM && UAMpredBG!! > maxIOBPredBG) maxUAMPredBG = UAMpredBG!!
         }
         // set eventualBG to include effect of carbs
-        //console.error("PredBGs:",JSON.stringify(predBGs));
         if (meal_data.mealCOB > 0) {
             consoleError.add("predCIs (mg/dL/5m):" + predCIs.joinToString(separator = " "))
             consoleError.add("remainingCIs:      " + remainingCIs.joinToString(separator = " "))
