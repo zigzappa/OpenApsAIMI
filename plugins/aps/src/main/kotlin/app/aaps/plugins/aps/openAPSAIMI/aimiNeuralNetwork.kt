@@ -334,53 +334,6 @@ class aimiNeuralNetwork(
             }
         }
     }
-
-    /*fun saveModel() {
-        val modelData = mapOf(
-            "weightsInputHidden" to weightsInputHidden,
-            "biasHidden" to biasHidden,
-            "weightsHiddenOutput" to weightsHiddenOutput,
-            "biasOutput" to biasOutput
-        )
-        val gson = Gson()
-        val json = gson.toJson(modelData)
-
-        val directory = File("AAPS/")
-        if (!directory.exists()) {
-            directory.mkdirs() // Crée le dossier s'il n'existe pas
-        }
-
-        val file = File(directory, "model.json")
-        file.writeText(json)
-        modelFilePath = file.absolutePath
-    }
-
-    fun predictWithLoadedModel(input: FloatArray): DoubleArray {
-        loadModel()
-        return predict(input)
-    }
-    fun loadModel() {
-        try {
-            val filePath = "AAPS/model.json" // Chemin d'accès au fichier model.json
-            val file = File(filePath)
-
-            if (!file.exists()) {
-                throw FileNotFoundException("Le fichier model.json n'a pas été trouvé à l'emplacement $filePath")
-            }
-
-            val modelData = Gson().fromJson(file.readText(), Map::class.java)
-            weightsInputHidden = modelData["weightsInputHidden"] as Array<DoubleArray>
-            biasHidden = modelData["biasHidden"] as DoubleArray
-            weightsHiddenOutput = modelData["weightsHiddenOutput"] as Array<DoubleArray>
-            biasOutput = modelData["biasOutput"] as DoubleArray
-            modelFilePath = filePath
-        } catch (e: Exception) {
-            // Gestion des erreurs si le fichier n'existe pas ou si une autre erreur survient
-            e.printStackTrace()
-            // Vous pouvez également gérer l'erreur de manière plus spécifique en fonction de votre application
-        }
-    }*/
-
     fun trainWithAdam(
         inputs: List<FloatArray>,
         targets: List<DoubleArray>,
