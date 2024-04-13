@@ -1805,24 +1805,26 @@ class DetermineBasalaimiSMB @Inject constructor(
         minGuardBG = round(minGuardBG, 0)
         //console.error(minCOBGuardBG, minUAMGuardBG, minIOBGuardBG, minGuardBG);
 
-        var minZTUAMPredBG = minUAMPredBG
-        // if minZTGuardBG is below threshold, bring down any super-high minUAMPredBG by averaging
-        // this helps prevent UAM from giving too much insulin in case absorption falls off suddenly
-        if (minZTGuardBG < threshold) {
-            minZTUAMPredBG = (minUAMPredBG + minZTGuardBG) / 2.0
-            // if minZTGuardBG is between threshold and target, blend in the averaging
-        } else if (minZTGuardBG < target_bg) {
-            // target 100, threshold 70, minZTGuardBG 85 gives 50%: (85-70) / (100-70)
-            val blendPct = (minZTGuardBG - threshold) / (target_bg - threshold)
-            val blendedMinZTGuardBG = minUAMPredBG * blendPct + minZTGuardBG * (1 - blendPct)
-            minZTUAMPredBG = (minUAMPredBG + blendedMinZTGuardBG) / 2.0
-            //minZTUAMPredBG = minUAMPredBG - target_bg + minZTGuardBG;
-            // if minUAMPredBG is below minZTGuardBG, bring minUAMPredBG up by averaging
-            // this allows more insulin if lastUAMPredBG is below target, but minZTGuardBG is still high
-        } else if (minZTGuardBG > minUAMPredBG) {
-            minZTUAMPredBG = (minUAMPredBG + minZTGuardBG) / 2.0
+        var minZTUAMPredBG = when {
+            minZTGuardBG < threshold -> {
+                // If minZTGuardBG is below threshold, bring down any super-high minUAMPredBG by averaging
+                (minUAMPredBG + minZTGuardBG) / 2.0
+            }
+            minZTGuardBG < target_bg -> {
+                // If minZTGuardBG is between threshold and target, blend in the averaging
+                val blendPct = (minZTGuardBG - threshold) / (target_bg - threshold)
+                val blendedMinZTGuardBG = minUAMPredBG * blendPct + minZTGuardBG * (1 - blendPct)
+                (minUAMPredBG + blendedMinZTGuardBG) / 2.0
+            }
+            minZTGuardBG > minUAMPredBG -> {
+                // If minUAMPredBG is below minZTGuardBG, bring minUAMPredBG up by averaging
+                (minUAMPredBG + minZTGuardBG) / 2.0
+            }
+            else -> minUAMPredBG // Default case when none of the above conditions are met
         }
+
         minZTUAMPredBG = round(minZTUAMPredBG, 0)
+
         //console.error("minUAMPredBG:",minUAMPredBG,"minZTGuardBG:",minZTGuardBG,"minZTUAMPredBG:",minZTUAMPredBG);
         // if any carbs have been entered recently
         if (meal_data.carbs != 0.0) {
