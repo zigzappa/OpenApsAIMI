@@ -144,12 +144,11 @@ class DetermineBasalaimiSMB @Inject constructor(
     }
 
     fun Double.withoutZeros(): String = DecimalFormat("0.##").format(this)
-//    fun round(value: Double): Int = value.roundToInt()
-fun round(value: Double): Int {
-    if (value.isNaN()) return 0
-    val scale = 10.0.pow(2.0)
-    return (Math.round(value * scale) / scale).toInt()
-}
+    fun round(value: Double): Int {
+        if (value.isNaN()) return 0
+        val scale = 10.0.pow(2.0)
+        return (Math.round(value * scale) / scale).toInt()
+    }
 
     // we expect BG to rise or fall at the rate of BGI,
     // adjusted by the rate at which BG would need to rise /
@@ -385,7 +384,7 @@ fun round(value: Double): Int {
         if (nosmb) conditionsTrue.add("nosmb")
         val fasting = fastingTime
         if (fasting) conditionsTrue.add("fasting")
-        val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..6) } && delta > 10 && cob === 0.0f
+        val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..6) } && delta > 10 && cob == 0.0f
         if (nightTrigger) conditionsTrue.add("nightTrigger")
         val belowMinThreshold = bg < 100 && delta < 10 && !mealTime && !highCarbTime
         if (belowMinThreshold) conditionsTrue.add("belowMinThreshold")
@@ -600,14 +599,14 @@ fun round(value: Double): Int {
                 val neuralNetwork = aimiNeuralNetwork(inputs.first().size, 5, 1)
                 neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs.toInt(), learningRate.toInt())
 
-                val inputForPrediction = inputs.last()
+                //val inputForPrediction = inputs.last()
                 //val prediction = neuralNetwork.predict(inputForPrediction)
                 do {
                     totalDifference = 0.0f
 
                     for (enhancedInput in inputs) {
                         val predictedrefineSMB = finalRefinedSMB// Prédiction du modèle TFLite
-                        val refinedSMB = refineSMB(predictedrefineSMB.toFloat(), neuralNetwork, enhancedInput)
+                        val refinedSMB = refineSMB(predictedrefineSMB, neuralNetwork, enhancedInput)
                         val refinedBasalAimi = refineBasalaimi(refineBasalAimi, neuralNetwork, enhancedInput)
                         if (delta > 10 && bg > 100) {
                             isAggressiveResponseNeeded = true
@@ -622,7 +621,7 @@ fun round(value: Double): Int {
                             basalaimi
                         }
                         val difference = kotlin.math.abs(predictedrefineSMB - refinedSMB)
-                        totalDifference += difference.toFloat()
+                        totalDifference += difference
                         if (difference in 0.0..2.5) {
                             finalRefinedSMB = if (refinedSMB > 0.0f) refinedSMB else 0.0f
                             differenceWithinRange = true
@@ -650,7 +649,7 @@ fun round(value: Double): Int {
         }
         return Pair (if (globalConvergenceReached) finalRefinedSMB else predictedSMB,refineBasalAimi)
     }
-    private fun calculateGFactor(delta: Float, lastHourTIRabove170: Double, bg: Float): Double {
+    private fun calculateGFactor(delta: Float, lastHourTIRabove140: Double, bg: Float): Double {
         val deltaFactor = delta / 10 // Ajuster selon les besoins
         val bgFactor = if (bg > 140) 1.2 else if (bg < 100) 0.6 else 1.0
 
@@ -660,41 +659,6 @@ fun round(value: Double): Int {
         // Combinez les facteurs pour obtenir un ajustement global
         return deltaFactor * bgFactor * tirFactor
     }
-    /*private fun adjustFactorsBasedOnBgAndHypo(
-        morningFactor: Float,
-        afternoonFactor: Float,
-        eveningFactor: Float
-    ): Triple<Double, Double, Double> {
-        val adjustedDelta = if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
-            delta * 18
-        } else {
-            delta
-        }
-        val hypoAdjustment = if (bg < 120 || (iob > 3 * maxSMB)) 0.8f else 1.0f
-        val factorAdjustment = if (bg < 100) 0.2f else 0.3f
-        val bgAdjustment = 1.0f + (Math.log(Math.abs(adjustedDelta.toDouble()) + 1) - 1) * factorAdjustment
-        val scalingFactor = 1.0f - (bg - targetBg).toFloat() / (140 - targetBg) * 0.5f
-        val maxIncreaseFactor = 1.7f
-        val adjustFactor = { factor: Float ->
-            val adjustedFactor = factor * bgAdjustment * hypoAdjustment * scalingFactor
-            if (adjustedFactor > factor * maxIncreaseFactor) factor * maxIncreaseFactor else adjustedFactor
-        }
-
-        return if (delta < 0) {
-            Triple(
-                (morningFactor / bgAdjustment),
-                (afternoonFactor / bgAdjustment),
-                (eveningFactor / bgAdjustment)
-            )
-        } else {
-            Triple(
-                adjustFactor(morningFactor).toDouble(),
-                adjustFactor(afternoonFactor).toDouble(),
-                adjustFactor(eveningFactor).toDouble()
-            )
-        }
-
-    }*/
     private fun adjustFactorsBasedOnBgAndHypo(
         morningFactor: Float,
         afternoonFactor: Float,
@@ -718,13 +682,13 @@ fun round(value: Double): Int {
         }
 
         return Triple(
-            adjustFactor(morningFactor).toDouble(),
-            adjustFactor(afternoonFactor).toDouble(),
-            adjustFactor(eveningFactor).toDouble()
+            adjustFactor(morningFactor),
+            adjustFactor(afternoonFactor),
+            adjustFactor(eveningFactor)
         )
     }
     private fun calculateAdjustedDelayFactor(
-        bg: Float, recentSteps180Minutes: Int, averageBeatsPerMinute60: Float, averageBeatsPerMinute180: Float
+        bg: Float, recentSteps180Minutes: Int, averageBeatsPerMinute: Float, averageBeatsPerMinute10: Float
     ): Float {
         // Seuil pour une activité physique significative basée sur les étapes
         val stepActivityThreshold = 1500
@@ -878,7 +842,7 @@ fun round(value: Double): Int {
         val moreRecentTimeStamp = now - startMinAgo * 60 * 1000
         var notes = ""
         val recentNotes2: MutableList<String> = mutableListOf()
-        val autoNote = determineNoteBasedOnBg(bg.toDouble())
+        val autoNote = determineNoteBasedOnBg(bg)
         recentNotes2.add(autoNote)
         notes += autoNote  // Ajout de la note auto générée
 
@@ -1007,7 +971,7 @@ fun round(value: Double): Int {
         }
 
         var nowMinutes = calendarInstance[Calendar.HOUR_OF_DAY] + calendarInstance[Calendar.MINUTE] / 60.0 + calendarInstance[Calendar.SECOND] / 3600.0
-        nowMinutes = (kotlin.math.round(nowMinutes * 100) / 100).toDouble()  // Arrondi à 2 décimales
+        nowMinutes = (kotlin.math.round(nowMinutes * 100) / 100)  // Arrondi à 2 décimales
         val circadianSensitivity = (0.00000379 * nowMinutes.pow(5)) -
             (0.00016422 * nowMinutes.pow(4)) +
             (0.00128081 * nowMinutes.pow(3)) +
@@ -1028,7 +992,7 @@ fun round(value: Double): Int {
 
         // TODO eliminate
         val profile_current_basal = round_basal(profile.current_basal)
-        var basal = profile_current_basal
+        var basal: Double
 
         // TODO eliminate
         val systemTime = currentTime
@@ -1289,8 +1253,8 @@ fun round(value: Double): Int {
         if (averageBeatsPerMinute != 0.0) {
             this.basalaimi = when {
                 averageBeatsPerMinute >= averageBeatsPerMinute180 && recentSteps5Minutes > 100 && recentSteps10Minutes > 200 -> (basalaimi * 0.65).toFloat()
-                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute > averageBeatsPerMinute180 && bg >= 130 && recentSteps10Minutes === 0 && timenow > sixAMHour -> (basalaimi * 1.2).toFloat()
-                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute < averageBeatsPerMinute180 && recentSteps10Minutes === 0 && bg >= 110 -> (basalaimi * 1.1).toFloat()
+                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute > averageBeatsPerMinute180 && bg >= 130 && recentSteps10Minutes == 0 && timenow > sixAMHour -> (basalaimi * 1.2).toFloat()
+                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute < averageBeatsPerMinute180 && recentSteps10Minutes == 0 && bg >= 110 -> (basalaimi * 1.1).toFloat()
                 else -> basalaimi
             }
         }
@@ -1307,7 +1271,7 @@ fun round(value: Double): Int {
                     this.basalaimi = (basalaimi * 1.4).toFloat()
                 }else if (timenow > sixAMHour) {
                     this.basalaimi = (basalaimi * 1.6).toFloat()
-                } else if ((tirbasal3B <= 5) && (tirbasal3IR >= 70 && tirbasal3IR <= 80)) {
+                } else if ((tirbasal3B <= 5) && (tirbasal3IR in 70.0..80.0)) {
                     this.basalaimi = (basalaimi * 1.1).toFloat()
                 } else if (tirbasal3B <= 5 && tirbasal3IR <= 70) {
                     this.basalaimi = (basalaimi * 1.3).toFloat()
@@ -1778,7 +1742,7 @@ fun round(value: Double): Int {
 
         val fSensBG = min(minPredBG, bg)
 
-        var future_sens = 0.0
+        var future_sens: Double
 
         if (bg > target_bg && glucose_status.delta < 3 && glucose_status.delta > -3 && glucose_status.shortAvgDelta > -3 && glucose_status.shortAvgDelta < 3 && eventualBG > target_bg && eventualBG < bg) {
             future_sens = (1800 / (ln((((fSensBG * 0.5) + (bg * 0.5)) / profile.insulinDivisor) + 1) * profile.TDD))
@@ -2120,7 +2084,7 @@ fun round(value: Double): Int {
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 12 April 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 13 April 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |modelcal: $modelcal

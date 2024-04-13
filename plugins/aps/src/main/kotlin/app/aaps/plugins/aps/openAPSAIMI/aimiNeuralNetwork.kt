@@ -1,9 +1,5 @@
 package app.aaps.plugins.aps.openAPSAIMI
 
-import android.content.Context
-import com.google.gson.Gson
-import java.io.File
-import java.io.FileNotFoundException
 import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -22,10 +18,9 @@ class aimiNeuralNetwork(
     private var biasHidden = DoubleArray(hiddenSize) { 0.01 }
     private var weightsHiddenOutput = Array(hiddenSize) { DoubleArray(outputSize) { Random.nextDouble(-sqrt(6.0 / (hiddenSize + outputSize)), sqrt(6.0 / (hiddenSize + outputSize))) } }
     private var biasOutput = DoubleArray(outputSize) { 0.01 }
-    private var modelFilePath: String? = null
 
-    var lastTrainingException: Exception? = null
-    var trainingLossHistory: MutableList<Double> = mutableListOf()
+    private var lastTrainingException: Exception? = null
+    private var trainingLossHistory: MutableList<Double> = mutableListOf()
 
     companion object {
 
@@ -46,14 +41,14 @@ class aimiNeuralNetwork(
 
     private fun relu(x: Double) = max(0.0, x)
 
-    fun createNewFeature(inputData: List<FloatArray>): List<FloatArray> {
+    private fun createNewFeature(inputData: List<FloatArray>): List<FloatArray> {
         return inputData.map { originalFeatures ->
             val newFeature = originalFeatures[0] * originalFeatures[1]
             originalFeatures + newFeature
         }
     }
 
-    fun trainForBasalaimi(
+    private fun trainForBasalaimi(
         inputs: List<FloatArray>,
         basalaimiTargets: List<DoubleArray>,
         epochs: Int
@@ -61,7 +56,7 @@ class aimiNeuralNetwork(
         for (epoch in 1..epochs) {
             var totalLoss = 0.0
             for ((input, target) in inputs.zip(basalaimiTargets)) {
-                val (hidden, output) = forwardPassBasal(input)
+                val (_, output) = forwardPassBasal(input)
                 totalLoss += mseLoss(output, target)
                 backpropagationBasal(input, target)
             }
@@ -217,23 +212,23 @@ class aimiNeuralNetwork(
         val preparedValidationInputs = createNewFeature(validationRawInputs)
         val normalizedValidationInputs = zScoreNormalization(preparedValidationInputs)
 
-        var m = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
-        var v = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
-        var mOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
-        var vOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
+        val m = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
+        val v = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
+        val mOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
+        val vOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
         var t = 1
 
-        for (epoch in 1..epochs.toInt()) {
+        for (epoch in 1..epochs) {
             var totalLoss = 0.0
             try {
-                normalizedInputs.chunked(batchSize.toInt()).zip(targets.chunked(batchSize.toInt())).forEach { (batchInputs, batchTargets) ->
+                normalizedInputs.chunked(batchSize).zip(targets.chunked(batchSize)).forEach { (batchInputs, batchTargets) ->
                     batchInputs.zip(batchTargets).forEach { (input, target) ->
                         val output = forwardPass(input).second
                         totalLoss += mseLoss(output, target) + l2Regularization()
                         backpropagation(input, target, m, v, mOutput, vOutput)
                     }
                 }
-                trainForBasalaimi(normalizedInputs, targets, epochs.toInt())
+                trainForBasalaimi(normalizedInputs, targets, epochs)
                 trainWithAdam(normalizedInputs, targets, normalizedValidationInputs, validationTargets, epochs - epoch + 1)
                 val averageLoss = totalLoss / normalizedInputs.size
                 trainingLossHistory.add(averageLoss)
@@ -261,56 +256,67 @@ class aimiNeuralNetwork(
             }
         }
     }
-    private fun backpropagation(
-        input: FloatArray,
-        target: DoubleArray,
-        m: Array<DoubleArray>,
-        v: Array<DoubleArray>,
-        mOutput: Array<DoubleArray>,
-        vOutput: Array<DoubleArray>
-    ) {
+
+    private fun backpropagation(input: FloatArray, target: DoubleArray, m: Array<DoubleArray>, v: Array<DoubleArray>, mOutput: Array<DoubleArray>, vOutput: Array<DoubleArray>) {
         val (hidden, output) = forwardPass(input)
-        val gradLossOutput = DoubleArray(outputSize) { i -> 2.0 * (output[i] - target[i]) }
-        val gradHiddenOutput = Array(hiddenSize) { DoubleArray(outputSize) { 0.0 } }
-        val gradInputHidden = Array(inputSize) { DoubleArray(hiddenSize) { 0.0 } }
+        val gradLossOutput = calculateOutputLayerGradient(output, target)
+        updateWeightsAndBiasesForOutputLayer(hidden, gradLossOutput, mOutput, vOutput)
 
-        // Mise à jour des poids de la couche de sortie avec Adam
-        for (i in 0 until outputSize) {
-            for (j in 0 until hiddenSize) {
-                gradHiddenOutput[j][i] = gradLossOutput[i] * hidden[j]
-            }
-        }
+        val gradLossHidden = calculateHiddenLayerGradient(hidden, gradLossOutput)
+        updateWeightsAndBiasesForHiddenLayer(input, hidden, gradLossHidden, m, v)
+    }
+
+    private fun calculateOutputLayerGradient(output: DoubleArray, target: DoubleArray): DoubleArray {
+        return DoubleArray(outputSize) { i -> 2.0 * (output[i] - target[i]) }
+    }
+
+    private fun updateWeightsAndBiasesForOutputLayer(hidden: DoubleArray, gradLossOutput: DoubleArray, mOutput: Array<DoubleArray>, vOutput: Array<DoubleArray>) {
+        val gradHiddenOutput = calculateGradHiddenOutput(hidden, gradLossOutput)
         Adam(weightsHiddenOutput, gradHiddenOutput, mOutput, vOutput, 1, learningRate)
+        updateBiases(biasOutput, gradLossOutput)
+    }
 
-        // Mise à jour des biais de la couche de sortie
-        for (i in 0 until outputSize) {
-            biasOutput[i] -= learningRate * gradLossOutput[i]
+    private fun calculateHiddenLayerGradient(hidden: DoubleArray, gradLossOutput: DoubleArray): DoubleArray {
+        return DoubleArray(hiddenSize) { j ->
+            if (hidden[j] <= 0) 0.0
+            else gradLossOutput.indices.sumOf { k -> gradLossOutput[k] * weightsHiddenOutput[j][k] }
         }
+    }
 
-        // Calcul des gradients pour la couche cachée
-        val gradLossHidden = DoubleArray(hiddenSize) { j ->
-            var sum = 0.0
-            for (k in 0 until outputSize) {
-                sum += gradLossOutput[k] * weightsHiddenOutput[j][k]
-            }
-            if (hidden[j] <= 0) 0.0 else sum
-        }
-
-        // Mise à jour des poids de la couche cachée avec Adam
-        for (i in 0 until inputSize) {
-            for (j in 0 until hiddenSize) {
-                val gradRelu = if (hidden[j] > 0) 1 else 0.001
-                gradInputHidden[i][j] = gradLossHidden[j] * input[i] * gradRelu.toDouble()
-            }
-        }
+    private fun updateWeightsAndBiasesForHiddenLayer(input: FloatArray, hidden: DoubleArray, gradLossHidden: DoubleArray, m: Array<DoubleArray>, v: Array<DoubleArray>) {
+        val gradInputHidden = calculateGradInputHidden(input, hidden, gradLossHidden)
         Adam(weightsInputHidden, gradInputHidden, m, v, 1, learningRate)
+        updateBiasesForHiddenLayer(hidden, gradLossHidden)
+    }
 
-        // Mise à jour des biais de la couche cachée
-        for (j in 0 until hiddenSize) {
-            val gradRelu = if (hidden[j] > 0) 1 else 0.001
-            biasHidden[j] -= learningRate * gradLossHidden[j] * gradRelu.toDouble()
+    private fun calculateGradHiddenOutput(hidden: DoubleArray, gradLossOutput: DoubleArray): Array<DoubleArray> {
+        return Array(hiddenSize) { j ->
+            DoubleArray(outputSize) { i ->
+                gradLossOutput[i] * hidden[j]
+            }
         }
+    }
 
+    private fun calculateGradInputHidden(input: FloatArray, hidden: DoubleArray, gradLossHidden: DoubleArray): Array<DoubleArray> {
+        return Array(inputSize) { i ->
+            DoubleArray(hiddenSize) { j ->
+                val gradRelu = if (hidden[j] > 0) 1.0 else 0.001
+                gradLossHidden[j] * input[i] * gradRelu
+            }
+        }
+    }
+
+    private fun updateBiases(biases: DoubleArray, gradLoss: DoubleArray) {
+        for (i in biases.indices) {
+            biases[i] -= learningRate * gradLoss[i]
+        }
+    }
+
+    private fun updateBiasesForHiddenLayer(hidden: DoubleArray, gradLossHidden: DoubleArray) {
+        for (j in hidden.indices) {
+            val gradRelu = if (hidden[j] > 0) 1.0 else 0.001
+            biasHidden[j] -= learningRate * gradLossHidden[j] * gradRelu
+        }
     }
 
     private fun Adam(
@@ -334,7 +340,8 @@ class aimiNeuralNetwork(
             }
         }
     }
-    fun trainWithAdam(
+
+    private fun trainWithAdam(
         inputs: List<FloatArray>,
         targets: List<DoubleArray>,
         validationRawInputs: List<FloatArray>,
@@ -348,23 +355,28 @@ class aimiNeuralNetwork(
         val preparedValidationInputs = createNewFeature(validationRawInputs)
         val normalizedValidationInputs = zScoreNormalization(preparedValidationInputs)
 
-        var m = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
-        var v = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
-        var mOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
-        var vOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
-        var t = 1
+        // Initialize Adam parameters
+        val m = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
+        val v = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
+        val mOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
+        val vOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
+        var t = 0  // Initialize time step for Adam
 
         var bestLoss = Double.MAX_VALUE
         var epochsWithoutImprovement = 0
 
-        for (epoch in 1..epochs.toInt()) {
+        for (epoch in 1..epochs) {
             var totalLoss = 0.0
             try {
                 normalizedInputs.chunked(batchSize).zip(targets.chunked(batchSize)).forEach { (batchInputs, batchTargets) ->
                     batchInputs.zip(batchTargets).forEach { (input, target) ->
                         val (_, output) = forwardPass(input)
                         val gradOutputs = DoubleArray(outputSize) { i -> 2.0 * (output[i] - target[i]) }
-                        val gradInputHidden = backpropagationWithAdam(input, gradOutputs)
+                        val (gradInputHidden, gradHiddenOutput) = backpropagationWithAdam(input, gradOutputs)
+
+                        // Update weights with Adam optimizer for both layers
+                        updateWeightsAdam(weightsInputHidden, gradInputHidden, m, v, ++t, learningRate)
+                        updateWeightsAdam(weightsHiddenOutput, gradHiddenOutput, mOutput, vOutput, t, learningRate)
 
                         totalLoss += mseLoss(output, target) + l2Regularization()
                     }
@@ -387,8 +399,7 @@ class aimiNeuralNetwork(
                     }
                 }
 
-                learningRate *= 0.95 // Réduction dynamique du taux d'apprentissage
-                t++
+                learningRate *= 0.95  // Dynamically reduce the learning rate
             } catch (e: Exception) {
                 lastTrainingException = e
                 println("Exception during training at epoch $epoch: ${e.message}")
@@ -397,39 +408,62 @@ class aimiNeuralNetwork(
         }
     }
 
-    private fun backpropagationWithAdam(input: FloatArray, gradOutputs: DoubleArray): Array<DoubleArray> {
-        val (hidden, _) = forwardPass(input)
-        val gradInputHidden = Array(inputSize) { DoubleArray(hiddenSize) { 0.0 } }
-        val gradHiddenOutput = Array(hiddenSize) { DoubleArray(outputSize) { 0.0 } }
+        private fun updateWeightsAdam(weights: Array<DoubleArray>, grads: Array<DoubleArray>, m: Array<DoubleArray>, v: Array<DoubleArray>, t: Int, learningRate: Double) {
+            val beta1 = 0.9
+            val beta2 = 0.999
+            val epsilon = 1e-8
 
-        for (i in 0 until outputSize) {
-            for (j in 0 until hiddenSize) {
-                gradHiddenOutput[j][i] = gradOutputs[i] * hidden[j]
-            }
-        }
+            for (i in weights.indices) {
+                for (j in weights[i].indices) {
+                    m[i][j] = beta1 * m[i][j] + (1 - beta1) * grads[i][j]
+                    v[i][j] = beta2 * v[i][j] + (1 - beta2) * grads[i][j] * grads[i][j]
 
-        for (i in 0 until inputSize) {
-            for (j in 0 until hiddenSize) {
-                val gradRelu = if (hidden[j] > 0) 1 else 0.001
-                var gradLossHidden = 0.0
-                for (k in 0 until outputSize) {
-                    gradLossHidden += gradOutputs[k] * weightsHiddenOutput[j][k]
+                    val mHat = m[i][j] / (1 - beta1.pow(t.toDouble()))
+                    val vHat = v[i][j] / (1 - beta2.pow(t.toDouble()))
+
+                    weights[i][j] -= learningRate * mHat / (sqrt(vHat) + epsilon)
                 }
-                gradLossHidden *= gradRelu.toDouble()
-                gradInputHidden[i][j] = gradLossHidden * input[i]
             }
         }
 
-        return gradInputHidden
-    }
+        private fun backpropagationWithAdam(input: FloatArray, gradOutputs: DoubleArray): Pair<Array<DoubleArray>, Array<DoubleArray>> {
+            val (hidden, _) = forwardPass(input)
+            val gradInputHidden = Array(inputSize) { DoubleArray(hiddenSize) { 0.0 } }
+            val gradHiddenOutput = Array(hiddenSize) { DoubleArray(outputSize) { 0.0 } }
+
+            // Calculate gradients for weights between the hidden layer and the output layer
+            for (i in 0 until outputSize) {
+                for (j in 0 until hiddenSize) {
+                    gradHiddenOutput[j][i] = gradOutputs[i] * hidden[j]
+                }
+            }
+
+            // Calculate gradients for weights between the input layer and the hidden layer
+            for (i in 0 until inputSize) {
+                for (j in 0 until hiddenSize) {
+                    var gradLossHidden = 0.0
+                    for (k in 0 until outputSize) {
+                        gradLossHidden += gradOutputs[k] * weightsHiddenOutput[j][k]
+                    }
+                    // Correctly apply the ReLU derivative
+                    val reluDerivative = if (hidden[j] > 0) 1.0 else 0.001
+                    gradInputHidden[i][j] = gradLossHidden * reluDerivative * input[i]
+                }
+            }
+
+            // Return both sets of gradients
+            return Pair(gradInputHidden, gradHiddenOutput)
+        }
+
 
     private fun validate(inputs: List<FloatArray>, targets: List<DoubleArray>): Double {
-        var totalLoss = 0.0
-        for ((input, target) in inputs.zip(targets)) {
-            val output = forwardPass(input).second
-            totalLoss += mseLoss(output, target) + l2Regularization()
+            var totalLoss = 0.0
+            for ((input, target) in inputs.zip(targets)) {
+                val output = forwardPass(input).second
+                totalLoss += mseLoss(output, target) + l2Regularization()
+            }
+            return totalLoss / inputs.size
         }
-        return totalLoss / inputs.size
+
     }
 
-}
