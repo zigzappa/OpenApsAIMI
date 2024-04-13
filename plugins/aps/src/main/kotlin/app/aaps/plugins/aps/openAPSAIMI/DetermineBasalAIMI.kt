@@ -449,14 +449,21 @@ class DetermineBasalaimiSMB @Inject constructor(
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
         val belowTargetAndDropping = bg < targetBg
 
-        if (shouldApplyIntervalAdjustment(intervalSMBsnack, intervalSMBmeal, intervalSMBsleep, intervalSMBhc,intervalSMBhighBG)) {
-            result = 0.0f
-        } else if (shouldApplySafetyAdjustment()) {
-            result /= 2
-            this.intervalsmb = 10
-        } else if (shouldApplyTimeAdjustment()) {
-            result = 0.0f
-            this.intervalsmb = 10
+        when {
+            shouldApplyIntervalAdjustment(intervalSMBsnack, intervalSMBmeal, intervalSMBsleep, intervalSMBhc, intervalSMBhighBG) -> {
+                result = 0.0f
+            }
+            shouldApplySafetyAdjustment() -> {
+                result /= 2
+                this.intervalsmb = 10
+            }
+            shouldApplyTimeAdjustment() -> {
+                result = 0.0f
+                this.intervalsmb = 10
+            }
+            else -> {
+                result = result
+            }
         }
 
         if (shouldApplyStepAdjustment()) result = 0.0f
@@ -1261,25 +1268,19 @@ class DetermineBasalaimiSMB @Inject constructor(
 
         val pregnancyEnable = preferences.get(BooleanKey.OApsAIMIpregnancy)
 
-        if (tirbasal3B != null && pregnancyEnable) {
-            if (tirbasal3IR != null) {
-                if (tirbasalhAP != null && tirbasalhAP >= 5) {
-                    this.basalaimi = (basalaimi * 2.0).toFloat()
-                } else if (lastHourTIRAbove != null && lastHourTIRAbove >= 2) {
-                    this.basalaimi = (basalaimi * 1.8).toFloat()
-                }else if (timenow < sixAMHour){
-                    this.basalaimi = (basalaimi * 1.4).toFloat()
-                }else if (timenow > sixAMHour) {
-                    this.basalaimi = (basalaimi * 1.6).toFloat()
-                } else if ((tirbasal3B <= 5) && (tirbasal3IR in 70.0..80.0)) {
-                    this.basalaimi = (basalaimi * 1.1).toFloat()
-                } else if (tirbasal3B <= 5 && tirbasal3IR <= 70) {
-                    this.basalaimi = (basalaimi * 1.3).toFloat()
-                } else if (tirbasal3B > 5 && tirbasal3A!! < 5) {
-                    this.basalaimi = (basalaimi * 0.85).toFloat()
-                }
+        if (tirbasal3B != null && pregnancyEnable && tirbasal3IR != null) {
+            this.basalaimi = when {
+                tirbasalhAP != null && tirbasalhAP >= 5 -> (basalaimi * 2.0).toFloat()
+                lastHourTIRAbove != null && lastHourTIRAbove >= 2 -> (basalaimi * 1.8).toFloat()
+                timenow < sixAMHour -> (basalaimi * 1.4).toFloat()
+                timenow > sixAMHour -> (basalaimi * 1.6).toFloat()
+                tirbasal3B <= 5 && tirbasal3IR in 70.0..80.0 -> (basalaimi * 1.1).toFloat()
+                tirbasal3B <= 5 && tirbasal3IR <= 70 -> (basalaimi * 1.3).toFloat()
+                tirbasal3B > 5 && tirbasal3A!! < 5 -> (basalaimi * 0.85).toFloat()
+                else -> basalaimi  // Default case to handle any condition not explicitly matched
             }
         }
+
 
         this.variableSensitivity = max(
             profile.sens.toFloat() / 4.0f,
@@ -1819,20 +1820,27 @@ class DetermineBasalaimiSMB @Inject constructor(
         if (meal_data.carbs != 0.0) {
 
             // if UAM is disabled, use max of minIOBPredBG, minCOBPredBG
-            if (!enableUAM && minCOBPredBG < 999) {
-                minPredBG = round(max(minIOBPredBG, minCOBPredBG), 0)
-                // if we have COB, use minCOBPredBG, or blendedMinPredBG if it's higher
-            } else if (minCOBPredBG < 999) {
-                // calculate blendedMinPredBG based on how many carbs remain as COB
-                val blendedMinPredBG = fractionCarbsLeft * minCOBPredBG + (1 - fractionCarbsLeft) * minZTUAMPredBG
-                // if blendedMinPredBG > minCOBPredBG, use that instead
-                minPredBG = round(max(minIOBPredBG, max(minCOBPredBG, blendedMinPredBG)), 0)
-                // if carbs have been entered, but have expired, use minUAMPredBG
-            } else if (enableUAM) {
-                minPredBG = minZTUAMPredBG
-            } else {
-                minPredBG = minGuardBG
+            minPredBG = when {
+                !enableUAM && minCOBPredBG < 999 -> {
+                    // If we have COB, use minCOBPredBG, or blendedMinPredBG if it's higher
+                    round(max(minIOBPredBG, minCOBPredBG), 0)
+                }
+                minCOBPredBG < 999 -> {
+                    // Calculate blendedMinPredBG based on how many carbs remain as COB
+                    val blendedMinPredBG = fractionCarbsLeft * minCOBPredBG + (1 - fractionCarbsLeft) * minZTUAMPredBG
+                    // If blendedMinPredBG > minCOBPredBG, use that instead
+                    round(max(minIOBPredBG, max(minCOBPredBG, blendedMinPredBG)), 0)
+                }
+                enableUAM -> {
+                    // If carbs have been entered, but have expired, use minUAMPredBG
+                    minZTUAMPredBG
+                }
+                else -> {
+                    // Use minGuardBG by default
+                    minGuardBG
+                }
             }
+
             // in pure UAM mode, use the higher of minIOBPredBG,minUAMPredBG
         } else if (enableUAM) {
             minPredBG = round(max(minIOBPredBG, minZTUAMPredBG), 0)
@@ -2301,15 +2309,11 @@ class DetermineBasalaimiSMB @Inject constructor(
                 rate = if (basal == 0.0) (profile_current_basal * 10) else round_basal(basal * 10)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because pregnancy ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
-            }/*else if (delta > 0 && bg > 80 && eventualBG > 65 && !honeymoon){
-                rate = if (basal == 0.0) (profile_current_basal * delta) else round_basal(basal * delta)
-                rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal ${round(rate, 2)}U/hr. ")
-                return setTempBasal(rate, 30, profile, rT, currenttemp)
-            } else if (conditionResult && delta > 0 && bg > 80 && !honeymoon){
-                rate = if (basal == 0.0) (profile_current_basal * delta) else round_basal(basal * delta)
+            }else if (conditionResult && delta > 1 && bg > 90){
+                rate = profile_current_basal * delta
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal when isCriticalSafetyCondition is true ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
-            }*/
+            }
 
             if (rate > maxSafeBasal) {
                 rT.reason.append("adj. req. rate: ${round(rate, 2)} to maxSafeBasal: ${maxSafeBasal.withoutZeros()}, ")
