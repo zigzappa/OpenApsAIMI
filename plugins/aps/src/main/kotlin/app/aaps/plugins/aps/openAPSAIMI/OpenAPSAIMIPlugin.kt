@@ -121,27 +121,10 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
     override var lastAPSResult: DetermineBasalResult? = null
     override fun supportsDynamicIsf(): Boolean = preferences.get(BooleanKey.ApsUseDynamicSensitivity)
 
-    /*override fun getIsfMgdl(multiplier: Double, timeShift: Int, caller: String): Double? {
-        val start = dateUtil.now()
-        val sensitivity = calculateVariableIsf(start, bg = null)
-        if (sensitivity.second == null)
-            uiInteraction.addNotificationValidTo(
-                Notification.DYN_ISF_FALLBACK, start,
-                rh.gs(R.string.fallback_to_isf_no_tdd), Notification.INFO, dateUtil.now() + T.mins(1).msecs()
-            )
-        else
-            uiInteraction.dismissNotification(Notification.DYN_ISF_FALLBACK)
-        profiler.log(LTag.APS, String.format("getIsfMgdl() %s %f %s %s", sensitivity.first, sensitivity.second, dateUtil.dateAndTimeAndSecondsString(start), caller), start)
-        return sensitivity.second?.let { it * multiplier }
-    }*/
     override fun getIsfMgdl(multiplier: Double, timeShift: Int, caller: String): Double? {
         val start = dateUtil.now()
         val sensitivity = calculateVariableIsf(start, bg = null)
-        /*if (sensitivity.second == null) {
-            aapsLogger.debug(LTag.APS, "getIsfMgdl $caller falling back to static ISF due to no TDD data")
-        } else {
-            uiInteraction.dismissNotification(Notification.DYN_ISF_FALLBACK)
-        }*/
+
         uiInteraction.dismissNotification(Notification.DYN_ISF_FALLBACK)
         profiler.log(LTag.APS, String.format("getIsfMgdl() %s %f %s %s", sensitivity.first, sensitivity.second, dateUtil.dateAndTimeAndSecondsString(start), caller), start)
         return sensitivity.second?.let { it * multiplier }
@@ -209,7 +192,6 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
 
         val result = persistenceLayer.getApsResultCloseTo(timestamp)
         if (result?.variableSens != null) {
-            //aapsLogger.debug("calculateVariableIsf $caller DB  ${dateUtil.dateAndTimeAndSecondsString(timestamp)} ${result.variableSens}")
             return Pair("DB", result.variableSens)
         }
 
@@ -219,16 +201,23 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         val key = timestamp - timestamp % T.mins(30).msecs() + glucose.toLong()
         val cached = dynIsfCache[key]
         if (cached != null && timestamp < dateUtil.now()) {
-            //aapsLogger.debug("calculateVariableIsf $caller HIT ${dateUtil.dateAndTimeAndSecondsString(timestamp)} $cached")
             return Pair("HIT", cached)
         }
         val tdd7P: Double = preferences.get(DoubleKey.OApsAIMITDD7)
-        // no cached result found, let's calculate the value
-        val tdd1D = tddCalculator.averageTDD(tddCalculator.calculate(timestamp, 1, allowMissingDays = false))?.data?.totalAmount ?: tdd7P
-        val tdd7D = tddCalculator.averageTDD(tddCalculator.calculate(timestamp, 7, allowMissingDays = false))?.data?.totalAmount ?: tdd7P
-        val tddLast24H = tddCalculator.calculateDaily(-24, 0)?.totalAmount ?: tdd7P
-        val tddLast4H = tddCalculator.calculateDaily(-4, 0)?.totalAmount ?: ((tdd7P / 24) * 4)
-        val tddLast8to4H = tddCalculator.calculateDaily(-8, -4)?.totalAmount ?: ((tdd7P / 24) * 4)
+
+        var tdd2Days = tddCalculator.averageTDD(tddCalculator.calculate(2, allowMissingDays = false))?.data?.totalAmount ?: 0.0
+        if (tdd2Days == 0.0 || tdd2Days < tdd7P) tdd2Days = tdd7P
+        val tdd2DaysPerHour = tdd2Days / 24
+
+        val tddLast4H = tdd2DaysPerHour * 4
+
+        var tddDaily = tddCalculator.averageTDD(tddCalculator.calculate(1, allowMissingDays = false))?.data?.totalAmount ?: 0.0
+        if (tddDaily == 0.0 || tddDaily < tdd7P / 2) tddDaily = tdd7P
+
+        var tdd24Hrs = tddCalculator.calculateDaily(-24, 0)?.totalAmount ?: 0.0
+        if (tdd24Hrs == 0.0) tdd24Hrs = tdd7P
+        val tdd24HrsPerHour = tdd24Hrs / 24
+        val tddLast8to4H = tdd24HrsPerHour * 4
         val insulinDivisor = when {
             activePlugin.activeInsulin.peak > 65 -> 55 // lyumjev peak: 45
             activePlugin.activeInsulin.peak > 50 -> 65 // ultra rapid peak: 55
@@ -250,10 +239,8 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         val highCarbTime = therapy.highCarbTime
         val mealTime = therapy.mealTime
 
-        val tddStatus = TddStatus(tdd1D, tdd7D, tddLast24H, tddLast4H, tddLast8to4H)
-        val tddWeightedFromLast8H = ((1.4 * tddStatus.tddLast4H) + (0.6 * tddStatus.tddLast8to4H)) * 3
-        //val tdd = (tddWeightedFromLast8H * 0.33) + (tddStatus.tdd7D * 0.34) + (tddStatus.tdd1D * 0.33) * preferences.get(IntKey.ApsDynIsfAdjustmentFactor) / 100.0
-        var tdd = (tddWeightedFromLast8H * 0.33) + (tddStatus.tdd7D * 0.34) + (tddStatus.tdd1D * 0.33)
+        val tddWeightedFromLast8H = ((1.4 * tddLast4H) + (0.6 * tddLast8to4H)) * 3
+        var tdd = (tddWeightedFromLast8H * 0.33) + (tdd2Days * 0.34) + (tddDaily * 0.33)
         if (bg != null) {
             tdd = when {
                 sportTime -> tdd * 1.1
@@ -268,12 +255,12 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         }
         val isfMgdl = profileFunction.getProfile()?.getProfileIsfMgdl()
         var sensitivity = Round.roundTo(1800 / (tdd * (ln((glucose / insulinDivisor) + 1))), 0.1)
-        if (sensitivity < 0) if (isfMgdl != null) {
+        if (sensitivity < 0 && isfMgdl != null) {
             sensitivity = profileUtil.fromMgdlToUnits(isfMgdl.toDouble(), profileFunction.getUnits())
         }
-        //aapsLogger.debug("calculateVariableIsf $caller CAL ${dateUtil.dateAndTimeAndSecondsString(timestamp)} $sensitivity")
+
         dynIsfCache.put(key, sensitivity)
-        if (dynIsfCache.size() > 500) dynIsfCache.clear()
+        if (dynIsfCache.size() > 1000) dynIsfCache.clear()
         return Pair("CALC", sensitivity)
     }
     override fun invoke(initiator: String, tempBasalFallback: Boolean) {
@@ -355,7 +342,6 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             val tdd7P: Double = preferences.get(DoubleKey.OApsAIMITDD7)
 
             var tdd7D = tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))
-            //if (tdd7D == 0.0 || tdd7D < tdd7P) tdd7D = tdd7P
 
             var tdd2Days = tddCalculator.averageTDD(tddCalculator.calculate(2, allowMissingDays = false))?.data?.totalAmount ?: 0.0
             if (tdd2Days == 0.0 || tdd2Days < tdd7P) tdd2Days = tdd7P
@@ -403,7 +389,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             }
             variableSensitivity = Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1)
             val isfMgdl = profileFunction.getProfile()?.getProfileIsfMgdl()
-            if (variableSensitivity < 0) if (isfMgdl != null) {
+            if (variableSensitivity < 0 && isfMgdl != null) {
                 variableSensitivity = profileUtil.fromMgdlToUnits(isfMgdl.toDouble(), profileFunction.getUnits())
             }
 
@@ -590,7 +576,6 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             .store(IntKey.ApsDynIsfAdjustmentFactor, preferences, rh)
     }
     override fun addPreferenceScreen(preferenceManager: PreferenceManager, parent: PreferenceScreen, context: Context, requiredKey: String?) {
-        //if (requiredKey != null && requiredKey != "absorption_smb_advanced") return
         val category = PreferenceCategory(context)
         parent.addPreference(category)
         category.apply {
