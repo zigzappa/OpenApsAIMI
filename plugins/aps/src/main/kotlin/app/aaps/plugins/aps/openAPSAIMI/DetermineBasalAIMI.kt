@@ -159,6 +159,12 @@ class DetermineBasalaimiSMB @Inject constructor(
         val targetDelta = targetBg - eventualBg
         return /* expectedDelta */ round(bgi + (targetDelta / fiveMinBlocks), 1)
     }
+    fun calculateRate(basal: Double, currentBasal: Double, multiplier: Double, reason: String, currenttemp: CurrentTemp, rT: RT): Double {
+        rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} $reason")
+        return if (basal == 0.0) currentBasal * multiplier else round_basal(basal * multiplier)
+    }
+    fun calculateBasalRate(basal: Double, currentBasal: Double, multiplier: Double): Double =
+        if (basal == 0.0) currentBasal * multiplier else round_basal(basal * multiplier)
 
     fun convert_bg(value: Double): String =
         profileUtil.fromMgdlToStringInUnits(value).replace("-0.0", "0.0")
@@ -536,7 +542,8 @@ class DetermineBasalaimiSMB @Inject constructor(
         return smbToGive.toFloat()
     }
     private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, predictedSMB: Float, basalaimi: Float): Pair<Float, Float> {
-        val minutesToConsider = if (tir1DAYabove > 15 || bg < 130) 5000.0 else 1400.0
+        //val minutesToConsider = if (tir1DAYabove > 15 || bg < 130) 5000.0 else 1400.0
+        val minutesToConsider = 2500.0
         val linesToConsider = (minutesToConsider / 5).toInt()
         var totalDifference: Float
         val maxIterations = 10000.0
@@ -586,8 +593,10 @@ class DetermineBasalaimiSMB @Inject constructor(
                 if (inputs.isEmpty() || targets.isEmpty()) {
                     return Pair(predictedSMB, basalaimi)
                 }
-                val epochs = if (tir1DAYabove > 15 || bg < 130) 150.0 else 100.0
-                val learningRate = if (tir1DAYabove > 15 || bg < 130) 0.001 else 0.01
+                //val epochs = if (tir1DAYabove > 15 || bg < 130) 150.0 else 100.0
+                //val learningRate = if (tir1DAYabove > 15 || bg < 130) 0.001 else 0.01
+                val epochs = 150.0
+                val learningRate = 0.001
                 // Déterminer la taille de l'ensemble de validation
                 val validationSize = (inputs.size * 0.1).toInt() // Par exemple, 10% pour la validation
 
@@ -1414,7 +1423,24 @@ class DetermineBasalaimiSMB @Inject constructor(
         logDataMLToCsv(predictedSMB, smbToGive)
         logDataToCsv(predictedSMB, smbToGive)
         logDataToCsvHB(predictedSMB, smbToGive)
-        if (mealTime && mealruntime in 0..30 && delta < 15){
+        val rate = when {
+            mealTime && mealruntime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because mealTime $mealruntime.", currenttemp, rT)
+            highCarbTime && highCarbrunTime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because highcarb $highcarbfactor.", currenttemp, rT)
+            bg in 81.0..99.0 && delta in 3.0..7.0 && !honeymoon -> calculateRate(basal, profile_current_basal, delta.toDouble(), "AI Force basal because bg is between 80 and 100 with a small delta.", currenttemp, rT)
+            bg in 81.0..99.0 && delta in 3.0..7.0 && honeymoon -> calculateRate(basal, profile_current_basal, 2.0, "AI Force basal because bg is between 80 and 100 with a small delta.", currenttemp, rT)
+            bg > 165 && delta > 2 && smbToGive == 0.0f && !honeymoon -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because bg is greater than 180 and SMB = 0U.", currenttemp, rT)
+            bg > 165 && delta > 2 && smbToGive == 0.0f && honeymoon -> calculateRate(basal, profile_current_basal, 3.0, "AI Force basal because bg is greater than 180 and SMB = 0U.", currenttemp, rT)
+            else -> null
+        }
+
+        rate?.let {
+            rT.rate = it
+            rT.deliverAt = deliverAt
+            rT.duration = 30
+            return rT
+        }
+
+        /*if (mealTime && mealruntime in 0..30 && delta < 15){
             rT.rate = if (basal == 0.0) (profile_current_basal * 10) else round_basal(basal * 10)
             rT.deliverAt = deliverAt
             rT.duration = 30
@@ -1448,7 +1474,7 @@ class DetermineBasalaimiSMB @Inject constructor(
             rT.duration = 30
             rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because bg is greater than 180 and SMB = 0U.")
             return rT
-        }
+        }*/
 
         rT = RT(
             algorithm = APSResult.Algorithm.AIMI,
@@ -2265,7 +2291,7 @@ class DetermineBasalaimiSMB @Inject constructor(
             val (conditionResult, _) = isCriticalSafetyCondition()
 
             val maxSafeBasal = getMaxSafeBasal(profile)
-            if (mealTime && mealruntime < 30) {
+            /*if (mealTime && mealruntime < 30) {
                 rate = if (basal == 0.0) (profile_current_basal * 10) else round_basal(basal * 10)
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because mealTime ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
@@ -2300,6 +2326,24 @@ class DetermineBasalaimiSMB @Inject constructor(
             }else if (conditionResult && delta > 1 && bg > 90){
                 rate = profile_current_basal * delta
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal when isCriticalSafetyCondition is true ${round(rate, 2)}U/hr. ")
+                return setTempBasal(rate, 30, profile, rT, currenttemp)
+            }*/
+            rate = when {
+                mealTime && mealruntime < 30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                highCarbTime && highCarbrunTime < 60 -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                bg > 180 && !honeymoon -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                honeymoon && bg in 140.0..169.0 && delta > 0 -> profile_current_basal
+                honeymoon && bg > 170 && delta > 0 -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
+                honeymoon && delta > 2 && bg in 90.0..119.0 -> profile_current_basal
+                honeymoon && delta > 0 && bg > 110 && eventualBG > 120 && bg < 160 -> profile_current_basal * delta
+                pregnancyEnable && delta > 0 && bg > 110 && !honeymoon -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                conditionResult && delta > 1 && bg > 90 -> profile_current_basal * delta
+                else -> 0.0
+            }
+
+            rate.let {
+                rT.rate = it
+                rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because of specific condition: ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
             }
 
