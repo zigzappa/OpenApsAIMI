@@ -2301,36 +2301,41 @@ class DetermineBasalaimiSMB @Inject constructor(
                 else -> 0.0
             }
 
-            rate.let {
-                rT.rate = it
-                rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because of specific condition: ${round(rate, 2)}U/hr. ")
-                return setTempBasal(rate, 30, profile, rT, currenttemp)
-            }
+// Logging the initial decision
+            rT.rate = rate
+            rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because of specific condition: ${round(rate, 2)}U/hr. ")
+
+// Check for maximum safe basal rate
             val maxSafeBasal = getMaxSafeBasal(profile)
             if (rate > maxSafeBasal) {
                 rT.reason.append("adj. req. rate: ${round(rate, 2)} to maxSafeBasal: ${maxSafeBasal.withoutZeros()}, ")
                 rate = round_basal(maxSafeBasal)
             }
 
+// Check for scheduled insulin
             val insulinScheduled = currenttemp.duration * (currenttemp.rate - basal) / 60
-            if (insulinScheduled >= insulinReq * 2) { // if current temp would deliver >2x more than the required insulin, lower the rate
+            if (insulinScheduled >= insulinReq * 2) {
                 rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} > 2 * insulinReq. Setting temp basal of ${round(rate, 2)}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
             }
 
-            if (currenttemp.duration == 0) { // no temp is set
-                rT.reason.append("no temp, setting " + round(rate, 2).withoutZeros() + "U/hr. ")
+// No temp basal set condition
+            if (currenttemp.duration == 0) {
+                rT.reason.append("no temp, setting ${round(rate, 2).withoutZeros()}U/hr. ")
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
             }
 
-            if (currenttemp.duration > 5 && (round_basal(rate) <= round_basal(currenttemp.rate))) { // if required temp <~ existing temp basal
+// Compare with existing temp basal
+            if (currenttemp.duration > 5 && (round_basal(rate) <= round_basal(currenttemp.rate))) {
                 rT.reason.append("temp ${(currenttemp.rate).toFixed2()} >~ req ${round(rate, 2).withoutZeros()}U/hr. ")
                 return rT
             }
 
-            // required temp > existing temp basal
+// Required temp is greater than existing temp basal
             rT.reason.append("temp ${currenttemp.rate.toFixed2()} < ${round(rate, 2).withoutZeros()}U/hr. ")
             return setTempBasal(rate, 30, profile, rT, currenttemp)
+
+
         }
     }
 }
