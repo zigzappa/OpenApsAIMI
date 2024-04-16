@@ -2103,7 +2103,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 15 April 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 16 April 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |modelcal: $modelcal
@@ -2297,7 +2297,7 @@ class DetermineBasalaimiSMB @Inject constructor(
                 honeymoon && delta > 0 && bg > 110 && eventualBG > 120 && bg < 160 -> profile_current_basal * delta
                 pregnancyEnable && delta > 0 && bg > 110 && !honeymoon -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 conditionResult && delta > 1 && bg > 90 -> profile_current_basal * delta
-                bg > 110 && !conditionResult && eventualBG > 100 && delta < 4 -> profile_current_basal
+                bg > 110 && !conditionResult && eventualBG > 100 && delta < 4 -> profile_current_basal * delta
                 else -> 0.0
             }
 
