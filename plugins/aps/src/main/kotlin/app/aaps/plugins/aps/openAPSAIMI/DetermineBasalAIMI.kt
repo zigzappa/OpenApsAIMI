@@ -375,7 +375,7 @@ class DetermineBasalaimiSMB @Inject constructor(
     private fun isCriticalSafetyCondition(): Pair<Boolean, String> {
         val conditionsTrue = mutableListOf<String>()
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
-        val nosmbHM = iob > 0.5 && honeymoon && delta < 8 && !mealTime && eventualBG < 180
+        val nosmbHM = iob > 0.6 && honeymoon && delta < 8 && !mealTime && eventualBG < 180
         if (nosmbHM) conditionsTrue.add("nosmbHM")
         val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10 && !isMealModeCondition() && !isHighCarbModeCondition()
         if (nosmb) conditionsTrue.add("nosmb")
@@ -462,7 +462,7 @@ class DetermineBasalaimiSMB @Inject constructor(
 
         if (shouldApplyStepAdjustment()) result = 0.0f
         if (belowTargetAndDropping) result /= 2
-        if (honeymoon && bg < 150 && delta < 5) result /= 2
+        if (honeymoon && bg < 170 && delta < 5) result /= 2
         if (LocalTime.now().run { (hour in 23..23 || hour in 0..11) } && delta < 10 && iob < maxSMB) result /= 2
 
         return result
