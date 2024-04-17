@@ -648,7 +648,7 @@ class DetermineBasalaimiSMB @Inject constructor(
     }
     private fun calculateGFactor(delta: Float, lastHourTIRabove140: Double, bg: Float): Double {
         val deltaFactor = delta / 10 // Ajuster selon les besoins
-        val bgFactor = if (bg > 140) 1.2 else if (bg < 100) 0.6 else 1.0
+        val bgFactor = if (bg > 140) 1.2 else if (bg < 100) 0.7 else 1.0
 
         // Introduire un facteur basé sur lastHourTIRabove170
         val tirFactor = 1.0 + lastHourTIRabove140 * 0.05 // Exemple: 5% d'augmentation pour chaque unité de lastHourTIRabove170
@@ -1996,12 +1996,12 @@ class DetermineBasalaimiSMB @Inject constructor(
             } else {
                 rT.reason.append("Eventual BG ${convertBG(eventualBG)} > ${convertBG(min_bg)} but Min. Delta ${minDelta.toFixed2()} < Exp. Delta ${convertBG(expectedDelta)}")
             }
-            if (currenttemp.duration > 15 && (roundBasal(basal) == roundBasal(currenttemp.rate))) {
+            return if (currenttemp.duration > 15 && (roundBasal(basal) == roundBasal(currenttemp.rate))) {
                 rT.reason.append(", temp " + currenttemp.rate + " ~ req " + round(basal, 2).withoutZeros() + "U/hr. ")
-                return rT
+                rT
             } else {
                 rT.reason.append("; setting current basal of ${round(basal, 2)} as temp. ")
-                return setTempBasal(basal, 30, profile, rT, currenttemp)
+                setTempBasal(basal, 30, profile, rT, currenttemp)
             }
         }
 
@@ -2021,7 +2021,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 16 April 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 17 April 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |modelcal: $modelcal
