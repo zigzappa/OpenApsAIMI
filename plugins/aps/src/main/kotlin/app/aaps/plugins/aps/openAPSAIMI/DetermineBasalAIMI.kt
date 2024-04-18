@@ -1400,6 +1400,9 @@ class DetermineBasalaimiSMB @Inject constructor(
         var rate = when {
             mealTime && mealruntime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because mealTime $mealruntime.", currenttemp, rT)
             highCarbTime && highCarbrunTime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because highcarb $highcarbfactor.", currenttemp, rT)
+            fastingTime -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because fastingTime", currenttemp, rT)
+            !honeymoon && delta in 1.0 .. 6.0 && bg < 110 -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because bg lesser than 110 and delta lesser than 8", currenttemp, rT)
+            honeymoon && delta in 1.0 .. 6.0 && bg < 160 -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because honeymoon and bg lesser than 160 and delta lesser than 6", currenttemp, rT)
             bg in 81.0..99.0 && delta in 3.0..7.0 && !honeymoon -> calculateRate(basal, profile_current_basal, delta.toDouble(), "AI Force basal because bg is between 80 and 100 with a small delta.", currenttemp, rT)
             bg in 81.0..99.0 && delta in 3.0..7.0 && honeymoon -> calculateRate(basal, profile_current_basal, 2.0, "AI Force basal because bg is between 80 and 100 with a small delta.", currenttemp, rT)
             bg > 165 && delta > 2 && smbToGive == 0.0f && !honeymoon -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because bg is greater than 180 and SMB = 0U.", currenttemp, rT)
