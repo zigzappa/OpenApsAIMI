@@ -1333,9 +1333,9 @@ class DetermineBasalaimiSMB @Inject constructor(
             }
         }
         this.predictedSMB = modelcal
-        if ((preferences.get(BooleanKey.OApsAIMIMLtraining) === true) && csvfile.exists()){
+        if ((preferences.get(BooleanKey.OApsAIMIMLtraining) == true) && csvfile.exists()){
             val allLines = csvfile.readLines()
-            val minutesToConsider: Double = preferences.get(DoubleKey.OApsAIMIMlminutesTraining)
+            val minutesToConsider = 2500.0
             val linesToConsider = (minutesToConsider / 5).toInt()
             if (allLines.size > linesToConsider) {
                 //this.predictedSMB = neuralnetwork5(delta, shortAvgDelta, longAvgDelta)
