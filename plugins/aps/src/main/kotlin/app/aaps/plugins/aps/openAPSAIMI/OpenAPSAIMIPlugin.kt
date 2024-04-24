@@ -176,7 +176,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         preferenceFragment.findPreference<SwitchPreference>(rh.gs(app.aaps.core.keys.R.string.key_openaps_sensitivity_raises_target))?.isVisible = autoSensOrDynIsfSensEnabled
         preferenceFragment.findPreference<AdaptiveIntPreference>(rh.gs(app.aaps.core.keys.R.string.key_openaps_uam_smb_max_minutes))?.isVisible = uamEnabled
     }
-    private fun adjustFactorsdynisfBasedOnBgAndHypo(
+    /*private fun adjustFactorsdynisfBasedOnBgAndHypo(
         dynISFadjust: Double
     ): Float {
         var bg = glucoseStatusProvider.glucoseStatusData
@@ -185,7 +185,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         val bgAdjustment = 1.0f + (Math.log(Math.abs(bg.delta) + 1) - 1)  * factorAdjustment
         val isfadjust = if (bg.delta < 0) {bgAdjustment / dynISFadjust} else {dynISFadjust * bgAdjustment * hypoAdjustment}
         return isfadjust.toFloat()
-    }
+    }*/
     private val dynIsfCache = LongSparseArray<Double>()
     private fun calculateVariableIsf(timestamp: Long, bg: Double?): Pair<String, Double?> {
         if (!preferences.get(BooleanKey.ApsUseDynamicSensitivity)) return Pair("OFF", null)
@@ -241,7 +241,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
 
         val tddWeightedFromLast8H = ((1.4 * tddLast4H) + (0.6 * tddLast8to4H)) * 3
         var tdd = (tddWeightedFromLast8H * 0.33) + (tdd2Days * 0.34) + (tddDaily * 0.33)
-        if (bg != null) {
+        /*if (bg != null) {
             tdd = when {
                 sportTime -> tdd * 1.1
                 sleepTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(sleepTimeDynISFAdjFactor)
@@ -252,7 +252,20 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 bg > 140 -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(dynISFadjusthyper)
                 else -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(dynISFadjust)
             }
+        }*/
+        if (bg != null) {
+            tdd = when {
+                sportTime -> tdd * 1.1
+                sleepTime -> tdd * sleepTimeDynISFAdjFactor
+                lowCarbTime -> tdd * 1.1
+                snackTime -> tdd * snackTimeDynISFAdjFactor
+                highCarbTime -> tdd * hcTimeDynISFAdjFactor
+                mealTime -> tdd * mealTimeDynISFAdjFactor
+                bg > 140 -> tdd * dynISFadjusthyper
+                else -> tdd * dynISFadjust
+            }
         }
+
         val isfMgdl = profileFunction.getProfile()?.getProfileIsfMgdl()
         var sensitivity = Round.roundTo(1800 / (tdd * (ln((glucose / insulinDivisor) + 1))), 0.1)
         if (sensitivity < 0 && isfMgdl != null) {
@@ -378,13 +391,13 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             if (bg != null) {
                 tdd = when {
                     sportTime -> tdd * 1.1
-                    sleepTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(sleepTimeDynISFAdjFactor)
+                    sleepTime -> tdd * sleepTimeDynISFAdjFactor
                     lowCarbTime -> tdd * 1.1
-                    snackTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(snackTimeDynISFAdjFactor)
-                    highCarbTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(hcTimeDynISFAdjFactor)
-                    mealTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(mealTimeDynISFAdjFactor)
-                    bg > 140 -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(dynISFadjusthyper)
-                    else -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(dynISFadjust)
+                    snackTime -> tdd * snackTimeDynISFAdjFactor
+                    highCarbTime -> tdd * hcTimeDynISFAdjFactor
+                    mealTime -> tdd * mealTimeDynISFAdjFactor
+                    bg > 140 -> tdd * dynISFadjusthyper
+                    else -> tdd * dynISFadjust
                 }
             }
             variableSensitivity = Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1)
