@@ -98,5 +98,6 @@ enum class BooleanKey(
     OApsAIMIEnableBasal(R.string.key_enable_basal, false),
     OApsAIMIEnableStepsFromWatch(R.string.count_steps_watch, false),
     OApsAIMIpregnancy(R.string.key_use_AimiPregnancy,false),
+    OApsAIMInight(R.string.OApsAIMI_Enable_night,false),
     OApsAIMIhoneymoon(R.string.key_use_Aimi_honeymoon,false)
 }

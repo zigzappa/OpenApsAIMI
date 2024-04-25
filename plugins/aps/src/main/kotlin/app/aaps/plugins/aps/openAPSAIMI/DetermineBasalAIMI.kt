@@ -445,6 +445,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         val intervalSMBhighBG = preferences.get(IntKey.OApsAIMIHighBGinterval)
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
         val belowTargetAndDropping = bg < targetBg
+        val night = preferences.get(BooleanKey.OApsAIMInight)
 
         when {
             shouldApplyIntervalAdjustment(intervalSMBsnack, intervalSMBmeal, intervalSMBsleep, intervalSMBhc, intervalSMBhighBG) -> {
@@ -463,7 +464,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         if (shouldApplyStepAdjustment()) result = 0.0f
         if (belowTargetAndDropping) result /= 2
         if (honeymoon && bg < 170 && delta < 5) result /= 2
-        if (LocalTime.now().run { (hour in 23..23 || hour in 0..11) } && delta < 10 && iob < maxSMB) result /= 2
+        if (night && LocalTime.now().run { (hour in 23..23 || hour in 0..11) } && delta < 10 && iob < maxSMB) result /= 2
 
         return result
     }
@@ -584,7 +585,7 @@ class DetermineBasalaimiSMB @Inject constructor(
                 if (inputs.isEmpty() || targets.isEmpty()) {
                     return Pair(predictedSMB, basalaimi)
                 }
-                val epochs = 150.0
+                val epochs = 250.0
                 val learningRate = 0.001
                 // Déterminer la taille de l'ensemble de validation
                 val validationSize = (inputs.size * 0.1).toInt() // Par exemple, 10% pour la validation
@@ -687,41 +688,36 @@ class DetermineBasalaimiSMB @Inject constructor(
         )
     }
     private fun calculateAdjustedDelayFactor(
-        bg: Float, recentSteps180Minutes: Int, averageBeatsPerMinute: Float, averageBeatsPerMinute10: Float
+        bg: Float,
+        recentSteps180Minutes: Int,
+        averageBeatsPerMinute: Float,
+        averageBeatsPerMinute10: Float
     ): Float {
-        // Seuil pour une activité physique significative basée sur les étapes
+        if (bg.isNaN() || averageBeatsPerMinute.isNaN() || averageBeatsPerMinute10.isNaN() || averageBeatsPerMinute10 == 0f) {
+            return 1f
+        }
+
         val stepActivityThreshold = 1500
-
-        // Seuil d'augmentation de la fréquence cardiaque indiquant une activité accrue
-        val heartRateIncreaseThreshold = 1.2  // par exemple, une augmentation de 20%
-
-        // Seuil à partir duquel l'efficacité de l'insuline commence à diminuer
+        val heartRateIncreaseThreshold = 1.2
         val insulinSensitivityDecreaseThreshold = 1.5 * normalBgThreshold
 
-        // Déterminer si une activité physique significative a eu lieu
         val increasedPhysicalActivity = recentSteps180Minutes > stepActivityThreshold
-
-        // Calculer le changement relatif de la fréquence cardiaque
         val heartRateChange = averageBeatsPerMinute / averageBeatsPerMinute10
-
-        // Indicateur d'une augmentation possible de la fréquence cardiaque due à l'exercice
         val increasedHeartRateActivity = heartRateChange >= heartRateIncreaseThreshold
 
-        // Calculer le facteur de base avant de prendre en compte l'activité physique
         val baseFactor = when {
             bg <= normalBgThreshold -> 1f
             bg <= insulinSensitivityDecreaseThreshold -> 1f - ((bg - normalBgThreshold) / (insulinSensitivityDecreaseThreshold - normalBgThreshold))
-            else -> 0.5f // Arbitraire, à ajuster en fonction de la physiologie individuelle
+            else -> 0.5f
         }
 
-        // Si une activité physique est détectée (soit par les étapes, soit par la fréquence cardiaque),
-        // nous ajustons le facteur de retard pour augmenter la sensibilité à l'insuline.
         return if (increasedPhysicalActivity || increasedHeartRateActivity) {
             (baseFactor.toFloat() * 0.8f).coerceAtLeast(0.5f)
         } else {
             baseFactor.toFloat()
         }
     }
+
 
     private fun calculateInsulinEffect(
         bg: Float,
@@ -2025,7 +2021,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 24 April 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 25 April 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |modelcal: $modelcal

@@ -278,5 +278,6 @@
     <string name="oaps_aimi_HIGHBG_interval_title">High BG SMB Interval</string>
     <string name="openapsaimi_highBG_maxsmb_summary">Max SMB value when bg is greater than 140.</string>
     <string name="openapsaimi_highBG_maxsmb_title">Max SMB High BG</string>
+    <string name="OApsAIMI_Enable_night_title">Enable Night mode (smb/2)</string>
 
 </resources>
