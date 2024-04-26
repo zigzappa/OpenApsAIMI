@@ -18,4 +18,12 @@
     <string name="key_oaps_aimi_highBG_interval">key_oaps_aimi_highBG_interval</string>
     <string name="key_openapsaimi_high_bg_max_smb">key_openapsaimi_high_bg_max_smb</string>
     <string name="OApsAIMI_Enable_night">OApsAIMI_Enable_night</string>
+    <string name="key_oaps_aimi_lunchAdjFact">key_oaps_aimi_lunchAdjFact</string>
+    <string name="key_oaps_aimi_dinnerAdjFact">key_oaps_aimi_dinnerAdjFact</string>
+    <string name="key_oaps_aimi_lunch_interval">key_oaps_aimi_lunch_interval</string>
+    <string name="key_oaps_aimi_dinner_interval">key_oaps_aimi_dinner_interval</string>
+    <string name="key_prebolus_lunch_mode">key_prebolus_lunch_mode</string>
+    <string name="key_prebolus_dinner_mode">key_prebolus_dinner_mode</string>
+    <string name="key_oaps_aimi_lunch_factor">key_oaps_aimi_lunch_factor</string>
+    <string name="key_oaps_aimi_dinner_factor">key_oaps_aimi_dinner_factor</string>
 </resources>

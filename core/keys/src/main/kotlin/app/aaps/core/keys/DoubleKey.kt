@@ -44,12 +44,16 @@ enum class DoubleKey(
     OApsAIMIAfternoonFactor(R.string.key_oaps_aimi_afternoon_factor,50.0,1.0,150.0),
     OApsAIMIEveningFactor(R.string.key_oaps_aimi_evening_factor,50.0,1.0,150.0),
     OApsAIMIMealFactor(R.string.key_oaps_aimi_meal_factor,50.0,1.0,150.0),
+    OApsAIMILunchFactor(R.string.key_oaps_aimi_lunch_factor,50.0,1.0,150.0),
+    OApsAIMIDinnerFactor(R.string.key_oaps_aimi_dinner_factor,50.0,1.0,150.0),
     OApsAIMIHCFactor(R.string.key_oaps_aimi_HC_factor,50.0,1.0,150.0),
     OApsAIMISnackFactor(R.string.key_oaps_aimi_snack_factor,50.0,1.0,150.0),
     OApsAIMIHyperFactor(R.string.key_oaps_aimi_hyper_factor,60.0,1.0,150.0),
     OApsAIMIsleepFactor(R.string.key_oaps_aimi_sleep_factor,60.0,1.0,150.0),
     OApsAIMIMealPrebolus(R.string.key_prebolus_meal_mode,2.0,0.1, 10.0),
+    OApsAIMILunchPrebolus(R.string.key_prebolus_lunch_mode,2.0,0.1, 10.0),
+    OApsAIMIDinnerPrebolus(R.string.key_prebolus_dinner_mode,2.0,0.1, 10.0),
     OApsAIMISnackPrebolus(R.string.key_prebolus_snack_mode,1.0,0.1, 10.0),
-    OApsAIMIHighCarbPrebolus(R.string.key_prebolus_highcarb_mode,5.0,0.1, 10.0),
-    OApsAIMIMlminutesTraining(R.string.key_nb_day_ML_training,1400.0,60.0, 40000.0, defaultedBySM = true)
+    OApsAIMIHighCarbPrebolus(R.string.key_prebolus_highcarb_mode,5.0,0.1, 10.0)
+
 }

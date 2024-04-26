@@ -226,6 +226,8 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         val dynISFadjust: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustment).toDouble() / 100.0)
         val dynISFadjusthyper: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustmentHyper).toDouble() / 100.0)
         val mealTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMImealAdjISFFact).toDouble() / 100.0)
+        val lunchTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMILunchAdjISFFact).toDouble() / 100.0)
+        val dinnerTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMIDinnerAdjISFFact).toDouble() / 100.0)
         val snackTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMISnackAdjISFFact).toDouble() / 100.0)
         val sleepTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMIsleepAdjISFFact).toDouble() / 100.0)
         val hcTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMIHighCarbAdjISFFact).toDouble() / 100.0)
@@ -238,21 +240,12 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         val lowCarbTime = therapy.lowCarbTime
         val highCarbTime = therapy.highCarbTime
         val mealTime = therapy.mealTime
+        val lunchTime = therapy.lunchTime
+        val dinnerTime = therapy.dinnerTime
+
 
         val tddWeightedFromLast8H = ((1.4 * tddLast4H) + (0.6 * tddLast8to4H)) * 3
         var tdd = (tddWeightedFromLast8H * 0.33) + (tdd2Days * 0.34) + (tddDaily * 0.33)
-        /*if (bg != null) {
-            tdd = when {
-                sportTime -> tdd * 1.1
-                sleepTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(sleepTimeDynISFAdjFactor)
-                lowCarbTime -> tdd * 1.1
-                snackTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(snackTimeDynISFAdjFactor)
-                highCarbTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(hcTimeDynISFAdjFactor)
-                mealTime -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(mealTimeDynISFAdjFactor)
-                bg > 140 -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(dynISFadjusthyper)
-                else -> tdd * adjustFactorsdynisfBasedOnBgAndHypo(dynISFadjust)
-            }
-        }*/
         if (bg != null) {
             tdd = when {
                 sportTime -> tdd * 1.1
@@ -261,6 +254,8 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 snackTime -> tdd * snackTimeDynISFAdjFactor
                 highCarbTime -> tdd * hcTimeDynISFAdjFactor
                 mealTime -> tdd * mealTimeDynISFAdjFactor
+                lunchTime -> tdd * lunchTimeDynISFAdjFactor
+                dinnerTime -> tdd * dinnerTimeDynISFAdjFactor
                 bg > 140 -> tdd * dynISFadjusthyper
                 else -> tdd * dynISFadjust
             }
@@ -374,6 +369,8 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             val dynISFadjust: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustment).toDouble() / 100.0)
             val dynISFadjusthyper: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustmentHyper).toDouble() / 100.0)
             val mealTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMImealAdjISFFact).toDouble() / 100.0)
+            val lunchTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMILunchAdjISFFact).toDouble() / 100.0)
+            val dinnerTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMIDinnerAdjISFFact).toDouble() / 100.0)
             val snackTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMISnackAdjISFFact).toDouble() / 100.0)
             val sleepTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMIsleepAdjISFFact).toDouble() / 100.0)
             val hcTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMIHighCarbAdjISFFact).toDouble() / 100.0)
@@ -386,6 +383,8 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             val lowCarbTime = therapy.lowCarbTime
             val highCarbTime = therapy.highCarbTime
             val mealTime = therapy.mealTime
+            val lunchTime = therapy.lunchTime
+            val dinnerTime = therapy.dinnerTime
             val tddWeightedFromLast8H = ((1.4 * tddLast4H) + (0.6 * tddLast8to4H)) * 3
             tdd = (tddWeightedFromLast8H * 0.33) + (tdd2Days * 0.34) + (tddDaily * 0.33)
             if (bg != null) {
@@ -396,6 +395,8 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                     snackTime -> tdd * snackTimeDynISFAdjFactor
                     highCarbTime -> tdd * hcTimeDynISFAdjFactor
                     mealTime -> tdd * mealTimeDynISFAdjFactor
+                    lunchTime -> tdd * lunchTimeDynISFAdjFactor
+                    dinnerTime -> tdd * dinnerTimeDynISFAdjFactor
                     bg > 140 -> tdd * dynISFadjusthyper
                     else -> tdd * dynISFadjust
                 }
@@ -627,6 +628,22 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                     addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.OApsAIMImealAdjISFFact, dialogMessage = R.string.oaps_aimi_mealAdjFact_summary, title = R.string.oaps_aimi_mealAdjFact_title))
                     addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.OApsAIMIMealFactor, dialogMessage = R.string.OApsAIMI_MealFactor_summary, title = R.string.OApsAIMI_MealFactor_title))
                     addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.OApsAIMImealinterval, dialogMessage = R.string.oaps_aimi_meal_interval_summary, title = R.string.oaps_aimi_meal_interval_title))
+                })
+                addPreference(preferenceManager.createPreferenceScreen(context).apply {
+                    key = "mode_Lunch"
+                    title = "Lunch Mode settings"
+                    addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.OApsAIMILunchPrebolus, dialogMessage = R.string.prebolus_lunch_mode_summary, title = R.string.prebolus_lunch_mode_title))
+                    addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.OApsAIMILunchAdjISFFact, dialogMessage = R.string.oaps_aimi_LunchAdjFact_summary, title = R.string.oaps_aimi_LunchAdjFact_title))
+                    addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.OApsAIMILunchFactor, dialogMessage = R.string.OApsAIMI_LunchFactor_summary, title = R.string.OApsAIMI_lunchFactor_title))
+                    addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.OApsAIMILunchinterval, dialogMessage = R.string.oaps_aimi_lunch_interval_summary, title = R.string.oaps_aimi_lunch_interval_title))
+                })
+                addPreference(preferenceManager.createPreferenceScreen(context).apply {
+                    key = "mode_dinner"
+                    title = "Dinner Mode settings"
+                    addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.OApsAIMIDinnerPrebolus, dialogMessage = R.string.prebolus_Dinner_mode_summary, title = R.string.prebolus_Dinner_mode_title))
+                    addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.OApsAIMIDinnerAdjISFFact, dialogMessage = R.string.oaps_aimi_DinnerAdjFact_summary, title = R.string.oaps_aimi_DinnerAdjFact_title))
+                    addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.OApsAIMIDinnerFactor, dialogMessage = R.string.OApsAIMI_DinnerFactor_summary, title = R.string.OApsAIMI_DinnerFactor_title))
+                    addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.OApsAIMIDinnerinterval, dialogMessage = R.string.oaps_aimi_Dinner_interval_summary, title = R.string.oaps_aimi_Dinner_interval_title))
                 })
                 addPreference(preferenceManager.createPreferenceScreen(context).apply {
                     key = "mode_highcarb"

@@ -123,10 +123,14 @@ class DetermineBasalaimiSMB @Inject constructor(
     private var lowCarbTime = false
     private var highCarbTime = false
     private var mealTime = false
+    private var lunchTime = false
+    private var dinnerTime = false
     private var fastingTime = false
     private var stopTime = false
     private var iscalibration = false
     private var mealruntime: Long = 0
+    private var lunchruntime: Long = 0
+    private var dinnerruntime: Long = 0
     private var highCarbrunTime: Long = 0
     private var snackrunTime: Long = 0
     private var intervalsmb = 5
@@ -358,6 +362,16 @@ class DetermineBasalaimiSMB @Inject constructor(
         val modeMealPB = mealruntime in 0..7 && lastBolusSMBUnit != pbolusM.toFloat() && mealTime
         return modeMealPB
     }
+    private fun isLunchModeCondition(): Boolean{
+        val pbolusLunch: Double = preferences.get(DoubleKey.OApsAIMILunchPrebolus)
+        val modeLunchPB = lunchruntime in 0..7 && lastBolusSMBUnit != pbolusLunch.toFloat() && lunchTime
+        return modeLunchPB
+    }
+    private fun isDinnerModeCondition(): Boolean{
+        val pbolusDinner: Double = preferences.get(DoubleKey.OApsAIMIDinnerPrebolus)
+        val modeDinnerPB = dinnerruntime in 0..7 && lastBolusSMBUnit != pbolusDinner.toFloat() && dinnerTime
+        return modeDinnerPB
+    }
     private fun isHighCarbModeCondition(): Boolean{
         val pbolusHC: Double = preferences.get(DoubleKey.OApsAIMIHighCarbPrebolus)
         val modeHcPB = highCarbrunTime in 0..7 && lastBolusSMBUnit != pbolusHC.toFloat() && highCarbTime
@@ -375,21 +389,21 @@ class DetermineBasalaimiSMB @Inject constructor(
     private fun isCriticalSafetyCondition(): Pair<Boolean, String> {
         val conditionsTrue = mutableListOf<String>()
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
-        val nosmbHM = iob > 0.6 && honeymoon && delta < 8 && !mealTime && eventualBG < 180
+        val nosmbHM = iob > 0.6 && honeymoon && delta < 8 && (!mealTime || !lunchTime || !dinnerTime) && eventualBG < 180
         if (nosmbHM) conditionsTrue.add("nosmbHM")
-        val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10 && !isMealModeCondition() && !isHighCarbModeCondition()
+        val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10 && (!isMealModeCondition() || !isHighCarbModeCondition() || !isDinnerModeCondition() || !isLunchModeCondition())
         if (nosmb) conditionsTrue.add("nosmb")
         val fasting = fastingTime
         if (fasting) conditionsTrue.add("fasting")
         val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..6) } && delta > 10 && cob == 0.0f
         if (nightTrigger) conditionsTrue.add("nightTrigger")
-        val belowMinThreshold = bg < 100 && delta < 10 && !mealTime && !highCarbTime
+        val belowMinThreshold = bg < 100 && delta < 10 && (!mealTime || !lunchTime || !dinnerTime)
         if (belowMinThreshold) conditionsTrue.add("belowMinThreshold")
         val isNewCalibration = iscalibration && delta > 10
         if (isNewCalibration) conditionsTrue.add("isNewCalibration")
-        val belowTargetAndDropping = bg < targetBg && delta < -2 && !isMealModeCondition() && !isHighCarbModeCondition()
+        val belowTargetAndDropping = bg < targetBg && delta < -2 && (!isMealModeCondition() || !isHighCarbModeCondition() || !isDinnerModeCondition() || !isLunchModeCondition())
         if (belowTargetAndDropping) conditionsTrue.add("belowTargetAndDropping")
-        val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 10 && !isMealModeCondition() && !isHighCarbModeCondition()
+        val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 10 && (!isMealModeCondition() || !isHighCarbModeCondition() || !isDinnerModeCondition() || !isLunchModeCondition())
         if (belowTargetAndStableButNoCob) conditionsTrue.add("belowTargetAndStableButNoCob")
         val droppingFast = bg < 130 && delta < -5
         if (droppingFast) conditionsTrue.add("droppingFast")
@@ -403,7 +417,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         if (interval) conditionsTrue.add("interval")
         val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 12
         if (targetinterval) conditionsTrue.add("targetinterval")
-        val stablebg = delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 140 && !mealTime && !highCarbTime
+        val stablebg = delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 140 && (!mealTime || !highCarbTime || !lunchTime || !dinnerTime)
         if (stablebg) conditionsTrue.add("stablebg")
         val acceleratingDown = delta < -2 && delta - longAvgDelta < -2 && lastsmbtime < 15
         if (acceleratingDown) conditionsTrue.add("acceleratingDown")
@@ -440,6 +454,8 @@ class DetermineBasalaimiSMB @Inject constructor(
         var result = smbToGive
         val intervalSMBsnack = preferences.get(IntKey.OApsAIMISnackinterval)
         val intervalSMBmeal = preferences.get(IntKey.OApsAIMImealinterval)
+        val intervalSMBlunch = preferences.get(IntKey.OApsAIMILunchinterval)
+        val intervalSMBdinner = preferences.get(IntKey.OApsAIMIDinnerinterval)
         val intervalSMBsleep = preferences.get(IntKey.OApsAIMISleepinterval)
         val intervalSMBhc = preferences.get(IntKey.OApsAIMIHCinterval)
         val intervalSMBhighBG = preferences.get(IntKey.OApsAIMIHighBGinterval)
@@ -448,7 +464,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         val night = preferences.get(BooleanKey.OApsAIMInight)
 
         when {
-            shouldApplyIntervalAdjustment(intervalSMBsnack, intervalSMBmeal, intervalSMBsleep, intervalSMBhc, intervalSMBhighBG) -> {
+            shouldApplyIntervalAdjustment(intervalSMBsnack, intervalSMBmeal, intervalSMBlunch, intervalSMBdinner, intervalSMBsleep, intervalSMBhc, intervalSMBhighBG) -> {
                 result = 0.0f
             }
             shouldApplySafetyAdjustment() -> {
@@ -469,8 +485,8 @@ class DetermineBasalaimiSMB @Inject constructor(
         return result
     }
 
-    private fun shouldApplyIntervalAdjustment(intervalSMBsnack: Int, intervalSMBmeal: Int, intervalSMBsleep: Int, intervalSMBhc: Int, intervalSMBhighBG: Int): Boolean {
-        return (lastsmbtime < intervalSMBsnack && snackTime) || (lastsmbtime < intervalSMBmeal && mealTime) ||
+    private fun shouldApplyIntervalAdjustment(intervalSMBsnack: Int, intervalSMBmeal: Int, intervalSMBlunch: Int, intervalSMBdinner: Int, intervalSMBsleep: Int, intervalSMBhc: Int, intervalSMBhighBG: Int): Boolean {
+        return (lastsmbtime < intervalSMBsnack && snackTime) || (lastsmbtime < intervalSMBmeal && mealTime) || (lastsmbtime < intervalSMBlunch && lunchTime) || (lastsmbtime < intervalSMBdinner && dinnerTime) ||
             (lastsmbtime < intervalSMBsleep && sleepTime) || (lastsmbtime < intervalSMBhc && highCarbTime) || (lastsmbtime < intervalSMBhighBG && bg > 140)
     }
 
@@ -763,6 +779,8 @@ class DetermineBasalaimiSMB @Inject constructor(
         cob: Float,
         CI: Float,
         mealTime: Boolean,
+        lunchTime: Boolean,
+        dinnerTime: Boolean,
         highcarbTime: Boolean,
         snackTime: Boolean,
         profile: OapsProfile
@@ -771,6 +789,8 @@ class DetermineBasalaimiSMB @Inject constructor(
             highcarbTime -> Triple(3.5f, 0.75f, 100f) // Repas riche en glucides
             snackTime -> Triple(1.5f, 1.25f, 15f) // Snack
             mealTime -> Triple(2.5f, 1.0f, 55f) // Repas normal
+            lunchTime -> Triple(2.5f, 1.0f, 55f) // Repas normal
+            dinnerTime -> Triple(2.5f, 1.0f, 55f) // Repas normal
             else -> Triple(2.5f, 1.0f, cob) // Valeur par défaut si aucun type de repas spécifié
         }
         val absorptionTimeInMinutes = averageCarbAbsorptionTime * 60
@@ -935,9 +955,13 @@ class DetermineBasalaimiSMB @Inject constructor(
         this.lowCarbTime = therapy.lowCarbTime
         this.highCarbTime = therapy.highCarbTime
         this.mealTime = therapy.mealTime
+        this.lunchTime = therapy.lunchTime
+        this.dinnerTime = therapy.dinnerTime
         this.fastingTime = therapy.fastingTime
         this.stopTime = therapy.stopTime
         this.mealruntime = therapy.getTimeElapsedSinceLastEvent("meal")
+        this.lunchruntime = therapy.getTimeElapsedSinceLastEvent("lunch")
+        this.dinnerruntime = therapy.getTimeElapsedSinceLastEvent("dinner")
         this.highCarbrunTime = therapy.getTimeElapsedSinceLastEvent("highcarb")
         this.snackrunTime = therapy.getTimeElapsedSinceLastEvent("snack")
         this.iscalibration = therapy.calibartionTime
@@ -1137,7 +1161,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         var sens = profile.variable_sens
         this.variableSensitivity = sens.toFloat()
         consoleError.add("CR:${profile.carb_ratio}")
-        this.predictedBg = predictFutureBg(bg.toFloat(), iob, variableSensitivity, cob, CI,mealTime,highCarbTime,snackTime,profile)
+        this.predictedBg = predictFutureBg(bg.toFloat(), iob, variableSensitivity, cob, CI,mealTime,lunchTime,dinnerTime,highCarbTime,snackTime,profile)
         val insulinEffect = calculateInsulinEffect(bg.toFloat(),iob,variableSensitivity,cob,normalBgThreshold,recentSteps180Minutes,averageBeatsPerMinute.toFloat(),averageBeatsPerMinute10.toFloat(),profile.insulinDivisor.toFloat())
 
         val now = System.currentTimeMillis()
@@ -1361,6 +1385,8 @@ class DetermineBasalaimiSMB @Inject constructor(
         val hyperfactor: Double = preferences.get(DoubleKey.OApsAIMIHyperFactor) / 100.0
         val highcarbfactor: Double = preferences.get(DoubleKey.OApsAIMIHCFactor) / 100.0
         val mealfactor: Double = preferences.get(DoubleKey.OApsAIMIMealFactor) / 100.0
+        val lunchfactor: Double = preferences.get(DoubleKey.OApsAIMILunchFactor) / 100.0
+        val dinnerfactor: Double = preferences.get(DoubleKey.OApsAIMIDinnerFactor) / 100.0
         val snackfactor: Double = preferences.get(DoubleKey.OApsAIMISnackFactor) / 100.0
         val sleepfactor: Double = preferences.get(DoubleKey.OApsAIMIsleepFactor) / 100.0
 
@@ -1374,6 +1400,8 @@ class DetermineBasalaimiSMB @Inject constructor(
         smbToGive = when {
             highCarbTime -> smbToGive * highcarbfactor.toFloat()
             mealTime -> smbToGive * mealfactor.toFloat()
+            lunchTime -> smbToGive * lunchfactor.toFloat()
+            dinnerTime -> smbToGive * dinnerfactor.toFloat()
             snackTime -> smbToGive * snackfactor.toFloat()
             sleepTime -> smbToGive * sleepfactor.toFloat()
             hourOfDay in 1..11 -> smbToGive * adjustedMorningFactor.toFloat()
@@ -1394,7 +1422,10 @@ class DetermineBasalaimiSMB @Inject constructor(
         logDataToCsv(predictedSMB, smbToGive)
         logDataToCsvHB(predictedSMB, smbToGive)
         var rate = when {
+            snackTime && snackrunTime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 4.0, "AI Force basal because mealTime $snackrunTime.", currenttemp, rT)
             mealTime && mealruntime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because mealTime $mealruntime.", currenttemp, rT)
+            lunchTime && lunchruntime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because lunchTime $lunchruntime.", currenttemp, rT)
+            dinnerTime && dinnerruntime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because dinnerTime $dinnerruntime.", currenttemp, rT)
             highCarbTime && highCarbrunTime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because highcarb $highcarbfactor.", currenttemp, rT)
             fastingTime -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because fastingTime", currenttemp, rT)
             !honeymoon && delta in 1.0 .. 7.0 && bg in 81.0..111.0 -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because bg lesser than 110 and delta lesser than 8", currenttemp, rT)
@@ -2021,7 +2052,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 25 April 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 27 April 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |modelcal: $modelcal
@@ -2034,9 +2065,12 @@ class DetermineBasalaimiSMB @Inject constructor(
     |lowcarb: $lowCarbTime<br>$lineSeparator
     |highcarb: $highCarbTime<br>$lineSeparator
     |meal: $mealTime<br>$lineSeparator
+    |lunch: $lunchTime<br>$lineSeparator
+    |dinner: $dinnerTime<br>$lineSeparator
     |fastingtime: $fastingTime<br>$lineSeparator
     |intervalsmb: $intervalsmb<br>$lineSeparator
     |mealruntime: $mealruntime<br>$lineSeparator
+    |snackrunTime: $snackrunTime<br>$lineSeparator
     |highCarbrunTime: $highCarbrunTime<br>$lineSeparator
     |
     |insulinEffect: $insulinEffect
@@ -2202,7 +2236,10 @@ class DetermineBasalaimiSMB @Inject constructor(
             val (localconditionResult, _) = isCriticalSafetyCondition()
 
             rate = when {
+                snackTime && snackrunTime < 30 -> calculateBasalRate(basal, profile_current_basal, 4.0)
                 mealTime && mealruntime < 30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                lunchTime && lunchruntime < 30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                dinnerTime && dinnerruntime < 30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 highCarbTime && highCarbrunTime < 60 -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 bg > 180 && !honeymoon -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 honeymoon && bg in 140.0..169.0 && delta > 0 -> profile_current_basal

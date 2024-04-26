@@ -14,6 +14,8 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
     var lowCarbTime = false
     var highCarbTime = false
     var mealTime = false
+    var lunchTime = false
+    var dinnerTime = false
     var fastingTime = false
     var stopTime = false
     var calibartionTime = false
@@ -28,6 +30,8 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
             lowCarbTime = findActiveLowCarbEvents(System.currentTimeMillis()).blockingGet()
             highCarbTime = findActiveHighCarbEvents(System.currentTimeMillis()).blockingGet()
             mealTime = findActiveMealEvents(System.currentTimeMillis()).blockingGet()
+            lunchTime = findActiveLunchEvents(System.currentTimeMillis()).blockingGet()
+            dinnerTime = findActiveDinnerEvents(System.currentTimeMillis()).blockingGet()
             fastingTime = findActiveFastingEvents(System.currentTimeMillis()).blockingGet()
             calibartionTime = isCalibrationEvent(System.currentTimeMillis()).blockingGet()
         } else {
@@ -138,6 +142,28 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
                 events.filter { it.type == TE.Type.NOTE }
                     .any { event ->
                         event.note?.contains("meal", ignoreCase = true) == true &&
+                            System.currentTimeMillis() <= (event.timestamp + event.duration)
+                    }
+            }
+    }
+    private fun findActiveLunchEvents(timestamp: Long): Single<Boolean> {
+        val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
+        return persistenceLayer.getTherapyEventDataFromTime(fromTime, true)
+            .map { events ->
+                events.filter { it.type == TE.Type.NOTE }
+                    .any { event ->
+                        event.note?.contains("lunch", ignoreCase = true) == true &&
+                            System.currentTimeMillis() <= (event.timestamp + event.duration)
+                    }
+            }
+    }
+    private fun findActiveDinnerEvents(timestamp: Long): Single<Boolean> {
+        val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
+        return persistenceLayer.getTherapyEventDataFromTime(fromTime, true)
+            .map { events ->
+                events.filter { it.type == TE.Type.NOTE }
+                    .any { event ->
+                        event.note?.contains("dinner", ignoreCase = true) == true &&
                             System.currentTimeMillis() <= (event.timestamp + event.duration)
                     }
             }
