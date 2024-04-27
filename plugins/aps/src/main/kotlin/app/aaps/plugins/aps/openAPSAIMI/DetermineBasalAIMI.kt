@@ -395,7 +395,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         if (nosmb) conditionsTrue.add("nosmb")
         val fasting = fastingTime
         if (fasting) conditionsTrue.add("fasting")
-        val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..6) } && delta > 10 && cob == 0.0f
+        val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..6) } && delta > 20 && cob == 0.0f
         if (nightTrigger) conditionsTrue.add("nightTrigger")
         val belowMinThreshold = bg < 100 && delta < 10 && (!mealTime || !lunchTime || !dinnerTime)
         if (belowMinThreshold) conditionsTrue.add("belowMinThreshold")
