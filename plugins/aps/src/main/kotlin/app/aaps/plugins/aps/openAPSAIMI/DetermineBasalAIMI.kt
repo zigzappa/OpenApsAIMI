@@ -976,6 +976,18 @@ class DetermineBasalaimiSMB @Inject constructor(
                  rT.reason.append("Microbolusing Meal Mode ${pbolusM}U. ")
              return rT
          }
+        if (isLunchModeCondition()){
+            val pbolusLunch: Double = preferences.get(DoubleKey.OApsAIMILunchPrebolus)
+            rT.units = pbolusLunch
+            rT.reason.append("Microbolusing Meal Mode ${pbolusLunch}U. ")
+            return rT
+        }
+        if (isDinnerModeCondition()){
+            val pbolusDinner: Double = preferences.get(DoubleKey.OApsAIMIDinnerPrebolus)
+            rT.units = pbolusDinner
+            rT.reason.append("Microbolusing Meal Mode ${pbolusDinner}U. ")
+            return rT
+        }
         if (isHighCarbModeCondition()){
             val pbolusHC: Double = preferences.get(DoubleKey.OApsAIMIHighCarbPrebolus)
             rT.units = pbolusHC
