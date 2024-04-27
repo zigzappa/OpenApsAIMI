@@ -1410,6 +1410,8 @@ class DetermineBasalaimiSMB @Inject constructor(
 
         // Appliquer les ajustements en fonction de l'heure de la journée
         smbToGive = when {
+            bg > 160 && delta > 4 && iob < 0.7 && honeymoon && smbToGive == 0.0f && LocalTime.now().run { (hour in 23..23 || hour in 0..6) } -> 0.15f
+            bg > 140 && delta > 8 &&  iob < 1.0 && !honeymoon && smbToGive < 0.01f -> profile_current_basal.toFloat()
             highCarbTime -> smbToGive * highcarbfactor.toFloat()
             mealTime -> smbToGive * mealfactor.toFloat()
             lunchTime -> smbToGive * lunchfactor.toFloat()
