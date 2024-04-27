@@ -1008,25 +1008,41 @@ class DetermineBasalaimiSMB @Inject constructor(
         this.stable = if (delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 180) 1 else 0
          if (isMealModeCondition()){
              val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
-                 rT.units = pbolusM
+             if (mealruntime in 0..7 && lastBolusSMBUnit != pbolusM.toFloat()*0.6f){
+                 rT.units = pbolusM * 0.6
+             } else if (lunchruntime in 15..22 && lastBolusSMBUnit != pbolusM.toFloat()*0.4f){
+                 rT.units = pbolusM * 0.4
+             }
                  rT.reason.append("Microbolusing Meal Mode ${pbolusM}U. ")
              return rT
          }
         if (isLunchModeCondition()){
             val pbolusLunch: Double = preferences.get(DoubleKey.OApsAIMILunchPrebolus)
-            rT.units = pbolusLunch
+            if (lunchruntime in 0..7 && lastBolusSMBUnit != pbolusLunch.toFloat()*0.6f){
+                rT.units = pbolusLunch * 0.6
+            } else if (lunchruntime in 15..22 && lastBolusSMBUnit != pbolusLunch.toFloat()*0.4f){
+                rT.units = pbolusLunch * 0.4
+            }
             rT.reason.append("Microbolusing Meal Mode ${pbolusLunch}U. ")
             return rT
         }
         if (isDinnerModeCondition()){
             val pbolusDinner: Double = preferences.get(DoubleKey.OApsAIMIDinnerPrebolus)
-            rT.units = pbolusDinner
+            if (dinnerruntime in 0..7 && lastBolusSMBUnit != pbolusDinner.toFloat()*0.6f){
+                rT.units = pbolusDinner * 0.6
+            } else if (dinnerruntime in 15..22 && lastBolusSMBUnit != pbolusDinner.toFloat()*0.4f){
+                rT.units = pbolusDinner * 0.4
+            }
             rT.reason.append("Microbolusing Meal Mode ${pbolusDinner}U. ")
             return rT
         }
         if (isHighCarbModeCondition()){
             val pbolusHC: Double = preferences.get(DoubleKey.OApsAIMIHighCarbPrebolus)
-            rT.units = pbolusHC
+            if (highCarbrunTime in 0..7 && lastBolusSMBUnit != pbolusHC.toFloat()*0.6f){
+                rT.units = pbolusHC * 0.6
+            } else if (highCarbrunTime in 15..22 && lastBolusSMBUnit != pbolusHC.toFloat()*0.4f){
+                rT.units = pbolusHC * 0.4
+            }
             rT.reason.append("Microbolusing High Carb Mode ${pbolusHC}U. ")
             return rT
         }
@@ -2102,7 +2118,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 27 April 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 28 April 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |modelcal: $modelcal
