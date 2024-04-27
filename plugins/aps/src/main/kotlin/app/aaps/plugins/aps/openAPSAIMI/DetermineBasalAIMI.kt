@@ -359,22 +359,58 @@ class DetermineBasalaimiSMB @Inject constructor(
 
     private fun isMealModeCondition(): Boolean{
         val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
-        val modeMealPB = mealruntime in 0..7 && lastBolusSMBUnit != pbolusM.toFloat() && mealTime
+        var modeMealPB = false
+        if(mealTime){
+            if (mealruntime in 0..7 && lastBolusSMBUnit != pbolusM.toFloat()*0.6f){
+                modeMealPB = true
+            } else if (lunchruntime in 15..22 && lastBolusSMBUnit != pbolusM.toFloat()*0.4f){
+                modeMealPB = true
+            }
+
+        }
+        //val modeMealPB = mealruntime in 0..7 && lastBolusSMBUnit != pbolusM.toFloat() && mealTime
         return modeMealPB
     }
     private fun isLunchModeCondition(): Boolean{
         val pbolusLunch: Double = preferences.get(DoubleKey.OApsAIMILunchPrebolus)
-        val modeLunchPB = lunchruntime in 0..7 && lastBolusSMBUnit != pbolusLunch.toFloat() && lunchTime
+        var modeLunchPB = false
+        if(lunchTime){
+            if (lunchruntime in 0..7 && lastBolusSMBUnit != pbolusLunch.toFloat()*0.6f){
+                modeLunchPB = true
+            } else if (lunchruntime in 15..22 && lastBolusSMBUnit != pbolusLunch.toFloat()*0.4f){
+                modeLunchPB = true
+            }
+
+        }
+        //val modeLunchPB = lunchruntime in 0..7 && lastBolusSMBUnit != pbolusLunch.toFloat() && lunchTime
         return modeLunchPB
     }
     private fun isDinnerModeCondition(): Boolean{
         val pbolusDinner: Double = preferences.get(DoubleKey.OApsAIMIDinnerPrebolus)
-        val modeDinnerPB = dinnerruntime in 0..7 && lastBolusSMBUnit != pbolusDinner.toFloat() && dinnerTime
+        var modeDinnerPB = false
+        if(dinnerTime){
+            if (dinnerruntime in 0..7 && lastBolusSMBUnit != pbolusDinner.toFloat()*0.6f){
+                modeDinnerPB = true
+            } else if (dinnerruntime in 15..22 && lastBolusSMBUnit != pbolusDinner.toFloat()*0.4f){
+                modeDinnerPB = true
+            }
+
+        }
+        //val modeDinnerPB = dinnerruntime in 0..7 && lastBolusSMBUnit != pbolusDinner.toFloat() && dinnerTime
         return modeDinnerPB
     }
     private fun isHighCarbModeCondition(): Boolean{
         val pbolusHC: Double = preferences.get(DoubleKey.OApsAIMIHighCarbPrebolus)
-        val modeHcPB = highCarbrunTime in 0..7 && lastBolusSMBUnit != pbolusHC.toFloat() && highCarbTime
+        var modeHcPB = false
+        if(highCarbTime){
+            if (highCarbrunTime in 0..7 && lastBolusSMBUnit != pbolusHC.toFloat()*0.6f){
+                modeHcPB = true
+            } else if (highCarbrunTime in 15..22 && lastBolusSMBUnit != pbolusHC.toFloat()*0.4f){
+                modeHcPB = true
+            }
+
+        }
+        //val modeHcPB = highCarbrunTime in 0..7 && lastBolusSMBUnit != pbolusHC.toFloat() && highCarbTime
         return modeHcPB
     }
 
