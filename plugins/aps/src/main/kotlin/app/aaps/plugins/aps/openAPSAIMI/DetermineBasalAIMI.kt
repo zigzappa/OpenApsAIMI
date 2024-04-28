@@ -359,16 +359,7 @@ class DetermineBasalaimiSMB @Inject constructor(
 
     private fun isMealModeCondition(): Boolean{
         val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
-        var modeMealPB = false
-        if(mealTime){
-            if (mealruntime in 0..7 && lastBolusSMBUnit != pbolusM.toFloat()*0.6f){
-                modeMealPB = true
-            } else if (lunchruntime in 15..22 && lastBolusSMBUnit != pbolusM.toFloat()*0.4f){
-                modeMealPB = true
-            }
-
-        }
-        //val modeMealPB = mealruntime in 0..7 && lastBolusSMBUnit != pbolusM.toFloat() && mealTime
+        val modeMealPB = mealruntime in 0..7 && lastBolusSMBUnit != pbolusM.toFloat() && mealTime
         return modeMealPB
     }
     private fun isLunchModeCondition(): Boolean{
@@ -1008,11 +999,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         this.stable = if (delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 180) 1 else 0
          if (isMealModeCondition()){
              val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
-             if (mealruntime in 0..7 && lastBolusSMBUnit != pbolusM.toFloat()*0.6f){
-                 rT.units = pbolusM * 0.6
-             } else if (lunchruntime in 15..22 && lastBolusSMBUnit != pbolusM.toFloat()*0.4f){
-                 rT.units = pbolusM * 0.4
-             }
+                 rT.units = pbolusM
                  rT.reason.append("Microbolusing Meal Mode ${pbolusM}U. ")
              return rT
          }
