@@ -11,11 +11,16 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.objects.extensions.fromGv
+import java.lang.ref.WeakReference
+import java.util.concurrent.locks.ReentrantLock
 import kotlin.math.abs
 import kotlin.math.roundToLong
 
 class AutosensDataStoreObject : AutosensDataStore {
-
+    private lateinit var aapsLogger: AAPSLogger
+    private lateinit var dateUtil: DateUtil
+    private val aapsLoggerRef: WeakReference<AAPSLogger> = WeakReference(aapsLogger)
+    private val dateUtilRef: WeakReference<DateUtil> = WeakReference(dateUtil)
     override val dataLock = Any()
     override var lastUsed5minCalculation: Boolean? = null // true if used 5min bucketed data
 
@@ -47,8 +52,14 @@ class AutosensDataStoreObject : AutosensDataStore {
     override fun getBucketedDataTableCopy(): MutableList<InMemoryGlucoseValue>? = synchronized(dataLock) { bucketedData?.toMutableList() }
     override fun getBgReadingsDataTableCopy(): List<GV> = synchronized(dataLock) { bgReadings.toMutableList() }
 
-    override fun reset() {
+    /*override fun reset() {
         synchronized(autosensDataTable) { autosensDataTable = LongSparseArray() }
+    }*/
+    override fun reset() {
+        synchronized(autosensDataTable) {
+            autosensDataTable.clear()
+            bucketedData?.clear()
+        }
     }
 
     override fun newHistoryData(time: Long, aapsLogger: AAPSLogger, dateUtil: DateUtil) {
@@ -122,7 +133,7 @@ class AutosensDataStoreObject : AutosensDataStore {
     var storedLastAutosensResult: AutosensData? = null
         get() = field?.let { if (it.time < System.currentTimeMillis() - 11 * 60 * 1000) it else null }
 
-    override fun getLastAutosensData(reason: String, aapsLogger: AAPSLogger, dateUtil: DateUtil): AutosensData? {
+    /*override fun getLastAutosensData(reason: String, aapsLogger: AAPSLogger, dateUtil: DateUtil): AutosensData? {
         synchronized(dataLock) {
             if (autosensDataTable.size() < 1) {
                 aapsLogger.debug(LTag.AUTOSENS, "AUTOSENSDATA null: autosensDataTable empty ($reason)")
@@ -145,6 +156,38 @@ class AutosensDataStoreObject : AutosensDataStore {
                 storedLastAutosensResult = data
                 data
             }
+        }
+    }*/
+    private val lock = ReentrantLock()
+
+    override fun getLastAutosensData(reason: String, aapsLogger: AAPSLogger, dateUtil: DateUtil): AutosensData? {
+        lock.lock()
+        try {
+            if (autosensDataTable.size() < 1) {
+                //aapsLogger.debug(LTag.AUTOSENS, "AUTOSENSDATA null: autosensDataTable empty ($reason)")
+                aapsLoggerRef.get()?.debug(LTag.AUTOSENS, "AUTOSENSDATA null: autosensDataTable empty ($reason)")
+                return storedLastAutosensResult
+            }
+            val data: AutosensData = try {
+                autosensDataTable.valueAt(autosensDataTable.size() - 1)
+            } catch (e: Exception) {
+                // data can be processed on the background
+                // in this rare case better return null and do not block UI
+                // APS plugin should use getLastAutosensDataSynchronized where the blocking is not an issue
+                aapsLogger.error("AUTOSENSDATA null: Exception caught ($reason)")
+                return storedLastAutosensResult
+            }
+            //if (data.time < dateUtil.now() - 11 * 60 * 1000) {
+            return if (data.time < dateUtilRef.get()?.now()?.minus(11 * 60 * 1000)!!) {
+                aapsLogger.debug(LTag.AUTOSENS) { "AUTOSENSDATA null: data is old ($reason) size()=${autosensDataTable.size()} lastData=${dateUtil.dateAndTimeAndSecondsString(data.time)}" }
+                storedLastAutosensResult
+            } else {
+                aapsLogger.debug(LTag.AUTOSENS) { "AUTOSENSDATA ($reason) $data" }
+                storedLastAutosensResult = data
+                data
+            }
+        } finally {
+            lock.unlock()
         }
     }
 
