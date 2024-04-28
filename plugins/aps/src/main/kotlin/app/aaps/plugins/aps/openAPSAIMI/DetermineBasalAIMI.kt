@@ -425,25 +425,25 @@ class DetermineBasalaimiSMB @Inject constructor(
     private fun isCriticalSafetyCondition(): Pair<Boolean, String> {
         val conditionsTrue = mutableListOf<String>()
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
-        val nosmbHM = iob > 0.6 && honeymoon && delta < 8 && (!mealTime || !lunchTime || !dinnerTime) && eventualBG < 180
+        val nosmbHM = iob > 0.7 && honeymoon && delta < 8 && (!mealTime || !lunchTime || !dinnerTime) && eventualBG < 130
         if (nosmbHM) conditionsTrue.add("nosmbHM")
-        val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10 && (!isMealModeCondition() || !isHighCarbModeCondition() || !isDinnerModeCondition() || !isLunchModeCondition())
+        val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10 && !mealTime && !highCarbTime && !lunchTime && !dinnerTime
         if (nosmb) conditionsTrue.add("nosmb")
         val fasting = fastingTime
         if (fasting) conditionsTrue.add("fasting")
-        val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..6) } && delta > 20 && cob == 0.0f
-        if (nightTrigger) conditionsTrue.add("nightTrigger")
-        val belowMinThreshold = bg < 100 && delta < 10 && (!mealTime || !lunchTime || !dinnerTime)
+        //val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..6) } && delta > 20 && cob == 0.0f
+        //if (nightTrigger) conditionsTrue.add("nightTrigger")
+        val belowMinThreshold = bg < 100 && delta < 10 && !mealTime && !highCarbTime && !lunchTime && !dinnerTime
         if (belowMinThreshold) conditionsTrue.add("belowMinThreshold")
         val isNewCalibration = iscalibration && delta > 10
         if (isNewCalibration) conditionsTrue.add("isNewCalibration")
-        val belowTargetAndDropping = bg < targetBg && delta < -2 && (!isMealModeCondition() || !isHighCarbModeCondition() || !isDinnerModeCondition() || !isLunchModeCondition())
+        val belowTargetAndDropping = bg < targetBg && delta < -2 && !mealTime && !highCarbTime && !lunchTime && !dinnerTime
         if (belowTargetAndDropping) conditionsTrue.add("belowTargetAndDropping")
-        val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 10 && (!isMealModeCondition() || !isHighCarbModeCondition() || !isDinnerModeCondition() || !isLunchModeCondition())
+        val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 10 && !mealTime && !highCarbTime && !lunchTime && !dinnerTime
         if (belowTargetAndStableButNoCob) conditionsTrue.add("belowTargetAndStableButNoCob")
         val droppingFast = bg < 130 && delta < -5
         if (droppingFast) conditionsTrue.add("droppingFast")
-        val droppingFastAtHigh = bg < 240 && delta < -7
+        val droppingFastAtHigh = bg < 220 && delta < -7
         if (droppingFastAtHigh) conditionsTrue.add("droppingFastAtHigh")
         val droppingVeryFast = delta < -11
         if (droppingVeryFast) conditionsTrue.add("droppingVeryFast")
@@ -453,7 +453,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         if (interval) conditionsTrue.add("interval")
         val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 12
         if (targetinterval) conditionsTrue.add("targetinterval")
-        val stablebg = delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 140 && (!mealTime || !highCarbTime || !lunchTime || !dinnerTime)
+        val stablebg = delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 140 && !mealTime && !highCarbTime && !lunchTime && !dinnerTime
         if (stablebg) conditionsTrue.add("stablebg")
         val acceleratingDown = delta < -2 && delta - longAvgDelta < -2 && lastsmbtime < 15
         if (acceleratingDown) conditionsTrue.add("acceleratingDown")
@@ -465,7 +465,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         if (bg90) conditionsTrue.add("bg90")
         val result = belowTargetAndDropping || belowTargetAndStableButNoCob || nosmbHM ||
             droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval || bg90 ||
-            fasting || nosmb || nightTrigger || isNewCalibration || stablebg || belowMinThreshold || acceleratingDown || decceleratingdown || nosmbhoneymoon
+            fasting || nosmb || isNewCalibration || stablebg || belowMinThreshold || acceleratingDown || decceleratingdown || nosmbhoneymoon
 
         val conditionsTrueString = if (conditionsTrue.isNotEmpty()) {
             conditionsTrue.joinToString(", ")
@@ -1419,7 +1419,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         this.predictedSMB = modelcal
         if ((preferences.get(BooleanKey.OApsAIMIMLtraining) == true) && csvfile.exists()){
             val allLines = csvfile.readLines()
-            val minutesToConsider = if (tir1DAYabove > 15 || bg < 130) 10000.0 else 2500.0
+            val minutesToConsider = 2500.0
             val linesToConsider = (minutesToConsider / 5).toInt()
             if (allLines.size > linesToConsider) {
                 //this.predictedSMB = neuralnetwork5(delta, shortAvgDelta, longAvgDelta)
@@ -1440,7 +1440,7 @@ class DetermineBasalaimiSMB @Inject constructor(
             rT.reason.append("ML Decision data training","ML decision has no enough data to refine the decision")
         }
 
-        var smbToGive = if (bg > 160  && delta > 10 && predictedSMB == 0.0f) modelcal else predictedSMB
+        var smbToGive = if (bg > 160  && delta > 8 && predictedSMB == 0.0f) modelcal else predictedSMB
         smbToGive = if (honeymoon && bg < 170) smbToGive * 0.8f else smbToGive
 
         val morningfactor: Double = preferences.get(DoubleKey.OApsAIMIMorningFactor) / 100.0
@@ -1463,7 +1463,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         // Appliquer les ajustements en fonction de l'heure de la journée
         smbToGive = when {
             bg > 160 && delta > 4 && iob < 0.7 && honeymoon && smbToGive == 0.0f && LocalTime.now().run { (hour in 23..23 || hour in 0..6) } -> 0.15f
-            bg > 140 && delta > 8 &&  iob < 1.0 && !honeymoon && smbToGive < 0.01f -> profile_current_basal.toFloat()
+            bg > 140 && delta > 8 &&  iob < 1.0 && !honeymoon && smbToGive < 0.1f -> profile_current_basal.toFloat()
             highCarbTime -> smbToGive * highcarbfactor.toFloat()
             mealTime -> smbToGive * mealfactor.toFloat()
             lunchTime -> smbToGive * lunchfactor.toFloat()
@@ -1497,8 +1497,8 @@ class DetermineBasalaimiSMB @Inject constructor(
             !honeymoon && delta in 1.0 .. 7.0 && bg in 81.0..111.0 -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because bg lesser than 110 and delta lesser than 8", currenttemp, rT)
             honeymoon && delta in 1.0 .. 6.0 && bg in 99.0..141.0 -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because honeymoon and bg lesser than 140 and delta lesser than 6", currenttemp, rT)
             bg in 81.0..99.0 && delta in 3.0..7.0 && honeymoon -> calculateRate(basal, profile_current_basal, 1.0, "AI Force basal because bg is between 80 and 100 with a small delta.", currenttemp, rT)
-            bg > 165 && delta > 2 && smbToGive == 0.0f && !honeymoon && smbToGive == 0.0f -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because bg is greater than 165 and SMB = 0U.", currenttemp, rT)
-            bg > 165 && delta > 2 && smbToGive == 0.0f && honeymoon && smbToGive == 0.0f -> calculateRate(basal, profile_current_basal, 5.0, "AI Force basal because bg is greater than 165 and SMB = 0U.", currenttemp, rT)
+            bg > 165 && delta > 2 && smbToGive == 0.0f && !honeymoon -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because bg is greater than 165 and SMB = 0U.", currenttemp, rT)
+            bg > 165 && delta > 2 && smbToGive == 0.0f && honeymoon -> calculateRate(basal, profile_current_basal, 5.0, "AI Force basal because bg is greater than 165 and SMB = 0U.", currenttemp, rT)
             else -> null
         }
 
