@@ -17,10 +17,6 @@ import kotlin.math.abs
 import kotlin.math.roundToLong
 
 class AutosensDataStoreObject : AutosensDataStore {
-    private lateinit var aapsLogger: AAPSLogger
-    private lateinit var dateUtil: DateUtil
-    private val aapsLoggerRef: WeakReference<AAPSLogger> = WeakReference(aapsLogger)
-    private val dateUtilRef: WeakReference<DateUtil> = WeakReference(dateUtil)
     override val dataLock = Any()
     override var lastUsed5minCalculation: Boolean? = null // true if used 5min bucketed data
 
@@ -164,8 +160,7 @@ class AutosensDataStoreObject : AutosensDataStore {
         lock.lock()
         try {
             if (autosensDataTable.size() < 1) {
-                //aapsLogger.debug(LTag.AUTOSENS, "AUTOSENSDATA null: autosensDataTable empty ($reason)")
-                aapsLoggerRef.get()?.debug(LTag.AUTOSENS, "AUTOSENSDATA null: autosensDataTable empty ($reason)")
+                aapsLogger.debug(LTag.AUTOSENS, "AUTOSENSDATA null: autosensDataTable empty ($reason)")
                 return storedLastAutosensResult
             }
             val data: AutosensData = try {
@@ -178,7 +173,7 @@ class AutosensDataStoreObject : AutosensDataStore {
                 return storedLastAutosensResult
             }
             //if (data.time < dateUtil.now() - 11 * 60 * 1000) {
-            return if (data.time < dateUtilRef.get()?.now()?.minus(11 * 60 * 1000)!!) {
+            return if (data.time < dateUtil.now() - 11 * 60 * 1000) {
                 aapsLogger.debug(LTag.AUTOSENS) { "AUTOSENSDATA null: data is old ($reason) size()=${autosensDataTable.size()} lastData=${dateUtil.dateAndTimeAndSecondsString(data.time)}" }
                 storedLastAutosensResult
             } else {
