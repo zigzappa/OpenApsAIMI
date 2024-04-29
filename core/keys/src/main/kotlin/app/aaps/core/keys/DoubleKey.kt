@@ -52,7 +52,9 @@ enum class DoubleKey(
     OApsAIMIsleepFactor(R.string.key_oaps_aimi_sleep_factor,60.0,1.0,150.0),
     OApsAIMIMealPrebolus(R.string.key_prebolus_meal_mode,2.0,0.1, 10.0),
     OApsAIMILunchPrebolus(R.string.key_prebolus_lunch_mode,2.0,0.1, 10.0),
+    OApsAIMILunchPrebolus2(R.string.key_prebolus2_lunch_mode,2.0,0.1, 10.0),
     OApsAIMIDinnerPrebolus(R.string.key_prebolus_dinner_mode,2.0,0.1, 10.0),
+    OApsAIMIDinnerPrebolus2(R.string.key_prebolus2_dinner_mode,2.0,0.1, 10.0),
     OApsAIMISnackPrebolus(R.string.key_prebolus_snack_mode,1.0,0.1, 10.0),
     OApsAIMIHighCarbPrebolus(R.string.key_prebolus_highcarb_mode,5.0,0.1, 10.0)
 
