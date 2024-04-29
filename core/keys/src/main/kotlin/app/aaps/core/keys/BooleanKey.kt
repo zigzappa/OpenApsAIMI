@@ -57,5 +57,8 @@ enum class BooleanKey(
     VirtualPumpStatusUpload(R.string.key_virtual_pump_upload_status, false, showInNsClientMode = false),
     OApsAIMIMLtraining(R.string.key_enable_ML_training, false),
     OApsAIMIEnableBasal(R.string.key_enable_basal, false),
-    OApsAIMIEnableStepsFromWatch(R.string.count_steps_watch, false)
+    OApsAIMIEnableStepsFromWatch(R.string.count_steps_watch, false),
+    OApsAIMIpregnancy(R.string.key_use_AimiPregnancy,false),
+    OApsAIMInight(R.string.OApsAIMI_Enable_night,false),
+    OApsAIMIhoneymoon(R.string.key_use_Aimi_honeymoon,false)
 }

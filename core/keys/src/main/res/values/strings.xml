@@ -13,4 +13,19 @@
     <string name="key_oaps_aimi_sleep_interval">key_oaps_aimi_sleep_interval</string>
     <string name="key_oaps_aimi_snackAdjFact">key_oaps_aimi_snackAdjFact</string>
     <string name="key_oaps_aimi_snack_factor">key_oaps_aimi_snack_factor</string>
+    <string name="key_use_AimiPregnancy">key_use_AimiPregnancy</string>
+    <string name="key_use_Aimi_honeymoon">key_use_Aimi_honeymoon</string>
+    <string name="key_oaps_aimi_highBG_interval">key_oaps_aimi_highBG_interval</string>
+    <string name="key_openapsaimi_high_bg_max_smb">key_openapsaimi_high_bg_max_smb</string>
+    <string name="OApsAIMI_Enable_night">OApsAIMI_Enable_night</string>
+    <string name="key_oaps_aimi_lunchAdjFact">key_oaps_aimi_lunchAdjFact</string>
+    <string name="key_oaps_aimi_dinnerAdjFact">key_oaps_aimi_dinnerAdjFact</string>
+    <string name="key_oaps_aimi_lunch_interval">key_oaps_aimi_lunch_interval</string>
+    <string name="key_oaps_aimi_dinner_interval">key_oaps_aimi_dinner_interval</string>
+    <string name="key_prebolus_lunch_mode">key_prebolus_lunch_mode</string>
+    <string name="key_prebolus_dinner_mode">key_prebolus_dinner_mode</string>
+    <string name="key_oaps_aimi_lunch_factor">key_oaps_aimi_lunch_factor</string>
+    <string name="key_oaps_aimi_dinner_factor">key_oaps_aimi_dinner_factor</string>
+    <string name="key_prebolus2_lunch_mode">key_prebolus2_lunch_mode</string>
+    <string name="key_prebolus2_dinner_mode">key_prebolus2_dinner_mode</string>
 </resources>
