@@ -1248,7 +1248,7 @@ class DetermineBasalaimiSMB @Inject constructor(
             averageBeatsPerMinute = 80.0
         }
         try {
-            val heartRates10 = persistenceLayer.getHeartRatesFromTimeToTime(timeMillis60,now)
+            val heartRates10 = persistenceLayer.getHeartRatesFromTimeToTime(timeMillis10,now)
             this.averageBeatsPerMinute10 = heartRates10.map { it.beatsPerMinute.toInt() }.average()
 
         } catch (e: Exception) {
