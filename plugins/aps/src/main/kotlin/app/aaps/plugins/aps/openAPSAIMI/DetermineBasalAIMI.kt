@@ -1088,7 +1088,7 @@ class DetermineBasalaimiSMB @Inject constructor(
             !profile.temptargetSet && recentSteps5Minutes >= 0 && (recentSteps30Minutes >= 500 || recentSteps180Minutes > 1500) && recentSteps10Minutes > 0 -> {
                 this.targetBg = 130.0f
             }
-            !profile.temptargetSet && eventualBG >= 140 && delta > 5 -> {
+            !profile.temptargetSet && eventualBG >= 160 && delta > 5 -> {
                 var hyperTarget = max(65.0, profile.target_bg - (bg - profile.target_bg) / 3).toInt()
                 hyperTarget = (hyperTarget * min(circadianSensitivity, 1.0)).toInt()
                 hyperTarget = max(hyperTarget, 65)
@@ -1101,7 +1101,7 @@ class DetermineBasalaimiSMB @Inject constructor(
                 sensitivityRatio = round(sensitivityRatio, 2)
                 consoleLog.add("Sensitivity ratio set to $sensitivityRatio based on temp target of $target_bg; ")
             }
-            !profile.temptargetSet && circadianSmb > 0.1 && eventualBG < 130 -> {
+            !profile.temptargetSet && circadianSmb > 0.1 && eventualBG < 100 -> {
                 val hypoTarget = 120 * max(1.0, circadianSensitivity)
                 this.targetBg = min(hypoTarget.toFloat(), 166.0f)
                 target_bg = targetBg.toDouble()
@@ -1457,6 +1457,22 @@ class DetermineBasalaimiSMB @Inject constructor(
         logDataMLToCsv(predictedSMB, smbToGive)
         logDataToCsv(predictedSMB, smbToGive)
         logDataToCsvHB(predictedSMB, smbToGive)
+
+        rT = RT(
+            algorithm = APSResult.Algorithm.AIMI,
+            runningDynamicIsf = dynIsfMode,
+            timestamp = currentTime,
+            bg = bg,
+            tick = tick,
+            eventualBG = eventualBG,
+            targetBG = target_bg,
+            insulinReq = 0.0,
+            deliverAt = deliverAt, // The time at which the microbolus should be delivered
+            sensitivityRatio = sensitivityRatio, // autosens ratio (fraction of normal basal)
+            consoleLog = consoleLog,
+            consoleError = consoleError,
+            variable_sens = variableSensitivity.toDouble()
+        )
         var rate = when {
             snackTime && snackrunTime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 4.0, "AI Force basal because mealTime $snackrunTime.", currenttemp, rT)
             mealTime && mealruntime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because mealTime $mealruntime.", currenttemp, rT)
@@ -1478,23 +1494,6 @@ class DetermineBasalaimiSMB @Inject constructor(
             rT.duration = 30
             return rT
         }
-
-        rT = RT(
-            algorithm = APSResult.Algorithm.AIMI,
-            runningDynamicIsf = dynIsfMode,
-            timestamp = currentTime,
-            bg = bg,
-            tick = tick,
-            eventualBG = eventualBG,
-            targetBG = target_bg,
-            insulinReq = 0.0,
-            deliverAt = deliverAt, // The time at which the microbolus should be delivered
-            sensitivityRatio = sensitivityRatio, // autosens ratio (fraction of normal basal)
-            consoleLog = consoleLog,
-            consoleError = consoleError,
-            variable_sens = variableSensitivity.toDouble()
-        )
-
         // generate predicted future BGs based on IOB, COB, and current absorption rate
 
         var COBpredBGs = mutableListOf<Double>()
