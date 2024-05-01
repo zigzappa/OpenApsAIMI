@@ -1089,9 +1089,9 @@ class DetermineBasalaimiSMB @Inject constructor(
                 this.targetBg = 130.0f
             }
             !profile.temptargetSet && eventualBG >= 160 && delta > 5 -> {
-                var hyperTarget = max(65.0, profile.target_bg - (bg - profile.target_bg) / 3).toInt()
+                var hyperTarget = max(80.0, profile.target_bg - (bg - profile.target_bg) / 3).toInt()
                 hyperTarget = (hyperTarget * min(circadianSensitivity, 1.0)).toInt()
-                hyperTarget = max(hyperTarget, 65)
+                hyperTarget = max(hyperTarget, 80)
                 this.targetBg = hyperTarget.toFloat()
                 target_bg = hyperTarget.toDouble()
                 val c = (halfBasalTarget - normalTarget).toDouble()
@@ -2087,7 +2087,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 30 April 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 01 May 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |modelcal: $modelcal
