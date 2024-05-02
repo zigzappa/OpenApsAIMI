@@ -5,7 +5,7 @@ import kotlin.math.pow
 import kotlin.math.sqrt
 import kotlin.random.Random
 
-class aimiNeuralNetwork(
+class AimiNeuralNetwork(
     private val inputSize: Int,
     private val hiddenSize: Int,
     private val outputSize: Int,
@@ -24,15 +24,11 @@ class aimiNeuralNetwork(
 
     companion object {
 
-        fun refineSMB(smb: Float, neuralNetwork: aimiNeuralNetwork, input: FloatArray): Float {
+        fun refineSMB(smb: Float, neuralNetwork: AimiNeuralNetwork, input: FloatArray): Float {
             val prediction = neuralNetwork.predict(input)[0]
             return smb + prediction.toFloat()
         }
 
-        fun refineBasalaimi(basalaimi: Float, neuralNetwork: aimiNeuralNetwork, input: FloatArray): Float {
-            val prediction = neuralNetwork.forwardPassBasal(input).second[0]
-            return basalaimi + prediction.toFloat()
-        }
     }
 
     private fun applyDropout(layer: DoubleArray): DoubleArray {
@@ -46,72 +42,6 @@ class aimiNeuralNetwork(
             val newFeature = originalFeatures[0] * originalFeatures[1]
             originalFeatures + newFeature
         }
-    }
-
-    private fun trainForBasalaimi(
-        inputs: List<FloatArray>,
-        basalaimiTargets: List<DoubleArray>,
-        epochs: Int
-    ) {
-        for (epoch in 1..epochs) {
-            var totalLoss = 0.0
-            for ((input, target) in inputs.zip(basalaimiTargets)) {
-                val (_, output) = forwardPassBasal(input)
-                totalLoss += mseLoss(output, target)
-                backpropagationBasal(input, target)
-            }
-            val averageLoss = totalLoss / inputs.size
-            println("Epoch $epoch: Training Loss = $averageLoss")
-            trainingLossHistory.add(averageLoss)
-        }
-    }
-
-    private fun backpropagationBasal(input: FloatArray, target: DoubleArray) {
-        val (hidden, output) = forwardPassBasal(input)
-        val gradLossOutput = DoubleArray(outputSize) { i -> 2.0 * (output[i] - target[i]) }
-
-        for (i in 0 until outputSize) {
-            for (j in 0 until hiddenSize) {
-                weightsHiddenOutput[j][i] -= learningRate * gradLossOutput[i] * hidden[j]
-            }
-            biasOutput[i] -= learningRate * gradLossOutput[i]
-        }
-
-        val gradLossHidden = DoubleArray(hiddenSize) { 0.0 }
-        for (i in 0 until hiddenSize) {
-            for (j in 0 until outputSize) {
-                gradLossHidden[i] += gradLossOutput[j] * weightsHiddenOutput[i][j]
-            }
-            if (hidden[i] <= 0) {
-                gradLossHidden[i] = 0.0
-            }
-        }
-
-        for (i in 0 until inputSize) {
-            for (j in 0 until hiddenSize) {
-                weightsInputHidden[i][j] -= learningRate * gradLossHidden[j] * input[i]
-            }
-        }
-    }
-
-    private fun forwardPassBasal(input: FloatArray): Pair<DoubleArray, DoubleArray> {
-        val hiddenLayer = DoubleArray(hiddenSize) { i ->
-            var sum = 0.0
-            for (j in input.indices) {
-                sum += input[j] * weightsInputHidden[j][i]
-            }
-            relu(sum + biasHidden[i])
-        }
-
-        val outputLayer = DoubleArray(outputSize) { i ->
-            var sum = 0.0
-            for (j in hiddenLayer.indices) {
-                sum += hiddenLayer[j] * weightsHiddenOutput[j][i]
-            }
-            sum + biasOutput[i]
-        }
-
-        return Pair(hiddenLayer, outputLayer)
     }
 
     private fun zScoreNormalization(inputData: List<FloatArray>): List<FloatArray> {
@@ -228,7 +158,6 @@ class aimiNeuralNetwork(
                         backpropagation(input, target, m, v, mOutput, vOutput)
                     }
                 }
-                trainForBasalaimi(normalizedInputs, targets, epochs)
                 trainWithAdam(normalizedInputs, targets, normalizedValidationInputs, validationTargets, epochs - epoch + 1)
                 val averageLoss = totalLoss / normalizedInputs.size
                 trainingLossHistory.add(averageLoss)
@@ -272,7 +201,7 @@ class aimiNeuralNetwork(
 
     private fun updateWeightsAndBiasesForOutputLayer(hidden: DoubleArray, gradLossOutput: DoubleArray, mOutput: Array<DoubleArray>, vOutput: Array<DoubleArray>) {
         val gradHiddenOutput = calculateGradHiddenOutput(hidden, gradLossOutput)
-        Adam(weightsHiddenOutput, gradHiddenOutput, mOutput, vOutput, 1, learningRate)
+        adam(weightsHiddenOutput, gradHiddenOutput, mOutput, vOutput, 1, learningRate)
         updateBiases(biasOutput, gradLossOutput)
     }
 
@@ -285,7 +214,7 @@ class aimiNeuralNetwork(
 
     private fun updateWeightsAndBiasesForHiddenLayer(input: FloatArray, hidden: DoubleArray, gradLossHidden: DoubleArray, m: Array<DoubleArray>, v: Array<DoubleArray>) {
         val gradInputHidden = calculateGradInputHidden(input, hidden, gradLossHidden)
-        Adam(weightsInputHidden, gradInputHidden, m, v, 1, learningRate)
+        adam(weightsInputHidden, gradInputHidden, m, v, 1, learningRate)
         updateBiasesForHiddenLayer(hidden, gradLossHidden)
     }
 
@@ -319,7 +248,7 @@ class aimiNeuralNetwork(
         }
     }
 
-    private fun Adam(
+    private fun adam(
         params: Array<DoubleArray>,
         grads: Array<DoubleArray>,
         m: Array<DoubleArray>,

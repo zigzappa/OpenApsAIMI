@@ -23,8 +23,7 @@ import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.Preferences
-import app.aaps.plugins.aps.openAPSAIMI.aimiNeuralNetwork.Companion.refineBasalaimi
-import app.aaps.plugins.aps.openAPSAIMI.aimiNeuralNetwork.Companion.refineSMB
+import app.aaps.plugins.aps.openAPSAIMI.AimiNeuralNetwork.Companion.refineSMB
 import org.tensorflow.lite.Interpreter
 import java.io.File
 import java.text.DecimalFormat
@@ -357,41 +356,34 @@ class DetermineBasalaimiSMB @Inject constructor(
         return result
     }
 
-    private fun isMealModeCondition(): Boolean{
+    private fun isMealModeCondition(): Boolean {
         val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
-        val modeMealPB = mealruntime in 0..7 && lastBolusSMBUnit != pbolusM.toFloat() && mealTime
-        return modeMealPB
+        return mealruntime in 0..7 && lastBolusSMBUnit != pbolusM.toFloat() && mealTime
     }
-    private fun isLunchModeCondition(): Boolean{
+    private fun isLunchModeCondition(): Boolean {
         val pbolusLunch: Double = preferences.get(DoubleKey.OApsAIMILunchPrebolus)
-        val modeLunchPB = lunchruntime in 0..7 && lastBolusSMBUnit != pbolusLunch.toFloat() && lunchTime
-        return modeLunchPB
+        return lunchruntime in 0..7 && lastBolusSMBUnit != pbolusLunch.toFloat() && lunchTime
     }
-    private fun isLunch2ModeCondition(): Boolean{
+    private fun isLunch2ModeCondition(): Boolean {
         val pbolusLunch2: Double = preferences.get(DoubleKey.OApsAIMILunchPrebolus2)
-        val modeLunchPB2 = lunchruntime in 15..22 && lastBolusSMBUnit != pbolusLunch2.toFloat() && lunchTime
-        return modeLunchPB2
+        return lunchruntime in 15..22 && lastBolusSMBUnit != pbolusLunch2.toFloat() && lunchTime
     }
-    private fun isDinnerModeCondition(): Boolean{
+    private fun isDinnerModeCondition(): Boolean {
         val pbolusDinner: Double = preferences.get(DoubleKey.OApsAIMIDinnerPrebolus)
-        val modeDinnerPB = dinnerruntime in 0..7 && lastBolusSMBUnit != pbolusDinner.toFloat() && dinnerTime
-        return modeDinnerPB
+        return dinnerruntime in 0..7 && lastBolusSMBUnit != pbolusDinner.toFloat() && dinnerTime
     }
-    private fun isDinner2ModeCondition(): Boolean{
+    private fun isDinner2ModeCondition(): Boolean {
         val pbolusDinner2: Double = preferences.get(DoubleKey.OApsAIMIDinnerPrebolus2)
-        val modeDinnerPB2 = dinnerruntime in 15..22 && lastBolusSMBUnit != pbolusDinner2.toFloat() && dinnerTime
-        return modeDinnerPB2
+        return dinnerruntime in 15..22 && lastBolusSMBUnit != pbolusDinner2.toFloat() && dinnerTime
     }
-    private fun isHighCarbModeCondition(): Boolean{
+    private fun isHighCarbModeCondition(): Boolean {
         val pbolusHC: Double = preferences.get(DoubleKey.OApsAIMIHighCarbPrebolus)
-        val modeHcPB = highCarbrunTime in 0..7 && lastBolusSMBUnit != pbolusHC.toFloat() && highCarbTime
-        return modeHcPB
+        return highCarbrunTime in 0..7 && lastBolusSMBUnit != pbolusHC.toFloat() && highCarbTime
     }
 
-    private fun issnackModeCondition(): Boolean{
+    private fun issnackModeCondition(): Boolean {
         val pbolussnack: Double = preferences.get(DoubleKey.OApsAIMISnackPrebolus)
-        val modesnackPB = snackrunTime in 0..7 && lastBolusSMBUnit != pbolussnack.toFloat() && snackTime
-        return modesnackPB
+        return snackrunTime in 0..7 && lastBolusSMBUnit != pbolussnack.toFloat() && snackTime
     }
     private fun roundToPoint05(number: Float): Float {
         return (number * 20.0).roundToInt() / 20.0f
@@ -405,8 +397,6 @@ class DetermineBasalaimiSMB @Inject constructor(
         if (nosmb) conditionsTrue.add("nosmb")
         val fasting = fastingTime
         if (fasting) conditionsTrue.add("fasting")
-        //val nightTrigger = LocalTime.now().run { (hour in 23..23 || hour in 0..6) } && delta > 20 && cob == 0.0f
-        //if (nightTrigger) conditionsTrue.add("nightTrigger")
         val belowMinThreshold = bg < 100 && delta < 10 && !mealTime && !highCarbTime && !lunchTime && !dinnerTime
         if (belowMinThreshold) conditionsTrue.add("belowMinThreshold")
         val isNewCalibration = iscalibration && delta > 10
@@ -560,7 +550,7 @@ class DetermineBasalaimiSMB @Inject constructor(
 
         return smbToGive.toFloat()
     }
-    private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, predictedSMB: Float, basalaimi: Float): Pair<Float, Float> {
+    private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, predictedSMB: Float): Float {
         val minutesToConsider = 2500.0
         val linesToConsider = (minutesToConsider / 5).toInt()
         var totalDifference: Float
@@ -569,7 +559,6 @@ class DetermineBasalaimiSMB @Inject constructor(
         var finalRefinedSMB: Float = calculateSMBFromModel()
         val maxGlobalIterations = 5 // Nombre maximum d'itérations globales
         var globalConvergenceReached = false
-        var refineBasalAimi = basalaimi
 
         for (globalIteration in 1..maxGlobalIterations) {
             var globalIterationCount = 0
@@ -609,7 +598,7 @@ class DetermineBasalaimiSMB @Inject constructor(
                 }
 
                 if (inputs.isEmpty() || targets.isEmpty()) {
-                    return Pair(predictedSMB, basalaimi)
+                    return predictedSMB
                 }
                 val epochs = 250.0
                 val learningRate = 0.001
@@ -621,10 +610,9 @@ class DetermineBasalaimiSMB @Inject constructor(
                 val validationTargets = targets.takeLast(validationSize)
                 val trainingInputs = inputs.take(inputs.size - validationSize)
                 val trainingTargets = targets.take(targets.size - validationSize)
-                val maxChangePercent = 1.0f
 
                 // Création et entraînement du réseau de neurones
-                val neuralNetwork = aimiNeuralNetwork(inputs.first().size, 5, 1)
+                val neuralNetwork = AimiNeuralNetwork(inputs.first().size, 5, 1)
                 neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs.toInt(), learningRate.toInt())
 
                 do {
@@ -633,18 +621,8 @@ class DetermineBasalaimiSMB @Inject constructor(
                     for (enhancedInput in inputs) {
                         val predictedrefineSMB = finalRefinedSMB// Prédiction du modèle TFLite
                         val refinedSMB = refineSMB(predictedrefineSMB, neuralNetwork, enhancedInput)
-                        val refinedBasalAimi = refineBasalaimi(refineBasalAimi, neuralNetwork, enhancedInput)
                         if (delta > 10 && bg > 100) {
                             isAggressiveResponseNeeded = true
-                        }
-
-                        refineBasalAimi = refinedBasalAimi
-                        val change = refineBasalAimi - basalaimi
-                        val maxChange = basalaimi * maxChangePercent
-                        refineBasalAimi = if (kotlin.math.abs(change) > maxChange) {
-                            basalaimi + kotlin.math.sign(change) * maxChange
-                        } else {
-                            basalaimi
                         }
                         val difference = kotlin.math.abs(predictedrefineSMB - refinedSMB)
                         totalDifference += difference
@@ -654,11 +632,8 @@ class DetermineBasalaimiSMB @Inject constructor(
                             break
                         }
                     }
-                    if (isAggressiveResponseNeeded && (finalRefinedSMB <= 0.5 || refineBasalAimi <= 0.5 && bg > 140)) {
+                    if (isAggressiveResponseNeeded && (finalRefinedSMB <= 0.5)) {
                         finalRefinedSMB = maxSMB.toFloat() / 2
-                        refineBasalAimi = maxSMB.toFloat()
-                    } else if (!isAggressiveResponseNeeded && delta > 3 && bg > 140) {
-                        refineBasalAimi = basalaimi * delta
                     }
                     iterationCount++
                     if (differenceWithinRange || iterationCount >= maxIterations) {
@@ -673,7 +648,7 @@ class DetermineBasalaimiSMB @Inject constructor(
                 globalIterationCount++
             }
         }
-        return Pair (if (globalConvergenceReached) finalRefinedSMB else predictedSMB,refineBasalAimi)
+        return if (globalConvergenceReached) finalRefinedSMB else predictedSMB
     }
     private fun calculateGFactor(delta: Float, lastHourTIRabove140: Double, bg: Float): Double {
         val deltaFactor = delta / 10 // Ajuster selon les besoins
@@ -1165,9 +1140,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         val iob_data = iobArray[0]
         this.iob = iob_data.iob.toFloat()
 
-        val tick: String
-
-        tick = if (glucose_status.delta > -0.5) {
+        val tick: String = if (glucose_status.delta > -0.5) {
             "+" + round(glucose_status.delta)
         } else {
             round(glucose_status.delta).toString()
@@ -1392,11 +1365,8 @@ class DetermineBasalaimiSMB @Inject constructor(
             val minutesToConsider = 2500.0
             val linesToConsider = (minutesToConsider / 5).toInt()
             if (allLines.size > linesToConsider) {
-                //this.predictedSMB = neuralnetwork5(delta, shortAvgDelta, longAvgDelta)
-                val (refinedSMB, refinedBasalaimi) = neuralnetwork5(delta, shortAvgDelta, longAvgDelta, predictedSMB, basalaimi)
-                rT.reason.append("neuralnetwork SMB: $refinedSMB Basal: $refinedBasalaimi")
+                val refinedSMB = neuralnetwork5(delta, shortAvgDelta, longAvgDelta, predictedSMB)
                 this.predictedSMB = refinedSMB
-                this.basalaimi = refinedBasalaimi
                 basal =
                     when {
                         (honeymoon && bg < 170) -> basalaimi * 0.8
@@ -1572,11 +1542,11 @@ class DetermineBasalaimiSMB @Inject constructor(
         //5m data points = g * (1U/10g) * (40mg/dL/1U) / (mg/dL/5m)
         // duration (in 5m data points) = COB (g) * CSF (mg/dL/g) / ci (mg/dL/5m)
         // limit cid to remainingCATime hours: the reset goes to remainingCI
-        if (ci == 0.0) {
+        cid = if (ci == 0.0) {
             // avoid divide by zero
-            cid = 0.0
+            0.0
         } else {
-            cid = min(remainingCATime * 60 / 5 / 2, Math.max(0.0, meal_data.mealCOB * csf / ci))
+            min(remainingCATime * 60 / 5 / 2, Math.max(0.0, meal_data.mealCOB * csf / ci))
         }
         val acid = max(0.0, meal_data.mealCOB * csf / aci)
         // duration (hours) = duration (5m) * 5 / 60 * 2 (to account for linear decay)
@@ -1624,8 +1594,8 @@ class DetermineBasalaimiSMB @Inject constructor(
             // if any carbs aren't absorbed after remainingCATime hours, assume they'll absorb in a /\ shaped
             // bilinear curve peaking at remainingCIpeak at remainingCATime/2 hours (remainingCATime/2*12 * 5m)
             // and ending at remainingCATime h (remainingCATime*12 * 5m intervals)
-            val intervals = Math.min(COBpredBGs.size.toDouble(), ((remainingCATime * 12) - COBpredBGs.size))
-            val remainingCI = Math.max(0.0, intervals / (remainingCATime / 2 * 12) * remainingCIpeak)
+            val intervals = min(COBpredBGs.size.toDouble(), ((remainingCATime * 12) - COBpredBGs.size))
+            val remainingCI = max(0.0, intervals / (remainingCATime / 2 * 12) * remainingCIpeak)
             remainingCItotal += predCI + remainingCI
             remainingCIs.add(round(remainingCI))
             predCIs.add(round(predCI))
@@ -1734,23 +1704,23 @@ class DetermineBasalaimiSMB @Inject constructor(
 
         val fSensBG = min(minPredBG, bg)
 
-        var future_sens: Double
+        var futureSens: Double
 
         if (bg > target_bg && glucose_status.delta < 3 && glucose_status.delta > -3 && glucose_status.shortAvgDelta > -3 && glucose_status.shortAvgDelta < 3 && eventualBG > target_bg && eventualBG < bg) {
-            future_sens = (1800 / (ln((((fSensBG * 0.5) + (bg * 0.5)) / profile.insulinDivisor) + 1) * profile.TDD))
-            future_sens = round(future_sens, 1)
-            consoleLog.add("Future state sensitivity is $future_sens based on eventual and current bg due to flat glucose level above target")
-            rT.reason.append("Dosing sensitivity: $future_sens using eventual BG;")
+            futureSens = (1800 / (ln((((fSensBG * 0.5) + (bg * 0.5)) / profile.insulinDivisor) + 1) * profile.TDD))
+            futureSens = round(futureSens, 1)
+            consoleLog.add("Future state sensitivity is $futureSens based on eventual and current bg due to flat glucose level above target")
+            rT.reason.append("Dosing sensitivity: $futureSens using eventual BG;")
         } else if (glucose_status.delta > 0 && eventualBG > target_bg || eventualBG > bg) {
-            future_sens = (1800 / (ln((bg / profile.insulinDivisor) + 1) * profile.TDD))
-            future_sens = round(future_sens, 1)
-            consoleLog.add("Future state sensitivity is $future_sens using current bg due to small delta or variation")
-            rT.reason.append("Dosing sensitivity: $future_sens using current BG;")
+            futureSens = (1800 / (ln((bg / profile.insulinDivisor) + 1) * profile.TDD))
+            futureSens = round(futureSens, 1)
+            consoleLog.add("Future state sensitivity is $futureSens using current bg due to small delta or variation")
+            rT.reason.append("Dosing sensitivity: $futureSens using current BG;")
         } else {
-            future_sens = (1800 / (ln((fSensBG / profile.insulinDivisor) + 1) * profile.TDD))
-            future_sens = round(future_sens, 1)
-            consoleLog.add("Future state sensitivity is $future_sens based on eventual bg due to -ve delta")
-            rT.reason.append("Dosing sensitivity: $future_sens using eventual BG;")
+            futureSens = (1800 / (ln((fSensBG / profile.insulinDivisor) + 1) * profile.TDD))
+            futureSens = round(futureSens, 1)
+            consoleLog.add("Future state sensitivity is $futureSens based on eventual bg due to -ve delta")
+            rT.reason.append("Dosing sensitivity: $futureSens using eventual BG;")
         }
 
 
@@ -1995,7 +1965,7 @@ class DetermineBasalaimiSMB @Inject constructor(
 
             // calculate 30m low-temp required to get projected BG up to target
             // multiply by 2 to low-temp faster for increased hypo safety
-            //var insulinReq = 2 * min(0.0, (eventualBG - target_bg) / future_sens)
+            //var insulinReq = 2 * min(0.0, (eventualBG - target_bg) / futureSens)
             var insulinReq = 2 * min(0.0, smbToGive.toDouble())
             insulinReq = round(insulinReq, 2)
             // calculate naiveInsulinReq based on naive_eventualBG
@@ -2086,7 +2056,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 01 May 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 02 May 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |modelcal: $modelcal
@@ -2126,7 +2096,7 @@ class DetermineBasalaimiSMB @Inject constructor(
     |tdd 2d/h: ${roundToPoint05(tdd2DaysPerHour)}
     |tdd daily/h: ${roundToPoint05(tddPerHour)}
     |tdd 24h/h: ${roundToPoint05(tdd24HrsPerHour)}<br>$lineSeparator
-    |enablebasal: $enablebasal<br>|basalaimi: $basalaimi<br>$lineSeparator
+    |enablebasal: $enablebasal<br>basalaimi: $basalaimi<br>$lineSeparator
     |ISF: $variableSensitivity<br>$lineSeparator
     |
     |Hour of day: $hourOfDay<br>$lineSeparator
@@ -2179,7 +2149,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         } else { // otherwise, calculate 30m high-temp required to get projected BG down to target
             // insulinReq is the additional insulin required to get minPredBG down to target_bg
             //console.error(minPredBG,eventualBG);
-            //var insulinReq = round((min(minPredBG, eventualBG) - target_bg) / future_sens, 2)
+            //var insulinReq = round((min(minPredBG, eventualBG) - target_bg) / futureSens, 2)
             var insulinReq = smbToGive.toDouble()
             // if that would put us over max_iob, then reduce accordingly
             /*if (insulinReq > max_iob - iob_data.iob) {
