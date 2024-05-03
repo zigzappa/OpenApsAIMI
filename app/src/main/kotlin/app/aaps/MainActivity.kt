@@ -412,8 +412,29 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
         }
         return super.dispatchTouchEvent(event)
     }
-
     override fun onMenuOpened(featureId: Int, menu: Menu): Boolean {
+        menuOpen = true
+        if (binding.mainDrawerLayout.isDrawerOpen(GravityCompat.START)) {
+            binding.mainDrawerLayout.closeDrawers()
+        }
+        val result = super.onMenuOpened(featureId, menu)
+        menu.findItem(R.id.nav_treatments)?.isEnabled = profileFunction.getProfile() != null
+        if (binding.mainPager.currentItem >= 0) {
+            (binding.mainPager.adapter as? TabPageAdapter)?.let { tabPageAdapter ->
+                val plugin = tabPageAdapter.getPluginAt(binding.mainPager.currentItem)
+                this.menu?.findItem(R.id.nav_plugin_preferences)?.title = rh.gs(R.string.nav_preferences_plugin, plugin.name)
+                pluginPreferencesMenuItem?.isEnabled = plugin.preferencesId != PluginDescription.PREFERENCE_NONE
+            }
+        }
+        if (pluginPreferencesMenuItem?.isEnabled == false) {
+            val spanString = SpannableString(this.menu?.findItem(R.id.nav_plugin_preferences)?.title.toString())
+            spanString.setSpan(ForegroundColorSpan(rh.gac(app.aaps.core.ui.R.attr.disabledTextColor)), 0, spanString.length, 0)
+            this.menu?.findItem(R.id.nav_plugin_preferences)?.title = spanString
+        }
+        return result
+    }
+
+    /*override fun onMenuOpened(featureId: Int, menu: Menu): Boolean {
         menuOpen = true
         if (binding.mainDrawerLayout.isDrawerOpen(GravityCompat.START)) {
             binding.mainDrawerLayout.closeDrawers()
@@ -431,7 +452,7 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
             this.menu?.findItem(R.id.nav_plugin_preferences)?.title = spanString
         }
         return result
-    }
+    }*/
 
     override fun onPanelClosed(featureId: Int, menu: Menu) {
         menuOpen = false
