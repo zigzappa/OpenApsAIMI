@@ -117,7 +117,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
 
     // last values
     override var lastAPSRun: Long = 0
-    override val algorithm = APSResult.Algorithm.SMB
+    override val algorithm = APSResult.Algorithm.AIMI
     override var lastAPSResult: DetermineBasalResult? = null
     override fun supportsDynamicIsf(): Boolean = preferences.get(BooleanKey.ApsUseDynamicSensitivity)
 
