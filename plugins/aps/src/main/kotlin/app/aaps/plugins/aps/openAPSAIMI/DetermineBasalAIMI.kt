@@ -391,7 +391,7 @@ class DetermineBasalaimiSMB @Inject constructor(
     private fun isCriticalSafetyCondition(): Pair<Boolean, String> {
         val conditionsTrue = mutableListOf<String>()
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
-        val nosmbHM = iob > 0.7 && honeymoon && delta < 8 && (!mealTime || !lunchTime || !dinnerTime) && eventualBG < 130
+        val nosmbHM = iob > 0.7 && honeymoon && delta < 8 && (!mealTime && !lunchTime && !dinnerTime) && eventualBG < 130
         if (nosmbHM) conditionsTrue.add("nosmbHM")
         val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10 && !mealTime && !highCarbTime && !lunchTime && !dinnerTime
         if (nosmb) conditionsTrue.add("nosmb")
@@ -2056,7 +2056,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 06 May 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 08 May 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |modelcal: $modelcal
