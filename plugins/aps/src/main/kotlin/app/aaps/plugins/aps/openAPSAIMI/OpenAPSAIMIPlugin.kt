@@ -98,7 +98,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
     private val tddCalculator: TddCalculator,
     private val bgQualityCheck: BgQualityCheck,
     private val uiInteraction: UiInteraction,
-    private val determineBasalAIMI: DetermineBasalaimiSMB,
+    private val determineBasalaimiSMB2: DetermineBasalaimiSMB2,
     private val profiler: Profiler,
 ) : PluginBase(
     PluginDescription()
@@ -485,7 +485,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             aapsLogger.debug(LTag.APS, "flatBGsDetected:    $flatBGsDetected")
             aapsLogger.debug(LTag.APS, "DynIsfMode:         $dynIsfMode")
 
-            determineBasalAIMI.determine_basal(
+            determineBasalaimiSMB2.determine_basal(
                 glucose_status = glucoseStatus,
                 currenttemp = currentTemp,
                 iob_data_array = iobArray,
