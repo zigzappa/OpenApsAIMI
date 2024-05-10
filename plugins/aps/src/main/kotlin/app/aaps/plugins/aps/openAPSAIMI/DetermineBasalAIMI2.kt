@@ -1478,7 +1478,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 10 May 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-V3-DBA2, 10 May 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |modelcal: $modelcal
@@ -1496,8 +1496,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     |fastingtime: $fastingTime<br>$lineSeparator
     |intervalsmb: $intervalsmb<br>$lineSeparator
     |mealruntime: $mealruntime<br>$lineSeparator
-    ||lunchruntime: $lunchruntime<br>$lineSeparator
-    ||dinnerruntime: $dinnerruntime<br>$lineSeparator
+    |lunchruntime: $lunchruntime<br>$lineSeparator
+    |dinnerruntime: $dinnerruntime<br>$lineSeparator
     |snackrunTime: $snackrunTime<br>$lineSeparator
     |highCarbrunTime: $highCarbrunTime<br>$lineSeparator
     |
