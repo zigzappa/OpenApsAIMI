@@ -1610,9 +1610,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 snackTime && snackrunTime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 4.0)
                 mealTime && mealruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 lunchTime && lunchruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                lunchTime && lunchruntime in 30..lunchruntime && delta > 0 && bg > profile.target_bg -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
+                lunchTime && lunchruntime in 30..60 && delta > 0 -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
                 dinnerTime && dinnerruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                dinnerTime && dinnerruntime in 30..dinnerruntime && delta > 0 && bg > profile.target_bg -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
+                dinnerTime && dinnerruntime in 30..60 && delta > 0 -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
                 highCarbTime && highCarbrunTime in 0..60 -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 bg > 180 && !honeymoon -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 honeymoon && bg in 140.0..169.0 && delta > 0 -> profile_current_basal
