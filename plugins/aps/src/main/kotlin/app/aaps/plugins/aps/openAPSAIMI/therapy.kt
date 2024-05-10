@@ -42,6 +42,8 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
             clearActiveEvent("lowcarb")
             clearActiveEvent("highcarb")
             clearActiveEvent("meal")
+            clearActiveEvent("lunch")
+            clearActiveEvent("dinner")
             clearActiveEvent("fasting")
         }
     }
@@ -59,6 +61,8 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
         lowCarbTime = false;
         highCarbTime = false;
         mealTime = false;
+        lunchTime = false;
+        dinnerTime = false;
         fastingTime = false;
     }
     private fun findActiveSleepEvents(timestamp: Long): Single<Boolean> {
