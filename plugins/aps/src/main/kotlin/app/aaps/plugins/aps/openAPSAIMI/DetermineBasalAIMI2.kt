@@ -387,7 +387,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     private fun isCriticalSafetyCondition(): Pair<Boolean, String> {
         val conditionsTrue = mutableListOf<String>()
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
-        val nosmbHM = iob > 0.7 && honeymoon && delta < 8 && (!mealTime && !lunchTime && !dinnerTime) && eventualBG < 130
+        val nosmbHM = iob > 0.7 && honeymoon && delta < 8 && !mealTime && !lunchTime && !dinnerTime && eventualBG < 130
         if (nosmbHM) conditionsTrue.add("nosmbHM")
         val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10 && !mealTime && !highCarbTime && !lunchTime && !dinnerTime
         if (nosmb) conditionsTrue.add("nosmb")
@@ -1451,7 +1451,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             bg in 81.0..99.0 && delta in 3.0..7.0 && honeymoon -> calculateRate(basal, profile_current_basal, 1.0, "AI Force basal because bg is between 80 and 100 with a small delta.", currenttemp, rT)
             bg > 165 && delta > 2 && smbToGive == 0.0f && !honeymoon -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because bg is greater than 165 and SMB = 0U.", currenttemp, rT)
             bg > 165 && delta > 2 && smbToGive == 0.0f && honeymoon -> calculateRate(basal, profile_current_basal, 5.0, "AI Force basal because bg is greater than 165 and SMB = 0U.", currenttemp, rT)
-            else -> 0.0
+            else -> null
         }
         rate?.let {
             rT.rate = it
