@@ -1476,89 +1476,177 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             }, Target: ${convertBG(target_bg)}}"
         )
 
-
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
-        val lineSeparator = System.lineSeparator()
-        val logAIMI = """
-    |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-V3-DBA2, 11 May 2024<br>$lineSeparator
-    |adjustedFactors: $adjustedFactors<br>$lineSeparator
-    |
-    |modelcal: $modelcal
-    |predictedSMB: $predictedSMB<br>$lineSeparator
-    |Max IOB: $maxIob<br>$lineSeparator
-    |Max SMB: $maxSMB<br>$lineSeparator
-    |sleep: $sleepTime<br>$lineSeparator
-    |sport: $sportTime<br>$lineSeparator
-    |snack: $snackTime<br>$lineSeparator
-    |lowcarb: $lowCarbTime<br>$lineSeparator
-    |highcarb: $highCarbTime<br>$lineSeparator
-    |meal: $mealTime<br>$lineSeparator
-    |lunch: $lunchTime<br>$lineSeparator
-    |dinner: $dinnerTime<br>$lineSeparator
-    |fastingtime: $fastingTime<br>$lineSeparator
-    |intervalsmb: $intervalsmb<br>$lineSeparator
-    |mealruntime: $mealruntime<br>$lineSeparator
-    |lunchruntime: $lunchruntime<br>$lineSeparator
-    |dinnerruntime: $dinnerruntime<br>$lineSeparator
-    |snackrunTime: $snackrunTime<br>$lineSeparator
-    |highCarbrunTime: $highCarbrunTime<br>$lineSeparator
-    |
-    |insulinEffect: $insulinEffect
-    |bg: $bg
-    |targetBG: $targetBg
-    |futureBg: $predictedBg
-    |eventuelBG: $eventualBG<br>$lineSeparator
-    |delta: $delta
-    |short avg delta: $shortAvgDelta
-    |long avg delta: $longAvgDelta<br>$lineSeparator
-    |accelerating_up: $acceleratingUp
-    |deccelerating_up: $decceleratingUp
-    |accelerating_down: $acceleratingDown
-    |deccelerating_down: $decceleratingDown
-    |stable: $stable<br>$lineSeparator
-    |
-    |IOB: $iob<br>$lineSeparator
-    |tdd 7d/h: ${roundToPoint05(tdd7DaysPerHour)}
-    |tdd 2d/h: ${roundToPoint05(tdd2DaysPerHour)}
-    |tdd daily/h: ${roundToPoint05(tddPerHour)}
-    |tdd 24h/h: ${roundToPoint05(tdd24HrsPerHour)}<br>$lineSeparator
-    |enablebasal: $enablebasal<br>basalaimi: $basalaimi<br>$lineSeparator
-    |ISF: $variableSensitivity<br>$lineSeparator
-    |
-    |Hour of day: $hourOfDay<br>$lineSeparator
-    |Weekend: $weekend<br>$lineSeparator
-    |5 Min Steps: $recentSteps5Minutes
-    |10 Min Steps: $recentSteps10Minutes
-    |15 Min Steps: $recentSteps15Minutes
-    |30 Min Steps: $recentSteps30Minutes
-    |60 Min Steps: $recentSteps60Minutes
-    |180 Min Steps: $recentSteps180Minutes<br>$lineSeparator
-    |Heart Beat(average past 5 minutes): $averageBeatsPerMinute
-    |Heart Beat(average past 10 minutes): $averageBeatsPerMinute10
-    |Heart Beat(average past 60 minutes): $averageBeatsPerMinute60
-    |Heart Beat(average past 180 minutes): $averageBeatsPerMinute180<br>$lineSeparator
-    |COB: ${cob}g Future: ${futureCarbs}g<br>
-    |COB Age Min: $lastCarbAgeMin<br>$lineSeparator
-    |
-    |tags0to60minAgo: ${tags0to60minAgo}
-    |tags60to120minAgo: $tags60to120minAgo
-    |tags120to180minAgo: $tags120to180minAgo
-    |tags180to240minAgo: $tags180to240minAgo<br>$lineSeparator
-    |currentTIRLow: $currentTIRLow
-    |currentTIRRange: $currentTIRRange
-    |currentTIRAbove: $currentTIRAbove
-    |lastHourTIRLow: $lastHourTIRLow<br>$lineSeparator
-    |lastHourTIRLow100: $lastHourTIRLow100
-    |lastHourTIRabove120: $lastHourTIRabove120
-    |lastHourTIRabove170: $lastHourTIRabove170<br>$lineSeparator
-    |isCriticalSafetyCondition: $conditionResult, True Conditions: $conditionsTrue<br>$lineSeparator
-    |lastBolusSMBMinutes: $lastBolusSMBMinutes<br>$lineSeparator
-    |lastsmbtime: $lastsmbtime<br>$lineSeparator
-    |lastCarbAgeMin: $lastCarbAgeMin<br>$lineSeparator
-""".trimMargin()
+        val logTemplate = buildString {
+            appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 11 May 2024")
+            appendLine("adjustedFactors: {adjustedFactors}")
+            appendLine()
+            appendLine("modelcal: {modelcal}")
+            appendLine("predictedSMB: {predictedSMB}")
+            appendLine("Max IOB: {maxIob}")
+            appendLine("Max SMB: {maxSMB}")
+            appendLine("sleep: {sleepTime}")
+            appendLine("sport: {sportTime}")
+            appendLine("snack: {snackTime}")
+            appendLine("lowcarb: {lowCarbTime}")
+            appendLine("highcarb: {highCarbTime}")
+            appendLine("meal: {mealTime}")
+            appendLine("lunch: {lunchTime}")
+            appendLine("dinner: {dinnerTime}")
+            appendLine("fastingtime: {fastingTime}")
+            appendLine("intervalsmb: {intervalsmb}")
+            appendLine("mealruntime: {mealruntime}")
+            appendLine("lunchruntime: {lunchruntime}")
+            appendLine("dinnerruntime: {dinnerruntime}")
+            appendLine("snackrunTime: {snackrunTime}")
+            appendLine("highCarbrunTime: {highCarbrunTime}")
+            appendLine()
+            appendLine("insulinEffect: {insulinEffect}")
+            appendLine("bg: {bg}")
+            appendLine("targetBG: {targetBg}")
+            appendLine("futureBg: {predictedBg}")
+            appendLine("eventuelBG: {eventualBG}")
+            appendLine()
+            appendLine("delta: {delta}")
+            appendLine("short avg delta: {shortAvgDelta}")
+            appendLine("long avg delta: {longAvgDelta}")
+            appendLine()
+            appendLine("accelerating_up: {acceleratingUp}")
+            appendLine("deccelerating_up: {decceleratingUp}")
+            appendLine("accelerating_down: {acceleratingDown}")
+            appendLine("deccelerating_down: {decceleratingDown}")
+            appendLine("stable: {stable}")
+            appendLine()
+            appendLine("IOB: {iob}")
+            appendLine("tdd 7d/h: {tdd7DaysPerHour}")
+            appendLine("tdd 2d/h: {tdd2DaysPerHour}")
+            appendLine("tdd daily/h: {tddPerHour}")
+            appendLine("tdd 24h/h: {tdd24HrsPerHour}")
+            appendLine()
+            appendLine("enablebasal: {enablebasal}")
+            appendLine("basalaimi: {basalaimi}")
+            appendLine()
+            appendLine("ISF: {variableSensitivity}")
+            appendLine()
+            appendLine("Hour of day: {hourOfDay}")
+            appendLine("Weekend: {weekend}")
+            appendLine("5 Min Steps: {recentSteps5Minutes}")
+            appendLine("10 Min Steps: {recentSteps10Minutes}")
+            appendLine("15 Min Steps: {recentSteps15Minutes}")
+            appendLine("30 Min Steps: {recentSteps30Minutes}")
+            appendLine("60 Min Steps: {recentSteps60Minutes}")
+            appendLine("180 Min Steps: {recentSteps180Minutes}")
+            appendLine()
+            appendLine("Heart Beat(average past 5 minutes): {averageBeatsPerMinute}")
+            appendLine("Heart Beat(average past 10 minutes): {averageBeatsPerMinute10}")
+            appendLine("Heart Beat(average past 60 minutes): {averageBeatsPerMinute60}")
+            appendLine("Heart Beat(average past 180 minutes): {averageBeatsPerMinute180}")
+            appendLine()
+            appendLine("COB: {cob}g Future: {futureCarbs}g")
+            appendLine("COB Age Min: {lastCarbAgeMin}")
+            appendLine()
+            appendLine("tags0to60minAgo: {tags0to60minAgo}")
+            appendLine("tags60to120minAgo: {tags60to120minAgo}")
+            appendLine("tags180to240minAgo: {tags180to240minAgo}")
+            appendLine()
+            appendLine("currentTIRLow: {currentTIRLow}")
+            appendLine("currentTIRRange: {currentTIRRange}")
+            appendLine("currentTIRAbove: {currentTIRAbove}")
+            appendLine("lastHourTIRLow: {lastHourTIRLow}")
+            appendLine()
+            appendLine("lastHourTIRLow100: {lastHourTIRLow100}")
+            appendLine("lastHourTIRabove120: {lastHourTIRabove120}")
+            appendLine("lastHourTIRabove170: {lastHourTIRabove170}")
+            appendLine()
+            appendLine("isCriticalSafetyCondition: {conditionResult}, True Conditions: {conditionsTrue}")
+            appendLine()
+            appendLine("lastBolusSMBMinutes: {lastBolusSMBMinutes}")
+            appendLine()
+            appendLine("lastsmbtime: {lastsmbtime}")
+            appendLine()
+            appendLine("lastCarbAgeMin: {lastCarbAgeMin}")
+        }
 
-        rT.reason.append(logAIMI)
+        val valueMap = mapOf(
+                "predictedSMB" to predictedSMB,
+                "smbToGive" to smbToGive,
+                "adjustedFactors" to adjustedFactors,
+                "maxIob" to maxIob,
+                "maxSMB" to maxSMB,
+                "sleepTime" to sleepTime,
+                "sportTime" to sportTime,
+                "snackTime" to snackTime,
+                "lowCarbTime" to lowCarbTime,
+                "highCarbTime" to highCarbTime,
+                "mealTime" to mealTime,
+                "lunchTime" to lunchTime,
+                "dinnerTime" to dinnerTime,
+                "fastingTime" to fastingTime,
+                "intervalsmb" to intervalsmb,
+                "mealruntime" to mealruntime,
+                "lunchruntime" to lunchruntime,
+                "dinnerruntime" to dinnerruntime,
+                "snackrunTime" to snackrunTime,
+                "highCarbrunTime" to highCarbrunTime,
+                "insulinEffect" to insulinEffect,
+                "bg" to bg,
+                "targetBg" to targetBg,
+                "predictedBg" to predictedBg,
+                "eventualBG" to eventualBG,
+                "delta" to delta,
+                "shortAvgDelta" to shortAvgDelta,
+                "longAvgDelta" to longAvgDelta,
+                "acceleratingUp" to acceleratingUp,
+                "decceleratingUp" to decceleratingUp,
+                "acceleratingDown" to acceleratingDown,
+                "decceleratingDown" to decceleratingDown,
+                "stable" to stable,
+                "iob" to iob,
+                "tdd7DaysPerHour" to roundToPoint05(tdd7DaysPerHour),
+                "tdd2DaysPerHour" to roundToPoint05(tdd2DaysPerHour),
+                "tddPerHour" to roundToPoint05(tddPerHour),
+                "tdd24HrsPerHour" to roundToPoint05(tdd24HrsPerHour),
+                "enablebasal" to enablebasal,
+                "basalaimi" to basalaimi,
+                "variableSensitivity" to variableSensitivity,
+                "hourOfDay" to hourOfDay,
+                "weekend" to weekend,
+                "recentSteps5Minutes" to recentSteps5Minutes,
+                "recentSteps10Minutes" to recentSteps10Minutes,
+                "recentSteps15Minutes" to recentSteps15Minutes,
+                "recentSteps30Minutes" to recentSteps30Minutes,
+                "recentSteps60Minutes" to recentSteps60Minutes,
+                "recentSteps180Minutes" to recentSteps180Minutes,
+                "averageBeatsPerMinute" to averageBeatsPerMinute,
+                "averageBeatsPerMinute10" to averageBeatsPerMinute10,
+                "averageBeatsPerMinute60" to averageBeatsPerMinute60,
+                "averageBeatsPerMinute180" to averageBeatsPerMinute180,
+                "cob" to cob,
+                "futureCarbs" to futureCarbs,
+                "lastCarbAgeMin" to lastCarbAgeMin,
+                "tags0to60minAgo" to tags0to60minAgo,
+                "tags120to180minAgo" to tags120to180minAgo,
+                "tags180to240minAgo" to tags180to240minAgo,
+                "currentTIRLow" to currentTIRLow,
+                "currentTIRRange" to currentTIRRange,
+                "currentTIRAbove" to currentTIRAbove,
+                "lastHourTIRLow" to lastHourTIRLow,
+                "lastHourTIRLow100" to lastHourTIRLow100,
+                "lastHourTIRabove120" to lastHourTIRabove120,
+                "lastHourTIRabove170" to lastHourTIRabove170,
+                "conditionResult" to conditionResult,
+                "conditionsTrue" to conditionsTrue,
+                "lastBolusSMBMinutes" to lastBolusSMBMinutes,
+                "lastsmbtime" to lastsmbtime,
+                "lastCarbAgeMin" to lastCarbAgeMin
+            )
+        val filledLog = valueMap.entries.fold(logTemplate) { acc, entry ->
+            acc.replace("{${entry.key}}", entry.value.toString())
+        }
+        rT.reason.append(filledLog)
+
+        //rT.reason.append(logAIMI)
         // eventual BG is at/above target
         // if iob is over max, just cancel any temps
         if (eventualBG >= max_bg) {
