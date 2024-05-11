@@ -924,7 +924,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         this.tags60to120minAgo = parseNotes(60, 120)
         this.tags120to180minAgo = parseNotes(120, 180)
         this.tags180to240minAgo = parseNotes(180, 240)
-        this.delta = glucose_status.delta.toFloat()
+        this.delta = when (profileFunction.getUnits()) {
+            GlucoseUnit.MMOL -> glucose_status.delta.toFloat() * 18
+            else -> glucose_status.delta.toFloat()
+        }
         this.shortAvgDelta = glucose_status.shortAvgDelta.toFloat()
         this.longAvgDelta = glucose_status.longAvgDelta.toFloat()
         val therapy = Therapy(persistenceLayer).also {
@@ -1446,11 +1449,11 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             dinnerTime && dinnerruntime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because dinnerTime $dinnerruntime.", currenttemp, rT)
             highCarbTime && highCarbrunTime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because highcarb $highcarbfactor.", currenttemp, rT)
             fastingTime -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because fastingTime", currenttemp, rT)
-            !honeymoon && delta in 1.0 .. 7.0 && bg in 81.0..111.0 -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because bg lesser than 110 and delta lesser than 8", currenttemp, rT)
-            honeymoon && delta in 1.0 .. 6.0 && bg in 99.0..141.0 -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because honeymoon and bg lesser than 140 and delta lesser than 6", currenttemp, rT)
+            !honeymoon && delta in 0.0 .. 7.0 && bg in 81.0..111.0 -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because bg lesser than 110 and delta lesser than 8", currenttemp, rT)
+            honeymoon && delta in 0.0.. 6.0 && bg in 99.0..141.0 -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because honeymoon and bg lesser than 140 and delta lesser than 6", currenttemp, rT)
             bg in 81.0..99.0 && delta in 3.0..7.0 && honeymoon -> calculateRate(basal, profile_current_basal, 1.0, "AI Force basal because bg is between 80 and 100 with a small delta.", currenttemp, rT)
-            bg > 165 && delta > 2 && smbToGive == 0.0f && !honeymoon -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because bg is greater than 165 and SMB = 0U.", currenttemp, rT)
-            bg > 165 && delta > 2 && smbToGive == 0.0f && honeymoon -> calculateRate(basal, profile_current_basal, 5.0, "AI Force basal because bg is greater than 165 and SMB = 0U.", currenttemp, rT)
+            bg > 165 && delta > 0 && smbToGive == 0.0f && !honeymoon -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because bg is greater than 165 and SMB = 0U.", currenttemp, rT)
+            bg > 165 && delta > 0 && smbToGive == 0.0f && honeymoon -> calculateRate(basal, profile_current_basal, 5.0, "AI Force basal because bg is greater than 165 and SMB = 0U.", currenttemp, rT)
             else -> null
         }
         rate?.let {
@@ -1478,7 +1481,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-V3-DBA2, 10 May 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-V3-DBA2, 11 May 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |modelcal: $modelcal
