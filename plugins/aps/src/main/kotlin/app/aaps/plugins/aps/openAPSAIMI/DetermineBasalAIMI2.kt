@@ -80,10 +80,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     private var lastHourTIRLow: Double = 0.0
     private var lastHourTIRLow100: Double = 0.0
     private var lastHourTIRabove170: Double = 0.0
-    private var lastHourTIRabove140: Double = 0.0
+    private var lastHourTIRabove120: Double = 0.0
     private var bg = 0.0
-    private var targetBg = 100.0f
-    private var normalBgThreshold = 140.0f
+    private var targetBg = 90.0f
+    private var normalBgThreshold = 120.0f
     private var delta = 0.0f
     private var shortAvgDelta = 0.0f
     private var longAvgDelta = 0.0f
@@ -413,7 +413,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (interval) conditionsTrue.add("interval")
         val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 12
         if (targetinterval) conditionsTrue.add("targetinterval")
-        val stablebg = delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 140 && !mealTime && !highCarbTime && !lunchTime && !dinnerTime
+        val stablebg = delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 120 && !mealTime && !highCarbTime && !lunchTime && !dinnerTime
         if (stablebg) conditionsTrue.add("stablebg")
         val acceleratingDown = delta < -2 && delta - longAvgDelta < -2 && lastsmbtime < 15
         if (acceleratingDown) conditionsTrue.add("acceleratingDown")
@@ -483,16 +483,16 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
     private fun shouldApplyIntervalAdjustment(intervalSMBsnack: Int, intervalSMBmeal: Int, intervalSMBlunch: Int, intervalSMBdinner: Int, intervalSMBsleep: Int, intervalSMBhc: Int, intervalSMBhighBG: Int): Boolean {
         return (lastsmbtime < intervalSMBsnack && snackTime) || (lastsmbtime < intervalSMBmeal && mealTime) || (lastsmbtime < intervalSMBlunch && lunchTime) || (lastsmbtime < intervalSMBdinner && dinnerTime) ||
-            (lastsmbtime < intervalSMBsleep && sleepTime) || (lastsmbtime < intervalSMBhc && highCarbTime) || (lastsmbtime < intervalSMBhighBG && bg > 140)
+            (lastsmbtime < intervalSMBsleep && sleepTime) || (lastsmbtime < intervalSMBhc && highCarbTime) || (lastsmbtime < intervalSMBhighBG && bg > 120)
     }
 
     private fun shouldApplySafetyAdjustment(): Boolean {
-        val safetysmb = recentSteps180Minutes > 1500 && bg < 140
+        val safetysmb = recentSteps180Minutes > 1500 && bg < 120
         return (safetysmb || lowCarbTime) && lastsmbtime >= 15
     }
 
     private fun shouldApplyTimeAdjustment(): Boolean {
-        val safetysmb = recentSteps180Minutes > 1500 && bg < 140
+        val safetysmb = recentSteps180Minutes > 1500 && bg < 120
         return (safetysmb || lowCarbTime) && lastsmbtime < 15
     }
 
@@ -646,12 +646,12 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         return if (globalConvergenceReached) finalRefinedSMB else predictedSMB
     }
-    private fun calculateGFactor(delta: Float, lastHourTIRabove140: Double, bg: Float): Double {
+    private fun calculateGFactor(delta: Float, lastHourTIRabove120: Double, bg: Float): Double {
         val deltaFactor = delta / 10 // Ajuster selon les besoins
-        val bgFactor = if (bg > 140) 1.2 else if (bg < 100) 0.7 else 1.0
+        val bgFactor = if (bg > 120) 1.2 else if (bg < 100) 0.7 else 1.0
 
         // Introduire un facteur basé sur lastHourTIRabove170
-        val tirFactor = 1.0 + lastHourTIRabove140 * 0.05 // Exemple: 5% d'augmentation pour chaque unité de lastHourTIRabove170
+        val tirFactor = 1.0 + lastHourTIRabove120 * 0.05 // Exemple: 5% d'augmentation pour chaque unité de lastHourTIRabove170
 
         // Combinez les facteurs pour obtenir un ajustement global
         return deltaFactor * bgFactor * tirFactor
@@ -669,7 +669,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val hypoAdjustment = if (bg < 120 || (iob > 3 * maxSMB)) 0.8f else 1.0f
         val factorAdjustment = if (bg < 100) 0.2f else 0.3f
         val bgAdjustment = 1.0f + (Math.log(Math.abs(adjustedDelta.toDouble()) + 1) - 1) * factorAdjustment
-        val scalingFactor = 1.0f - (bg - targetBg).toFloat() / (140 - targetBg) * 0.5f
+        val scalingFactor = 1.0f - (bg - targetBg).toFloat() / (120 - targetBg) * 0.5f
         val maxIncreaseFactor = 1.7f
         val maxDecreaseFactor = 0.7f // Limite la diminution à 30% de la valeur d'origine
 
@@ -885,7 +885,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         this.maxIob = preferences.get(DoubleKey.ApsSmbMaxIob)
         this.maxSMB = preferences.get(DoubleKey.OApsAIMIMaxSMB)
         this.maxSMBHB = preferences.get(DoubleKey.OApsAIMIHighBGMaxSMB)
-        this.maxSMB = if (bg > 140) maxSMBHB else maxSMB
+        this.maxSMB = if (bg > 120) maxSMBHB else maxSMB
         this.tir1DAYabove = tirCalculator.averageTIR(tirCalculator.calculate(1, 65.0, 180.0))?.abovePct()!!
         this.currentTIRLow = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.belowPct()!!
         this.currentTIRRange = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.inRangePct()!!
@@ -894,11 +894,11 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val lastHourTIRAbove = tirCalculator.averageTIR(tirCalculator.calculateHour(72.0, 140.0))?.abovePct()
         this.lastHourTIRLow100 = tirCalculator.averageTIR(tirCalculator.calculateHour(100.0,140.0))?.belowPct()!!
         this.lastHourTIRabove170 = tirCalculator.averageTIR(tirCalculator.calculateHour(100.0,170.0))?.abovePct()!!
-        this.lastHourTIRabove140 = tirCalculator.averageTIR(tirCalculator.calculateHour(100.0,140.0))?.abovePct()!!
-        val tirbasal3IR = tirCalculator.averageTIR(tirCalculator.calculate(3, 65.0, 130.0))?.inRangePct()
-        val tirbasal3B = tirCalculator.averageTIR(tirCalculator.calculate(3, 65.0, 130.0))?.belowPct()
-        val tirbasal3A = tirCalculator.averageTIR(tirCalculator.calculate(3, 65.0, 130.0))?.abovePct()
-        val tirbasalhAP = tirCalculator.averageTIR(tirCalculator.calculateHour(65.0, 115.0))?.abovePct()
+        this.lastHourTIRabove120 = tirCalculator.averageTIR(tirCalculator.calculateHour(100.0,120.0))?.abovePct()!!
+        val tirbasal3IR = tirCalculator.averageTIR(tirCalculator.calculate(3, 65.0, 120.0))?.inRangePct()
+        val tirbasal3B = tirCalculator.averageTIR(tirCalculator.calculate(3, 65.0, 120.0))?.belowPct()
+        val tirbasal3A = tirCalculator.averageTIR(tirCalculator.calculate(3, 65.0, 120.0))?.abovePct()
+        val tirbasalhAP = tirCalculator.averageTIR(tirCalculator.calculateHour(65.0, 100.0))?.abovePct()
         this.enablebasal = preferences.get(BooleanKey.OApsAIMIEnableBasal)
         //this.now = System.currentTimeMillis()
         val calendarInstance = Calendar.getInstance()
@@ -1287,14 +1287,14 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         this.variableSensitivity = max(
             profile.sens.toFloat() / 4.0f,
-            sens.toFloat() * calculateGFactor(delta, lastHourTIRabove140, bg.toFloat()).toFloat()
+            sens.toFloat() * calculateGFactor(delta, lastHourTIRabove120, bg.toFloat()).toFloat()
         )
 
         if (recentSteps5Minutes > 100 && recentSteps10Minutes > 200 && bg < 130 && delta < 10 || recentSteps180Minutes > 1500 && bg < 130 && delta < 10) {
-            this.variableSensitivity *= 1.5f * calculateGFactor(delta, lastHourTIRabove140, bg.toFloat()).toFloat()
+            this.variableSensitivity *= 1.5f * calculateGFactor(delta, lastHourTIRabove120, bg.toFloat()).toFloat()
         }
         if (recentSteps30Minutes > 500 && recentSteps5Minutes >= 0 && recentSteps5Minutes < 100 && bg < 130 && delta < 10) {
-            this.variableSensitivity *= 1.3f * calculateGFactor(delta, lastHourTIRabove140, bg.toFloat()).toFloat()
+            this.variableSensitivity *= 1.3f * calculateGFactor(delta, lastHourTIRabove120, bg.toFloat()).toFloat()
         }
         if (variableSensitivity < 2) this.variableSensitivity = profile.sens.toFloat()
         if (variableSensitivity > (3 * profile.sens.toFloat())) this.variableSensitivity = profile.sens.toFloat() * 3
@@ -1402,7 +1402,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         // Appliquer les ajustements en fonction de l'heure de la journée
         smbToGive = when {
             bg > 160 && delta > 4 && iob < 0.7 && honeymoon && smbToGive == 0.0f && LocalTime.now().run { (hour in 23..23 || hour in 0..6) } -> 0.15f
-            bg > 140 && delta > 8 &&  iob < 1.0 && !honeymoon && smbToGive < 0.1f -> profile_current_basal.toFloat()
+            bg > 120 && delta > 8 &&  iob < 1.0 && !honeymoon && smbToGive < 0.1f -> profile_current_basal.toFloat()
             highCarbTime -> smbToGive * highcarbfactor.toFloat()
             mealTime -> smbToGive * mealfactor.toFloat()
             lunchTime -> smbToGive * lunchfactor.toFloat()
@@ -1412,7 +1412,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             hourOfDay in 1..11 -> smbToGive * adjustedMorningFactor.toFloat()
             hourOfDay in 12..18 -> smbToGive * adjustedAfternoonFactor.toFloat()
             hourOfDay in 19..23 -> smbToGive * adjustedEveningFactor.toFloat()
-            bg > 140 -> smbToGive * hyperfactor.toFloat()
+            bg > 120 -> smbToGive * hyperfactor.toFloat()
             else -> smbToGive
         }
         rT.reason.append("adjustedMorningFactor $adjustedMorningFactor")
@@ -1452,7 +1452,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             !honeymoon && delta in 0.0 .. 7.0 && bg in 81.0..111.0 -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because bg lesser than 110 and delta lesser than 8", currenttemp, rT)
             honeymoon && delta in 0.0.. 6.0 && bg in 99.0..141.0 -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because honeymoon and bg lesser than 140 and delta lesser than 6", currenttemp, rT)
             bg in 81.0..99.0 && delta in 3.0..7.0 && honeymoon -> calculateRate(basal, profile_current_basal, 1.0, "AI Force basal because bg is between 80 and 100 with a small delta.", currenttemp, rT)
-            bg > 165 && delta > 0 && smbToGive == 0.0f && !honeymoon -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because bg is greater than 165 and SMB = 0U.", currenttemp, rT)
+            bg > 145 && delta > 0 && smbToGive == 0.0f && !honeymoon -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because bg is greater than 145 and SMB = 0U.", currenttemp, rT)
             bg > 165 && delta > 0 && smbToGive == 0.0f && honeymoon -> calculateRate(basal, profile_current_basal, 5.0, "AI Force basal because bg is greater than 165 and SMB = 0U.", currenttemp, rT)
             else -> null
         }
@@ -1550,7 +1550,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     |currentTIRAbove: $currentTIRAbove
     |lastHourTIRLow: $lastHourTIRLow<br>$lineSeparator
     |lastHourTIRLow100: $lastHourTIRLow100
-    |lastHourTIRabove140: $lastHourTIRabove140
+    |lastHourTIRabove120: $lastHourTIRabove120
     |lastHourTIRabove170: $lastHourTIRabove170<br>$lineSeparator
     |isCriticalSafetyCondition: $conditionResult, True Conditions: $conditionsTrue<br>$lineSeparator
     |lastBolusSMBMinutes: $lastBolusSMBMinutes<br>$lineSeparator
