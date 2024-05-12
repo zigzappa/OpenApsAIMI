@@ -33,6 +33,8 @@ import java.util.Calendar
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.abs
+import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -111,7 +113,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     private var recentSteps180Minutes: Int = 0
     private var basalaimi = 0.0f
     private var aimilimit = 0.0f
-    private var CI = 0.0f
+    private var ci = 0.0f
     private var sleepTime = false
     private var sportTime = false
     private var snackTime = false
@@ -152,12 +154,12 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     // we expect BG to rise or fall at the rate of BGI,
     // adjusted by the rate at which BG would need to rise /
     // fall to get eventualBG to target over 2 hours
-    private fun calculateExpectedDelta(targetBg: Double, eventualBg: Double, bgi: Double): Double {
-        // (hours * mins_per_hour) / 5 = how many 5 minute periods in 2h = 24
-        val fiveMinBlocks = (2 * 60) / 5
-        val targetDelta = targetBg - eventualBg
-        return /* expectedDelta */ round(bgi + (targetDelta / fiveMinBlocks), 1)
-    }
+    // private fun calculateExpectedDelta(targetBg: Double, eventualBg: Double, bgi: Double): Double {
+    //     // (hours * mins_per_hour) / 5 = how many 5 minute periods in 2h = 24
+    //     val fiveMinBlocks = (2 * 60) / 5
+    //     val targetDelta = targetBg - eventualBg
+    //     return /* expectedDelta */ round(bgi + (targetDelta / fiveMinBlocks), 1)
+    //}
     private fun calculateRate(basal: Double, currentBasal: Double, multiplier: Double, reason: String, currenttemp: CurrentTemp, rT: RT): Double {
         rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} $reason")
         return if (basal == 0.0) currentBasal * multiplier else roundBasal(basal * multiplier)
@@ -168,7 +170,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     private fun convertBG(value: Double): String =
         profileUtil.fromMgdlToStringInUnits(value).replace("-0.0", "0.0")
 
-    private fun enablesmb(profile: OapsProfile, microBolusAllowed: Boolean, meal_data: MealData, target_bg: Double): Boolean {
+    private fun enablesmb(profile: OapsProfile, microBolusAllowed: Boolean, mealData: MealData, target_bg: Double): Boolean {
         // disable SMB when a high temptarget is set
         if (!microBolusAllowed) {
             consoleError.add("SMB disabled (!microBolusAllowed)")
@@ -185,14 +187,14 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
 
         // enable SMB/UAM (if enabled in preferences) while we have COB
-        if (profile.enableSMB_with_COB && meal_data.mealCOB != 0.0) {
-            consoleError.add("SMB enabled for COB of ${meal_data.mealCOB}")
+        if (profile.enableSMB_with_COB && mealData.mealCOB != 0.0) {
+            consoleError.add("SMB enabled for COB of ${mealData.mealCOB}")
             return true
         }
 
         // enable SMB/UAM (if enabled in preferences) for a full 6 hours after any carb entry
         // (6 hours is defined in carbWindow in lib/meal/total.js)
-        if (profile.enableSMB_after_carbs && meal_data.carbs != 0.0) {
+        if (profile.enableSMB_after_carbs && mealData.carbs != 0.0) {
             consoleError.add("SMB enabled for 6h after carb entry")
             return true
         }
@@ -620,7 +622,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                         if (delta > 10 && bg > 100) {
                             isAggressiveResponseNeeded = true
                         }
-                        val difference = kotlin.math.abs(predictedrefineSMB - refinedSMB)
+                        val difference = abs(predictedrefineSMB - refinedSMB)
                         totalDifference += difference
                         if (difference in 0.0..2.5) {
                             finalRefinedSMB = if (refinedSMB > 0.0f) refinedSMB else 0.0f
@@ -668,7 +670,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         val hypoAdjustment = if (bg < 120 || (iob > 3 * maxSMB)) 0.8f else 1.0f
         val factorAdjustment = if (bg < 100) 0.2f else 0.3f
-        val bgAdjustment = 1.0f + (Math.log(Math.abs(adjustedDelta.toDouble()) + 1) - 1) * factorAdjustment
+        val bgAdjustment = 1.0f + (ln(abs(adjustedDelta.toDouble()) + 1) - 1) * factorAdjustment
         val scalingFactor = 1.0f - (bg - targetBg).toFloat() / (120 - targetBg) * 0.5f
         val maxIncreaseFactor = 1.7f
         val maxDecreaseFactor = 0.7f // Limite la diminution à 30% de la valeur d'origine
@@ -758,7 +760,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         iob: Float,
         variableSensitivity: Float,
         cob: Float,
-        CI: Float,
+        ci: Float,
         mealTime: Boolean,
         lunchTime: Boolean,
         dinnerTime: Boolean,
@@ -781,8 +783,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             averageBeatsPerMinute.toFloat(), averageBeatsPerMinute10.toFloat(),profile.insulinDivisor.toFloat()
         )
 
-        val carbEffect = if (absorptionTimeInMinutes != 0f && CI > 0f) {
-            (estimatedCob / absorptionTimeInMinutes) * CI * carbTypeFactor
+        val carbEffect = if (absorptionTimeInMinutes != 0f && ci > 0f) {
+            (estimatedCob / absorptionTimeInMinutes) * ci * carbTypeFactor
         } else {
             0f
         }
@@ -862,7 +864,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         return notes
     }
     fun determine_basal(
-        glucose_status: GlucoseStatus, currenttemp: CurrentTemp, iob_data_array: Array<IobTotal>, profile: OapsProfile, autosens_data: AutosensResult, meal_data: MealData,
+        glucose_status: GlucoseStatus, currenttemp: CurrentTemp, iob_data_array: Array<IobTotal>, profile: OapsProfile, autosens_data: AutosensResult, mealData: MealData,
         microBolusAllowed: Boolean, currentTime: Long, flatBGsDetected: Boolean, dynIsfMode: Boolean
     ): RT {
         consoleError.clear()
@@ -880,7 +882,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val lastBolusSMBTime = getlastBolusSMB?.timestamp ?: 0L
         val lastBolusSMBMinutes = lastBolusSMBTime / 60000
         this.lastBolusSMBUnit = getlastBolusSMB?.amount?.toFloat() ?: 0.0F
-        val diff = Math.abs(now - lastBolusSMBTime)
+        val diff = abs(now - lastBolusSMBTime)
         this.lastsmbtime = (diff / (60 * 1000)).toInt()
         this.maxIob = preferences.get(DoubleKey.ApsSmbMaxIob)
         this.maxSMB = preferences.get(DoubleKey.OApsAIMIMaxSMB)
@@ -905,7 +907,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         this.hourOfDay = calendarInstance[Calendar.HOUR_OF_DAY]
         val dayOfWeek = calendarInstance[Calendar.DAY_OF_WEEK]
         this.weekend = if (dayOfWeek == Calendar.SUNDAY || dayOfWeek == Calendar.SATURDAY) 1 else 0
-        var lastCarbTimestamp = meal_data.lastCarbTime
+        var lastCarbTimestamp = mealData.lastCarbTime
         if (lastCarbTimestamp.toInt() == 0) {
             val oneDayAgoIfNotFound = now - 24 * 60 * 60 * 1000
             lastCarbTimestamp = persistenceLayer.getMostRecentCarbByDate() ?: oneDayAgoIfNotFound
@@ -1146,7 +1148,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         val minDelta = min(glucose_status.delta, glucose_status.shortAvgDelta)
         val minAvgDelta = min(glucose_status.shortAvgDelta, glucose_status.longAvgDelta)
-        val maxDelta = max(glucose_status.delta, max(glucose_status.shortAvgDelta, glucose_status.longAvgDelta))
+        // val maxDelta = max(glucose_status.delta, max(glucose_status.shortAvgDelta, glucose_status.longAvgDelta))
         val tdd7P: Double = preferences.get(DoubleKey.OApsAIMITDD7)
         var tdd7Days = profile.TDD
         if (tdd7Days == 0.0 || tdd7Days < tdd7P) tdd7Days = tdd7P
@@ -1167,7 +1169,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         var sens = profile.variable_sens
         this.variableSensitivity = sens.toFloat()
         consoleError.add("CR:${profile.carb_ratio}")
-        this.predictedBg = predictFutureBg(bg.toFloat(), iob, variableSensitivity, cob, CI,mealTime,lunchTime,dinnerTime,highCarbTime,snackTime,profile)
+        this.predictedBg = predictFutureBg(bg.toFloat(), iob, variableSensitivity, cob, ci,mealTime,lunchTime,dinnerTime,highCarbTime,snackTime,profile)
         val insulinEffect = calculateInsulinEffect(bg.toFloat(),iob,variableSensitivity,cob,normalBgThreshold,recentSteps180Minutes,averageBeatsPerMinute.toFloat(),averageBeatsPerMinute10.toFloat(),profile.insulinDivisor.toFloat())
 
         val now = System.currentTimeMillis()
@@ -1249,12 +1251,12 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         this.basalaimi = calculateSmoothBasalRate(tdd7P.toFloat(),tdd7Days.toFloat(),basalaimi)
         if (tdd7Days.toFloat() != 0.0f) {
-            this.CI = (450 / tdd7Days).toFloat()
+            this.ci = (450 / tdd7Days).toFloat()
         }
 
         val choKey: Double = preferences.get(DoubleKey.OApsAIMICHO)
-        if (CI != 0.0f && CI != Float.POSITIVE_INFINITY && CI != Float.NEGATIVE_INFINITY) {
-            this.aimilimit = (choKey / CI).toFloat()
+        if (ci != 0.0f && ci != Float.POSITIVE_INFINITY && ci != Float.NEGATIVE_INFINITY) {
+            this.aimilimit = (choKey / ci).toFloat()
         } else {
             this.aimilimit = (choKey / profile.carb_ratio).toFloat()
         }
@@ -1347,7 +1349,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             }
         }
 
-        val expectedDelta = calculateExpectedDelta(target_bg, eventualBG, bgi)
+        //val expectedDelta = calculateExpectedDelta(target_bg, eventualBG, bgi)
         val modelcal = calculateSMBFromModel()
         // min_bg of 90 -> threshold of 65, 100 -> 70 110 -> 75, and 130 -> 85
         var threshold = min_bg - 0.5 * (min_bg - 40)
@@ -1359,7 +1361,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             }
         }
         this.predictedSMB = modelcal
-        if ((preferences.get(BooleanKey.OApsAIMIMLtraining) == true) && csvfile.exists()){
+        if (preferences.get(BooleanKey.OApsAIMIMLtraining) && csvfile.exists()){
             val allLines = csvfile.readLines()
             val minutesToConsider = 2500.0
             val linesToConsider = (minutesToConsider / 5).toInt()
@@ -1463,14 +1465,14 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             return rT
         }
 
-        val enableSMB = enablesmb(profile, microBolusAllowed, meal_data, target_bg)
+        val enableSMB = enablesmb(profile, microBolusAllowed, mealData, target_bg)
         val csf = sens / profile.carb_ratio
         consoleError.add("profile.sens: ${profile.sens}, sens: $sens, CSF: $csf")
 
-        rT.COB = meal_data.mealCOB
+        rT.COB = mealData.mealCOB
         rT.IOB = iob_data.iob
         rT.reason.append(
-            "COB: ${round(meal_data.mealCOB, 1).withoutZeros()}, Dev: ${convertBG(deviation.toDouble())}, BGI: ${convertBG(bgi)}, ISF: ${convertBG(sens)}, CR: ${
+            "COB: ${round(mealData.mealCOB, 1).withoutZeros()}, Dev: ${convertBG(deviation.toDouble())}, BGI: ${convertBG(bgi)}, ISF: ${convertBG(sens)}, CR: ${
                 round(profile.carb_ratio, 2)
                     .withoutZeros()
             }, Target: ${convertBG(target_bg)}}"
@@ -1479,7 +1481,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 11 May 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 12 May 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
