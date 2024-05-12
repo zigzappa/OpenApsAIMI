@@ -491,7 +491,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 iob_data_array = iobArray,
                 profile = oapsProfile,
                 autosens_data = autosensResult,
-                meal_data = mealData,
+                mealData = mealData,
                 microBolusAllowed = microBolusAllowed,
                 currentTime = now,
                 flatBGsDetected = flatBGsDetected,
