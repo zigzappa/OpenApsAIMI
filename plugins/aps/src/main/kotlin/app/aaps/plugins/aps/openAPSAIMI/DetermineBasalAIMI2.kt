@@ -403,6 +403,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (belowTargetAndDropping) conditionsTrue.add("belowTargetAndDropping")
         val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 10 && !mealTime && !highCarbTime && !lunchTime && !dinnerTime
         if (belowTargetAndStableButNoCob) conditionsTrue.add("belowTargetAndStableButNoCob")
+        val deceleratingUP = decceleratingUp == 1 && delta <= 0 && bg < 180
+        if (deceleratingUP) conditionsTrue.add("deceleratingUP")
         val droppingFast = bg < 130 && delta < -5
         if (droppingFast) conditionsTrue.add("droppingFast")
         val droppingFastAtHigh = bg < 220 && delta < -7
@@ -426,7 +428,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val bg90 = bg < 90
         if (bg90) conditionsTrue.add("bg90")
         val result = belowTargetAndDropping || belowTargetAndStableButNoCob || nosmbHM ||
-            droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval || bg90 ||
+            droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval || bg90 || deceleratingUP ||
             fasting || nosmb || isNewCalibration || stablebg || belowMinThreshold || acceleratingDown || decceleratingdown || nosmbhoneymoon
 
         val conditionsTrueString = if (conditionsTrue.isNotEmpty()) {
