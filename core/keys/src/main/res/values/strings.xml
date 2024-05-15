@@ -28,4 +28,5 @@
     <string name="key_oaps_aimi_dinner_factor">key_oaps_aimi_dinner_factor</string>
     <string name="key_prebolus2_lunch_mode">key_prebolus2_lunch_mode</string>
     <string name="key_prebolus2_dinner_mode">key_prebolus2_dinner_mode</string>
+    <string name="key_enable_ML_LearningRate">key_enable_ML_LearningRate</string>
 </resources>

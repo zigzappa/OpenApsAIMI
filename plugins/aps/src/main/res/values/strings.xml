@@ -299,5 +299,6 @@
     <string name="OApsAIMI_DinnerFactor_title">Dinner mode reactitivy</string>
     <string name="oaps_aimi_Dinner_interval_summary">Dinner mode Interval</string>
     <string name="oaps_aimi_Dinner_interval_title">Dinner mode Interval</string>
+    <string name="oaps_aimi_enableMlLearningRate_title">Enable Learning Rate variable for better adjustment</string>
 
 </resources>

@@ -132,7 +132,7 @@ class AimiNeuralNetwork(
         validationRawInputs: List<FloatArray>,
         validationTargets: List<DoubleArray>,
         epochs: Int,
-        batchSize: Int = 32,
+        batchSize: Float = 32.0f,
         patience: Int = 10
     ) {
         var bestLoss = Double.MAX_VALUE
@@ -151,7 +151,7 @@ class AimiNeuralNetwork(
         for (epoch in 1..epochs) {
             var totalLoss = 0.0
             try {
-                normalizedInputs.chunked(batchSize).zip(targets.chunked(batchSize)).forEach { (batchInputs, batchTargets) ->
+                normalizedInputs.chunked(batchSize.toInt()).zip(targets.chunked(batchSize.toInt())).forEach { (batchInputs, batchTargets) ->
                     batchInputs.zip(batchTargets).forEach { (input, target) ->
                         val output = forwardPass(input).second
                         totalLoss += mseLoss(output, target) + l2Regularization()

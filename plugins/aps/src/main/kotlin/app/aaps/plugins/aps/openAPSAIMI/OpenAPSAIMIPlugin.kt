@@ -621,6 +621,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 key = "Training_ML_Modes"
                 title = "Training ML and Modes"
                 addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.OApsAIMIMLtraining, title = R.string.oaps_aimi_enableMlTraining_title))
+                addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.OApsAIMIMLLearningRate, title = R.string.oaps_aimi_enableMlLearningRate_title))
                 addPreference(preferenceManager.createPreferenceScreen(context).apply {
                     key = "mode_meal"
                     title = "Meal Mode settings"
