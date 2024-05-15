@@ -599,7 +599,14 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                     return predictedSMB
                 }
                 val epochs = 30000.0
-                val learningRate = 0.001
+                val learningRate = when {
+                    bg in (81.0..129.0) -> 0.00001
+                    bg in (130.0 .. 159.0) -> 0.0001
+                    bg in (160.0 .. 199.0) -> 0.001
+                    bg >= 200 -> 0.01
+
+                    else -> {0.0001}
+                }
                 // Déterminer la taille de l'ensemble de validation
                 val validationSize = (inputs.size * 0.1).toInt() // Par exemple, 10% pour la validation
 
@@ -1481,7 +1488,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 14 May 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 15 May 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
