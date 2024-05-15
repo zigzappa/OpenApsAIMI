@@ -599,14 +599,20 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                     return predictedSMB
                 }
                 val epochs = 30000.0
-                val learningRate = when {
-                    bg in (81.0..129.0) -> 0.00001
-                    bg in (130.0 .. 159.0) -> 0.0001
-                    bg in (160.0 .. 199.0) -> 0.001
-                    bg >= 200 -> 0.01
+                var learningRate: Float
+                if (preferences.get(BooleanKey.OApsAIMIMLLearningRate)){
+                    learningRate = 0.001f
+                }else{
+                    learningRate = when {
+                        bg in (81.0..129.0) -> 0.00001f
+                        bg in (130.0 .. 159.0) -> 0.0001f
+                        bg in (160.0 .. 199.0) -> 0.001f
+                        bg >= 200 -> 0.01f
 
-                    else -> {0.0001}
+                        else -> 0.0001f
+                    }
                 }
+
                 // Déterminer la taille de l'ensemble de validation
                 val validationSize = (inputs.size * 0.1).toInt() // Par exemple, 10% pour la validation
 
@@ -618,7 +624,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
                 // Création et entraînement du réseau de neurones
                 val neuralNetwork = AimiNeuralNetwork(inputs.first().size, 5, 1)
-                neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs.toInt(), learningRate.toInt())
+                neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs.toInt(), learningRate)
 
                 do {
                     totalDifference = 0.0f
