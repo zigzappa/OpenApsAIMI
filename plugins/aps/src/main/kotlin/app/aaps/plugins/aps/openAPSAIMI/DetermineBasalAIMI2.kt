@@ -603,12 +603,12 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 val epochs = 30000.0
                 var learningRate: Float
                 if (preferences.get(BooleanKey.OApsAIMIMLLearningRate)){
-                     learningRate = 0.001f
+                    learningRate = 0.001f
                 }else{
-                     learningRate = when {
-                        bg in (81.0..129.0) -> 0.00001f
-                        bg in (130.0 .. 159.0) -> 0.0001f
-                        bg in (160.0 .. 199.0) -> 0.001f
+                    learningRate = when {
+                        bg in (81.0..119.0) -> 0.00001f
+                        bg in (120.0 .. 139.0) -> 0.0001f
+                        bg in (140.0 .. 200.0) -> 0.001f
                         bg >= 200 -> 0.01f
 
                         else -> 0.0001f
