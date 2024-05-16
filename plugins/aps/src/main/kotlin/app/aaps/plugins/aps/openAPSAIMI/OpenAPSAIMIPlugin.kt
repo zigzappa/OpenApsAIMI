@@ -201,8 +201,9 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         // Détecter si les pas récents indiquent une faible activité physique
         val isLowActivity = recentSteps10Minutes < lowActivityThreshold
 
-        // Détecter un repas basé sur l'une des conditions
-        return isRapidBgIncrease || isNearTypicalMealTime || isLowActivity
+        val isMealAnticipated = (isLowActivity && (isRapidBgIncrease || isNearTypicalMealTime)) || isRapidBgIncrease || isNearTypicalMealTime
+
+        return isMealAnticipated
     }
 
 

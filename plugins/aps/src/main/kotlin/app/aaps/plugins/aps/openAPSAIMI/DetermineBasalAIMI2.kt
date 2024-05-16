@@ -898,8 +898,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         // Détecter si les pas récents indiquent une faible activité physique
         val isLowActivity = recentSteps10Minutes < lowActivityThreshold
 
-        // Détecter un repas basé sur l'une des conditions
-        return isRapidBgIncrease || isNearTypicalMealTime || isLowActivity
+        val isMealAnticipated = (isLowActivity && (isRapidBgIncrease || isNearTypicalMealTime)) || isRapidBgIncrease || isNearTypicalMealTime
+
+        return isMealAnticipated
     }
 
 
@@ -1541,6 +1542,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             appendLine()
             appendLine("modelcal: {modelcal}")
             appendLine("predictedSMB: {predictedSMB}")
+            appendLine("isMealAnticipated: {isMealAnticipated}")
             appendLine("Max IOB: {maxIob}")
             appendLine("Max SMB: {maxSMB}")
             appendLine("sleep: {sleepTime}")
@@ -1631,6 +1633,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 "modelcal" to modelcal,
                 "predictedSMB" to predictedSMB,
                 "smbToGive" to smbToGive,
+                "isMealAnticipated" to isMealAnticipated,
                 "adjustedFactors" to adjustedFactors,
                 "maxIob" to maxIob,
                 "maxSMB" to maxSMB,
