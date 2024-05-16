@@ -604,9 +604,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                     learningRate = 0.001f
                 }else{
                     learningRate = when {
-                        bg in (81.0..129.0) -> 0.00001f
-                        bg in (130.0 .. 159.0) -> 0.0001f
-                        bg in (160.0 .. 199.0) -> 0.001f
+                        bg in (81.0..119.0) -> 0.00001f
+                        bg in (120.0 .. 139.0) -> 0.0001f
+                        bg in (140.0 .. 199.0) -> 0.001f
                         bg >= 200 -> 0.01f
 
                         else -> 0.0001f
@@ -1494,7 +1494,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 15 May 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 16 May 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
