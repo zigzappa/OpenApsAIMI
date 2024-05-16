@@ -606,7 +606,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                     learningRate = when {
                         bg in (81.0..119.0) -> 0.00001f
                         bg in (120.0 .. 139.0) -> 0.0001f
-                        bg in (140.0 .. 199.0) -> 0.001f
+                        bg in (140.0 .. 200.0) -> 0.001f
                         bg >= 200 -> 0.01f
 
                         else -> 0.0001f
