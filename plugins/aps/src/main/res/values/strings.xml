@@ -300,5 +300,10 @@
     <string name="oaps_aimi_Dinner_interval_summary">Dinner mode Interval</string>
     <string name="oaps_aimi_Dinner_interval_title">Dinner mode Interval</string>
     <string name="oaps_aimi_enableMlLearningRate_title">Enable Learning Rate variable for better adjustment</string>
+    <string name="oaps_aimi_enableMlFCL_title">Full Closed Loop</string>
+    <string name="oaps_aimi_FCLAdjFact_title">Dynisf Full Closed Loop</string>
+    <string name="oaps_aimi_FCLAdjFact_summary">Dynisf Full Closed Loop by automatic detection.</string>
+    <string name="OApsAIMI_FCLFactor_title">FCL Reactivity</string>
+    <string name="OApsAIMI_FCLFactor_summary">% insulin required for SMB in the FCL mode</string>
 
 </resources>

@@ -65,6 +65,7 @@ enum class IntKey(
     OApsAIMIDynISFAdjustment(R.string.key_DynISF_Adjust,100,1,500),
     OApsAIMIDynISFAdjustmentHyper(R.string.key_DynISFAdjusthyper,150,1,500),
     OApsAIMImealAdjISFFact(R.string.key_oaps_aimi_mealAdjFact,200,1,500),
+    OApsAIMIFCLAdjISFFact(R.string.key_oaps_aimi_FCLAdjFact,200,1,500),
     OApsAIMILunchAdjISFFact(R.string.key_oaps_aimi_lunchAdjFact,200,1,500),
     OApsAIMIDinnerAdjISFFact(R.string.key_oaps_aimi_dinnerAdjFact,200,1,500),
     OApsAIMIsleepAdjISFFact(R.string.key_oaps_aimi_sleepAdjFact,150,1,500),

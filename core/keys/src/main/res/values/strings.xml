@@ -29,4 +29,7 @@
     <string name="key_prebolus2_lunch_mode">key_prebolus2_lunch_mode</string>
     <string name="key_prebolus2_dinner_mode">key_prebolus2_dinner_mode</string>
     <string name="key_enable_ML_LearningRate">key_enable_ML_LearningRate</string>
+    <string name="key_enable_ML_FCL">key_enable_ML_FCL</string>
+    <string name="key_oaps_aimi_FCL_factor">key_oaps_aimi_FCL_factor</string>
+    <string name="key_oaps_aimi_FCLAdjFact">key_oaps_aimi_FCLAdjFact</string>
 </resources>

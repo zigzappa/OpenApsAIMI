@@ -876,6 +876,45 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         notes = processNotesAndCleanUp(notes)
         return notes
     }
+    private fun isMealAnticipated(
+        bg: Float,
+        delta: Float,
+        shortAvgDelta: Float,
+        longAvgDelta: Float,
+        hourOfDay: Int,
+        recentSteps10Minutes: Int,
+        historicalMealTimes: List<Int> // Liste des heures typiques des repas
+    ): Boolean {
+        val significantDelta = 5.0f // Définir une augmentation significative de la glycémie
+        val lowActivityThreshold = 100 // Seuil d'activité physique faible
+        val rapidIncreaseThreshold = 3.0f // Seuil de delta pour une augmentation rapide
+
+        // Détecter une augmentation rapide de la glycémie
+        val isRapidBgIncrease = delta > significantDelta && shortAvgDelta > rapidIncreaseThreshold
+
+        // Détecter si l'heure actuelle est une heure typique de repas ou proche de celle-ci
+        val isNearTypicalMealTime = historicalMealTimes.any { abs(hourOfDay - it) <= 1 } // +/- 1 heure autour des heures typiques
+
+        // Détecter si les pas récents indiquent une faible activité physique
+        val isLowActivity = recentSteps10Minutes < lowActivityThreshold
+
+        // Détecter un repas basé sur l'une des conditions
+        return isRapidBgIncrease || isNearTypicalMealTime || isLowActivity
+    }
+
+
+    fun anticipateMeal(glucoseStatus: GlucoseStatus, historicalMealTimes: List<Int>): Boolean {
+        val hourOfDay = Calendar.getInstance()[Calendar.HOUR_OF_DAY]
+        return isMealAnticipated(
+            bg = glucoseStatus.glucose.toFloat(),
+            delta = glucoseStatus.delta.toFloat(),
+            shortAvgDelta = glucoseStatus.shortAvgDelta.toFloat(),
+            longAvgDelta = glucoseStatus.longAvgDelta.toFloat(),
+            hourOfDay = hourOfDay,
+            recentSteps10Minutes = recentSteps10Minutes,
+            historicalMealTimes = historicalMealTimes
+        )
+    }
     fun determine_basal(
         glucose_status: GlucoseStatus, currenttemp: CurrentTemp, iob_data_array: Array<IobTotal>, profile: OapsProfile, autosens_data: AutosensResult, mealData: MealData,
         microBolusAllowed: Boolean, currentTime: Long, flatBGsDetected: Boolean, dynIsfMode: Boolean
@@ -889,6 +928,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             consoleLog = consoleLog,
             consoleError = consoleError
         )
+        val historicalMealTimes = listOf(7, 8, 12, 13, 14, 19, 20, 21)
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
         this.bg = glucose_status.glucose
         val getlastBolusSMB = persistenceLayer.getNewestBolusOfType(BS.Type.SMB)
@@ -1392,7 +1432,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }else {
             rT.reason.append("ML Decision data training","ML decision has no enough data to refine the decision")
         }
-
+        val isMealAnticipated = anticipateMeal(glucose_status, historicalMealTimes)
         var smbToGive = if (bg > 160  && delta > 8 && predictedSMB == 0.0f) modelcal else predictedSMB
         smbToGive = if (honeymoon && bg < 170) smbToGive * 0.8f else smbToGive
 
@@ -1406,6 +1446,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val dinnerfactor: Double = preferences.get(DoubleKey.OApsAIMIDinnerFactor) / 100.0
         val snackfactor: Double = preferences.get(DoubleKey.OApsAIMISnackFactor) / 100.0
         val sleepfactor: Double = preferences.get(DoubleKey.OApsAIMIsleepFactor) / 100.0
+        val fclfactor: Double = preferences.get(DoubleKey.OApsAIMIFCLFactor) / 100.0
 
         val adjustedFactors = adjustFactorsBasedOnBgAndHypo(
                 morningfactor.toFloat(), afternoonfactor.toFloat(), eveningfactor.toFloat()
@@ -1423,6 +1464,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             dinnerTime -> smbToGive * dinnerfactor.toFloat()
             snackTime -> smbToGive * snackfactor.toFloat()
             sleepTime -> smbToGive * sleepfactor.toFloat()
+            isMealAnticipated && preferences.get(BooleanKey.OApsAIMIMLFCL) -> smbToGive * fclfactor.toFloat()
             hourOfDay in 1..11 -> smbToGive * adjustedMorningFactor.toFloat()
             hourOfDay in 12..18 -> smbToGive * adjustedAfternoonFactor.toFloat()
             hourOfDay in 19..23 -> smbToGive * adjustedEveningFactor.toFloat()

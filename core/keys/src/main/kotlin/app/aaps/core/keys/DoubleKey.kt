@@ -44,6 +44,7 @@ enum class DoubleKey(
     OApsAIMIAfternoonFactor(R.string.key_oaps_aimi_afternoon_factor,50.0,1.0,150.0),
     OApsAIMIEveningFactor(R.string.key_oaps_aimi_evening_factor,50.0,1.0,150.0),
     OApsAIMIMealFactor(R.string.key_oaps_aimi_meal_factor,50.0,1.0,150.0),
+    OApsAIMIFCLFactor(R.string.key_oaps_aimi_FCL_factor,50.0,1.0,150.0),
     OApsAIMILunchFactor(R.string.key_oaps_aimi_lunch_factor,50.0,1.0,150.0),
     OApsAIMIDinnerFactor(R.string.key_oaps_aimi_dinner_factor,50.0,1.0,150.0),
     OApsAIMIHCFactor(R.string.key_oaps_aimi_HC_factor,50.0,1.0,150.0),
