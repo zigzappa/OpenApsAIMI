@@ -364,7 +364,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     }
     private fun isLunch2ModeCondition(): Boolean {
         val pbolusLunch2: Double = preferences.get(DoubleKey.OApsAIMILunchPrebolus2)
-        return lunchruntime in 15..22 && lastBolusSMBUnit != pbolusLunch2.toFloat() && lunchTime
+        return lunchruntime in 15..30 && lastBolusSMBUnit != pbolusLunch2.toFloat() && lunchTime
     }
     private fun isDinnerModeCondition(): Boolean {
         val pbolusDinner: Double = preferences.get(DoubleKey.OApsAIMIDinnerPrebolus)
@@ -372,7 +372,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     }
     private fun isDinner2ModeCondition(): Boolean {
         val pbolusDinner2: Double = preferences.get(DoubleKey.OApsAIMIDinnerPrebolus2)
-        return dinnerruntime in 15..22 && lastBolusSMBUnit != pbolusDinner2.toFloat() && dinnerTime
+        return dinnerruntime in 15..30 && lastBolusSMBUnit != pbolusDinner2.toFloat() && dinnerTime
     }
     private fun isHighCarbModeCondition(): Boolean {
         val pbolusHC: Double = preferences.get(DoubleKey.OApsAIMIHighCarbPrebolus)
@@ -1497,7 +1497,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 15 May 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 16 May 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
@@ -1587,6 +1587,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
 
         val valueMap = mapOf(
+            "modelcal" to modelcal,
             "predictedSMB" to predictedSMB,
             "smbToGive" to smbToGive,
             "adjustedFactors" to adjustedFactors,
@@ -1644,6 +1645,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             "futureCarbs" to futureCarbs,
             "lastCarbAgeMin" to lastCarbAgeMin,
             "tags0to60minAgo" to tags0to60minAgo,
+            "tags60to120minAgo" to tags60to120minAgo,
             "tags120to180minAgo" to tags120to180minAgo,
             "tags180to240minAgo" to tags180to240minAgo,
             "currentTIRLow" to currentTIRLow,
