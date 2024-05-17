@@ -885,9 +885,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         recentSteps10Minutes: Int,
         historicalMealTimes: List<Int> // Liste des heures typiques des repas
     ): Boolean {
-        val significantDelta = 5.0f // Définir une augmentation significative de la glycémie
+        val significantDelta = 10.0f // Définir une augmentation significative de la glycémie
         val lowActivityThreshold = 100 // Seuil d'activité physique faible
-        val rapidIncreaseThreshold = 3.0f // Seuil de delta pour une augmentation rapide
+        val rapidIncreaseThreshold = 5.0f // Seuil de delta pour une augmentation rapide
 
         // Détecter une augmentation rapide de la glycémie
         val isRapidBgIncrease = delta > significantDelta && shortAvgDelta > rapidIncreaseThreshold
@@ -1537,7 +1537,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 16 May 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 17 May 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
