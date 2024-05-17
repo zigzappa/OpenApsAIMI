@@ -883,28 +883,33 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         longAvgDelta: Float,
         hourOfDay: Int,
         recentSteps10Minutes: Int,
+        lastSmbMinutesAgo: Int,
         historicalMealTimes: List<Int> // Liste des heures typiques des repas
     ): Boolean {
         val significantDelta = 10.0f // Définir une augmentation significative de la glycémie
         val lowActivityThreshold = 100 // Seuil d'activité physique faible
         val rapidIncreaseThreshold = 5.0f // Seuil de delta pour une augmentation rapide
+        val minTimeSinceLastSmb = 15
+        val bgThreshold = 100.0f
 
         // Détecter une augmentation rapide de la glycémie
         val isRapidBgIncrease = delta > significantDelta && shortAvgDelta > rapidIncreaseThreshold
 
         // Détecter si l'heure actuelle est une heure typique de repas ou proche de celle-ci
         val isNearTypicalMealTime = historicalMealTimes.any { abs(hourOfDay - it) <= 1 } // +/- 1 heure autour des heures typiques
-
+        val isBgAboveThreshold = bg > bgThreshold
+        val isTimeSinceLastSmbSufficient = lastSmbMinutesAgo > minTimeSinceLastSmb
         // Détecter si les pas récents indiquent une faible activité physique
         val isLowActivity = recentSteps10Minutes < lowActivityThreshold
+        val isDeltaslowingdown = isTimeSinceLastSmbSufficient && (delta < 5 || shortAvgDelta <= 4 || longAvgDelta <= 3)
 
-        val isMealAnticipated = (isLowActivity && (isRapidBgIncrease || isNearTypicalMealTime)) || isRapidBgIncrease || isNearTypicalMealTime
+        val isMealAnticipated = (isLowActivity && (isRapidBgIncrease || isNearTypicalMealTime)) || isRapidBgIncrease || isNearTypicalMealTime || !isDeltaslowingdown || isBgAboveThreshold
 
         return isMealAnticipated
     }
 
 
-    fun anticipateMeal(glucoseStatus: GlucoseStatus, historicalMealTimes: List<Int>): Boolean {
+    fun anticipateMeal(glucoseStatus: GlucoseStatus,lastSmbMinutesAgo: Int, historicalMealTimes: List<Int>): Boolean {
         val hourOfDay = Calendar.getInstance()[Calendar.HOUR_OF_DAY]
         return isMealAnticipated(
             bg = glucoseStatus.glucose.toFloat(),
@@ -913,7 +918,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             longAvgDelta = glucoseStatus.longAvgDelta.toFloat(),
             hourOfDay = hourOfDay,
             recentSteps10Minutes = recentSteps10Minutes,
-            historicalMealTimes = historicalMealTimes
+            historicalMealTimes = historicalMealTimes,
+            lastSmbMinutesAgo = lastSmbMinutesAgo
         )
     }
     fun determine_basal(
@@ -1433,7 +1439,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }else {
             rT.reason.append("ML Decision data training","ML decision has no enough data to refine the decision")
         }
-        val isMealAnticipated = anticipateMeal(glucose_status, historicalMealTimes)
+        val isMealAnticipated = anticipateMeal(glucose_status,lastsmbtime, historicalMealTimes)
         var smbToGive = if (bg > 160  && delta > 8 && predictedSMB == 0.0f) modelcal else predictedSMB
         smbToGive = if (honeymoon && bg < 170) smbToGive * 0.8f else smbToGive
 

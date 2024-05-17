@@ -10,6 +10,7 @@ import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreference
 import app.aaps.core.data.aps.SMBDefaults
+import app.aaps.core.data.model.BS
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.data.time.T
@@ -186,28 +187,32 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         longAvgDelta: Float,
         hourOfDay: Int,
         recentSteps10Minutes: Int,
-        historicalMealTimes: List<Int> // Liste des heures typiques des repas
+        lastSmbMinutesAgo: Int,
+        historicalMealTimes: List<Int>
     ): Boolean {
-        val significantDelta = 5.0f // Définir une augmentation significative de la glycémie
+        val significantDelta = 10.0f // Définir une augmentation significative de la glycémie
         val lowActivityThreshold = 100 // Seuil d'activité physique faible
-        val rapidIncreaseThreshold = 3.0f // Seuil de delta pour une augmentation rapide
+        val rapidIncreaseThreshold = 5.0f // Seuil de delta pour une augmentation rapide
+        val minTimeSinceLastSmb = 15
+        val bgThreshold = 100.0f
 
         // Détecter une augmentation rapide de la glycémie
         val isRapidBgIncrease = delta > significantDelta && shortAvgDelta > rapidIncreaseThreshold
 
         // Détecter si l'heure actuelle est une heure typique de repas ou proche de celle-ci
         val isNearTypicalMealTime = historicalMealTimes.any { abs(hourOfDay - it) <= 1 } // +/- 1 heure autour des heures typiques
-
+        val isBgAboveThreshold = bg > bgThreshold
+        val isTimeSinceLastSmbSufficient = lastSmbMinutesAgo > minTimeSinceLastSmb
         // Détecter si les pas récents indiquent une faible activité physique
         val isLowActivity = recentSteps10Minutes < lowActivityThreshold
-
-        val isMealAnticipated = (isLowActivity && (isRapidBgIncrease || isNearTypicalMealTime)) || isRapidBgIncrease || isNearTypicalMealTime
+        val isDeltaslowingdown = isTimeSinceLastSmbSufficient && (delta < 5 || shortAvgDelta <= 4 || longAvgDelta <= 3)
+        val isMealAnticipated = (isLowActivity && (isRapidBgIncrease || isNearTypicalMealTime)) || isRapidBgIncrease || isNearTypicalMealTime || !isDeltaslowingdown || isBgAboveThreshold
 
         return isMealAnticipated
     }
 
 
-    fun anticipateMeal(glucoseStatus: GlucoseStatus, historicalMealTimes: List<Int>): Boolean {
+    fun anticipateMeal(glucoseStatus: GlucoseStatus,lastSmbMinutesAgo: Int, historicalMealTimes: List<Int>): Boolean {
         val hourOfDay = Calendar.getInstance()[Calendar.HOUR_OF_DAY]
         val now = System.currentTimeMillis()
         val timeMillis10 = now - 10 * 60 * 1000
@@ -230,7 +235,8 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             longAvgDelta = glucoseStatus.longAvgDelta.toFloat(),
             hourOfDay = hourOfDay,
             recentSteps10Minutes = recentSteps10Minutes,
-            historicalMealTimes = historicalMealTimes
+            historicalMealTimes = historicalMealTimes,
+            lastSmbMinutesAgo = lastSmbMinutesAgo
         )
     }
     private val dynIsfCache = LongSparseArray<Double>()
@@ -271,8 +277,13 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             else                                 -> 75 // rapid peak: 75
         }
         val historicalMealTimes = listOf(7, 8, 12, 13, 14, 19, 20, 21)
+        val getlastBolusSMB = persistenceLayer.getNewestBolusOfType(BS.Type.SMB)
+        val lastBolusSMBTime = getlastBolusSMB?.timestamp ?: 0L
+        val now = dateUtil.now()
+        val diff = abs(now - lastBolusSMBTime)
+        val lastSmbMinutesAgo = (diff / (60 * 1000)).toInt()
         val glucoseStatus = glucoseStatusProvider.glucoseStatusData
-        val isMealAnticipated = glucoseStatus?.let { anticipateMeal(it, historicalMealTimes) }
+        val isMealAnticipated = glucoseStatus?.let { anticipateMeal(it, lastSmbMinutesAgo, historicalMealTimes) }
         val dynISFadjust: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustment).toDouble() / 100.0)
         val dynISFadjusthyper: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustmentHyper).toDouble() / 100.0)
         val mealTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMImealAdjISFFact).toDouble() / 100.0)
@@ -419,7 +430,11 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             val tddLast8to4H = tdd24HrsPerHour * 4
             val bg = glucoseStatusProvider.glucoseStatusData?.glucose
             val historicalMealTimes = listOf(7, 8, 12, 13, 14, 19, 20, 21)
-            val isMealAnticipated = anticipateMeal(glucoseStatus, historicalMealTimes)
+            val getlastBolusSMB = persistenceLayer.getNewestBolusOfType(BS.Type.SMB)
+            val lastBolusSMBTime = getlastBolusSMB?.timestamp ?: 0L
+            val diff = abs(now - lastBolusSMBTime)
+            val lastSmbMinutesAgo = (diff / (60 * 1000)).toInt()
+            val isMealAnticipated = anticipateMeal(glucoseStatus, lastSmbMinutesAgo, historicalMealTimes)
             val dynISFadjust: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustment).toDouble() / 100.0)
             val dynISFadjusthyper: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustmentHyper).toDouble() / 100.0)
             val mealTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMImealAdjISFFact).toDouble() / 100.0)
