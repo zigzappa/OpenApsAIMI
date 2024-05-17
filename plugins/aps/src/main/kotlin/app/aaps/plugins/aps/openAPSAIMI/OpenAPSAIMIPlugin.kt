@@ -194,7 +194,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         val lowActivityThreshold = 100 // Seuil d'activité physique faible
         val rapidIncreaseThreshold = 5.0f // Seuil de delta pour une augmentation rapide
         val minTimeSinceLastSmb = 15
-        val bgThreshold = 100.0f
+        val bgThreshold = if (hourOfDay in 6..9 || hourOfDay in 11..14 || hourOfDay in 18..21) 100.0f else 120.0f
 
         // Détecter une augmentation rapide de la glycémie
         val isRapidBgIncrease = delta > significantDelta && shortAvgDelta > rapidIncreaseThreshold
