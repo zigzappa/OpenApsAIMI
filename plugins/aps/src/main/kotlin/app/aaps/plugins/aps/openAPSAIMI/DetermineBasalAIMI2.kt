@@ -898,7 +898,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         // Détecter si l'heure actuelle est une heure typique de repas ou proche de celle-ci
         val isNearTypicalMealTime = historicalMealTimes.any { abs(hourOfDay - it) <= 1 } // +/- 1 heure autour des heures typiques
         val isBgAboveThreshold = bg > bgThreshold
-        val isTimeSinceLastSmbSufficient = lastSmbMinutesAgo > minTimeSinceLastSmb
+        val isTimeSinceLastSmbSufficient = lastSmbMinutesAgo > minTimeSinceLastSmb && delta > 8
         // Détecter si les pas récents indiquent une faible activité physique
         val isLowActivity = recentSteps10Minutes < lowActivityThreshold
         val isDeltaslowingdown = isTimeSinceLastSmbSufficient && (delta < 5 || shortAvgDelta <= 4 || longAvgDelta <= 3)
