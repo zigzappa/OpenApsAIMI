@@ -909,7 +909,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     }
 
 
-    fun anticipateMeal(glucoseStatus: GlucoseStatus,lastSmbMinutesAgo: Int, historicalMealTimes: List<Int>): Boolean {
+   private fun anticipateMeal(glucoseStatus: GlucoseStatus,lastSmbMinutesAgo: Int, historicalMealTimes: List<Int>): Boolean {
         val hourOfDay = Calendar.getInstance()[Calendar.HOUR_OF_DAY]
         return isMealAnticipated(
             bg = glucoseStatus.glucose.toFloat(),
