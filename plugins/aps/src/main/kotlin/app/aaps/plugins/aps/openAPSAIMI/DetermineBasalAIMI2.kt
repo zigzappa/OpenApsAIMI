@@ -903,7 +903,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val isLowActivity = recentSteps10Minutes < lowActivityThreshold
         val isDeltaslowingdown = isTimeSinceLastSmbSufficient && (delta < 5 || shortAvgDelta <= 4 || longAvgDelta <= 3)
 
-        val isMealAnticipated = (isLowActivity && (isRapidBgIncrease || isNearTypicalMealTime)) || isRapidBgIncrease || isNearTypicalMealTime || !isDeltaslowingdown || isBgAboveThreshold
+        val isMealAnticipated = (isLowActivity && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown))
 
         return isMealAnticipated
     }
