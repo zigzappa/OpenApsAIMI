@@ -300,5 +300,15 @@
     <string name="oaps_aimi_Dinner_interval_summary">Dinner mode Interval</string>
     <string name="oaps_aimi_Dinner_interval_title">Dinner mode Interval</string>
     <string name="oaps_aimi_enableMlLearningRate_title">Enable Learning Rate variable for better adjustment</string>
+    <string name="prebolus_BF_mode_summary">Prebolus 1/2 breakfast mode</string>
+    <string name="prebolus_BF_mode_title">Mode breakfast prebolus 1/2</string>
+    <string name="prebolus2_BF_mode_summary">Prebolus 2/2 breakfast mode</string>
+    <string name="prebolus2_BF_mode_title">Mode breakfast Prebolus 2/2</string>
+    <string name="oaps_aimi_BFdjFact_summary">DynISF mode breakfast</string>
+    <string name="oaps_aimi_BFAdjFact_title">DynISF mode breakfast</string>
+    <string name="OApsAIMI_BFFactor_summary">% insulin required for one smb</string>
+    <string name="OApsAIMI_BFFactor_title">Reactivity mode breakfast</string>
+    <string name="oaps_aimi_BF_interval_summary">Interval between 2 SMB mode breakfast</string>
+    <string name="oaps_aimi_BF_interval_title">SMB Interval Mode Breakfast</string>
 
 </resources>

@@ -29,4 +29,9 @@
     <string name="key_prebolus2_lunch_mode">key_prebolus2_lunch_mode</string>
     <string name="key_prebolus2_dinner_mode">key_prebolus2_dinner_mode</string>
     <string name="key_enable_ML_LearningRate">key_enable_ML_LearningRate</string>
+    <string name="key_prebolus_BF_mode">key_prebolus_BF_mode</string>
+    <string name="key_prebolus2_BF_mode">key_prebolus2_BF_mode</string>
+    <string name="key_oaps_aimi_BF_factor">key_oaps_aimi_BF_factor</string>
+    <string name="key_oaps_aimi_BFAdjFact">key_oaps_aimi_BFAdjFact</string>
+    <string name="key_oaps_aimi_BF_interval">key_oaps_aimi_BF_interval</string>
 </resources>

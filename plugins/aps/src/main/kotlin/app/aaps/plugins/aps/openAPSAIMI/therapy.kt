@@ -14,6 +14,7 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
     var lowCarbTime = false
     var highCarbTime = false
     var mealTime = false
+    var bfastTime = false
     var lunchTime = false
     var dinnerTime = false
     var fastingTime = false
@@ -30,6 +31,7 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
             lowCarbTime = findActiveLowCarbEvents(System.currentTimeMillis()).blockingGet()
             highCarbTime = findActiveHighCarbEvents(System.currentTimeMillis()).blockingGet()
             mealTime = findActiveMealEvents(System.currentTimeMillis()).blockingGet()
+            bfastTime = findActivebfastEvents(System.currentTimeMillis()).blockingGet()
             lunchTime = findActiveLunchEvents(System.currentTimeMillis()).blockingGet()
             dinnerTime = findActiveDinnerEvents(System.currentTimeMillis()).blockingGet()
             fastingTime = findActiveFastingEvents(System.currentTimeMillis()).blockingGet()
@@ -42,6 +44,7 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
             clearActiveEvent("lowcarb")
             clearActiveEvent("highcarb")
             clearActiveEvent("meal")
+            clearActiveEvent("bfast")
             clearActiveEvent("lunch")
             clearActiveEvent("dinner")
             clearActiveEvent("fasting")
@@ -61,6 +64,7 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
         lowCarbTime = false;
         highCarbTime = false;
         mealTime = false;
+        bfastTime = false;
         lunchTime = false;
         dinnerTime = false;
         fastingTime = false;
@@ -146,6 +150,17 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
                 events.filter { it.type == TE.Type.NOTE }
                     .any { event ->
                         event.note?.contains("meal", ignoreCase = true) == true &&
+                            System.currentTimeMillis() <= (event.timestamp + event.duration)
+                    }
+            }
+    }
+    private fun findActivebfastEvents(timestamp: Long): Single<Boolean> {
+        val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
+        return persistenceLayer.getTherapyEventDataFromTime(fromTime, true)
+            .map { events ->
+                events.filter { it.type == TE.Type.NOTE }
+                    .any { event ->
+                        event.note?.contains("bfast", ignoreCase = true) == true &&
                             System.currentTimeMillis() <= (event.timestamp + event.duration)
                     }
             }
