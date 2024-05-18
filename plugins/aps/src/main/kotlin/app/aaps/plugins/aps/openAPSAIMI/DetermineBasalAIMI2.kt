@@ -948,7 +948,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val isLowActivity = recentSteps10Minutes < lowActivityThreshold
 
         // Détection des repas à haute teneur en glucides
-        val isHighCarbMeal = delta > 15 && shortAvgDelta > 10 && longAvgDelta > 8
+        val isHighCarbMeal = delta > 15 && shortAvgDelta > 12 && longAvgDelta > 8
         val minTimeSinceLastSmb = if (isHighCarbMeal) highCarbMinTimeSinceLastSmb else baseMinTimeSinceLastSmb
         val isTimeSinceLastSmbSufficient = lastSmbMinutesAgo > minTimeSinceLastSmb && delta > 8
 
@@ -1602,6 +1602,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             appendLine("modelcal: {modelcal}")
             appendLine("predictedSMB: {predictedSMB}")
             appendLine("isMealAnticipated: {isMealAnticipated}")
+            appendLine("isHighCarbMeal: {isHighCarbMeal}")
             appendLine("Max IOB: {maxIob}")
             appendLine("Max SMB: {maxSMB}")
             appendLine("sleep: {sleepTime}")
@@ -1693,6 +1694,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 "predictedSMB" to predictedSMB,
                 "smbToGive" to smbToGive,
                 "isMealAnticipated" to isMealAnticipated,
+                "isHighCarbMeal" to isHighCarbMeal,
                 "adjustedFactors" to adjustedFactors,
                 "maxIob" to maxIob,
                 "maxSMB" to maxSMB,
@@ -1823,8 +1825,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             val (localconditionResult, _) = isCriticalSafetyCondition()
 
             rate = when {
-                isMealAnticipated -> calculateBasalRate(basal, profile_current_basal, 5.0)
-                isHighCarbMeal -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                isMealAnticipated && delta > 5-> calculateBasalRate(basal, profile_current_basal, 5.0)
+                isHighCarbMeal && delta > 5-> calculateBasalRate(basal, profile_current_basal, 10.0)
                 snackTime && snackrunTime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 4.0)
                 mealTime && mealruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 lunchTime && lunchruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
