@@ -242,7 +242,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
 
         val isDeltaslowingdown = isTimeSinceLastSmbSufficient && (delta < 5 || shortAvgDelta <= 4 || longAvgDelta <= 3)
 
-        val isMealAnticipated = (isLowActivity && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown))
+        val isMealAnticipated = (isLowActivity && isTimeSinceLastSmbSufficient && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown))
 
         return Pair(isMealAnticipated, isHighCarbMeal)
     }
@@ -352,8 +352,8 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 snackTime                                                              -> tdd * snackTimeDynISFAdjFactor
                 highCarbTime                                                           -> tdd * hcTimeDynISFAdjFactor
                 mealTime                                                               -> tdd * mealTimeDynISFAdjFactor
-                isMealAnticipated == true && preferences.get(BooleanKey.OApsAIMIMLFCL) -> tdd * fclDynISFAdjFactor
-                isHighCarbMeal == true && preferences.get(BooleanKey.OApsAIMIMLFCL)    -> tdd * fclDynISFAdjFactor * 1.618
+                isMealAnticipated == true && isHighCarbMeal == false && preferences.get(BooleanKey.OApsAIMIMLFCL) -> tdd * fclDynISFAdjFactor
+                isHighCarbMeal == true && isMealAnticipated == true && preferences.get(BooleanKey.OApsAIMIMLFCL)    -> tdd * fclDynISFAdjFactor * 1.618
                 lunchTime                                                              -> tdd * lunchTimeDynISFAdjFactor
                 dinnerTime                                                             -> tdd * dinnerTimeDynISFAdjFactor
                 bg > 140                                                               -> tdd * dynISFadjusthyper
@@ -503,8 +503,8 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                     snackTime                                                           -> tdd * snackTimeDynISFAdjFactor
                     highCarbTime                                                        -> tdd * hcTimeDynISFAdjFactor
                     mealTime                                                            -> tdd * mealTimeDynISFAdjFactor
-                    isMealAnticipated && preferences.get(BooleanKey.OApsAIMIMLFCL)      -> tdd * fclDynISFAdjFactor
-                    isHighCarbMeal == true && preferences.get(BooleanKey.OApsAIMIMLFCL) -> tdd * fclDynISFAdjFactor * 1.618
+                    isMealAnticipated && !isHighCarbMeal && preferences.get(BooleanKey.OApsAIMIMLFCL)      -> tdd * fclDynISFAdjFactor
+                    isMealAnticipated && isHighCarbMeal == true && preferences.get(BooleanKey.OApsAIMIMLFCL) -> tdd * fclDynISFAdjFactor * 1.618
                     lunchTime                                                           -> tdd * lunchTimeDynISFAdjFactor
                     dinnerTime                                                          -> tdd * dinnerTimeDynISFAdjFactor
                     bg > 140                                                            -> tdd * dynISFadjusthyper

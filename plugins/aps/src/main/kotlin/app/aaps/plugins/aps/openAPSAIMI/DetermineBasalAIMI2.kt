@@ -954,7 +954,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         val isDeltaslowingdown = isTimeSinceLastSmbSufficient && (delta < 5 || shortAvgDelta <= 4 || longAvgDelta <= 3)
 
-        val isMealAnticipated = (isLowActivity && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown))
+        val isMealAnticipated = (isLowActivity && isTimeSinceLastSmbSufficient && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown))
 
         return Pair(isMealAnticipated, isHighCarbMeal)
     }
@@ -1825,8 +1825,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             val (localconditionResult, _) = isCriticalSafetyCondition()
 
             rate = when {
-                isMealAnticipated && delta > 5-> calculateBasalRate(basal, profile_current_basal, 5.0)
-                isHighCarbMeal && delta > 5-> calculateBasalRate(basal, profile_current_basal, 10.0)
+                isMealAnticipated && !isHighCarbMeal && delta > 5-> calculateBasalRate(basal, profile_current_basal, 5.0)
+                isMealAnticipated && isHighCarbMeal && delta > 5-> calculateBasalRate(basal, profile_current_basal, 10.0)
                 snackTime && snackrunTime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 4.0)
                 mealTime && mealruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 lunchTime && lunchruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
