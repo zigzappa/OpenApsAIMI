@@ -2086,7 +2086,7 @@ class DetermineBasalaimiSMB @Inject constructor(
         val lineSeparator = System.lineSeparator()
         val logAIMI = """
     |The ai model predicted SMB of ${predictedSMB}u and after safety requirements and rounding to .05, requested ${smbToGive}u to the pump<br>$lineSeparator
-    |Version du plugin OpenApsAIMI-MT.2 ML.2, 01 May 2024<br>$lineSeparator
+    |Version du plugin OpenApsAIMI-MT.2 ML.2, 18 May 2024<br>$lineSeparator
     |adjustedFactors: $adjustedFactors<br>$lineSeparator
     |
     |modelcal: $modelcal
@@ -2106,6 +2106,8 @@ class DetermineBasalaimiSMB @Inject constructor(
     |mealruntime: $mealruntime<br>$lineSeparator
     |snackrunTime: $snackrunTime<br>$lineSeparator
     |highCarbrunTime: $highCarbrunTime<br>$lineSeparator
+    |lunchruntime: $lunchruntime<br>$lineSeparator
+    |dinnerruntime: $dinnerruntime<br>$lineSeparator
     |
     |insulinEffect: $insulinEffect
     |bg: $bg
@@ -2270,11 +2272,13 @@ class DetermineBasalaimiSMB @Inject constructor(
             val (localconditionResult, _) = isCriticalSafetyCondition()
 
             rate = when {
-                snackTime && snackrunTime < 30 -> calculateBasalRate(basal, profile_current_basal, 4.0)
-                mealTime && mealruntime < 30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                lunchTime && lunchruntime < 30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                dinnerTime && dinnerruntime < 30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                highCarbTime && highCarbrunTime < 60 -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                snackTime && snackrunTime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 4.0)
+                mealTime && mealruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                lunchTime && lunchruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                lunchTime && lunchruntime in 30..60 && delta > 0 -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
+                dinnerTime && dinnerruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                dinnerTime && dinnerruntime in 30..60 && delta > 0 -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
+                highCarbTime && highCarbrunTime in 0..60 -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 bg > 180 && !honeymoon -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 honeymoon && bg in 140.0..169.0 && delta > 0 -> profile_current_basal
                 honeymoon && bg > 170 && delta > 0 -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
