@@ -324,14 +324,14 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         file.appendText(valuesToRecord + "\n")
     }
-    private fun applySafetyPrecautions(smbToGiveParam: Float): Float {
+    private fun applySafetyPrecautions(glucoseStatus: GlucoseStatus, smbToGiveParam: Float): Float {
         var smbToGive = smbToGiveParam
         val (conditionResult, _) = isCriticalSafetyCondition()
         if (conditionResult) return 0.0f
 
         if (isSportSafetyCondition()) return 0.0f
         // Ajustements basés sur des conditions spécifiques
-        smbToGive = applySpecificAdjustments(smbToGive)
+        smbToGive = applySpecificAdjustments(glucoseStatus,smbToGive)
 
         smbToGive = finalizeSmbToGive(smbToGive)
         // Appliquer les limites maximum
@@ -448,7 +448,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         return sport || sport1 || sport2 || sport3 || sport4 || sport5
 
     }
-    private fun applySpecificAdjustments(smbToGive: Float): Float {
+    private fun applySpecificAdjustments(glucoseStatus: GlucoseStatus, smbToGive: Float): Float {
         var result = smbToGive
         val intervalSMBsnack = preferences.get(IntKey.OApsAIMISnackinterval)
         val intervalSMBmeal = preferences.get(IntKey.OApsAIMImealinterval)
@@ -461,8 +461,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val belowTargetAndDropping = bg < targetBg
         val night = preferences.get(BooleanKey.OApsAIMInight)
 
+
         when {
-            shouldApplyIntervalAdjustment(intervalSMBsnack, intervalSMBmeal, intervalSMBlunch, intervalSMBdinner, intervalSMBsleep, intervalSMBhc, intervalSMBhighBG) -> {
+            shouldApplyIntervalAdjustment(glucoseStatus, intervalSMBsnack, intervalSMBmeal, intervalSMBlunch, intervalSMBdinner, intervalSMBsleep, intervalSMBhc, intervalSMBhighBG) -> {
                 result = 0.0f
             }
             shouldApplySafetyAdjustment() -> {
@@ -483,9 +484,11 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         return result
     }
 
-    private fun shouldApplyIntervalAdjustment(intervalSMBsnack: Int, intervalSMBmeal: Int, intervalSMBlunch: Int, intervalSMBdinner: Int, intervalSMBsleep: Int, intervalSMBhc: Int, intervalSMBhighBG: Int): Boolean {
+    private fun shouldApplyIntervalAdjustment(glucoseStatus: GlucoseStatus, intervalSMBsnack: Int, intervalSMBmeal: Int, intervalSMBlunch: Int, intervalSMBdinner: Int, intervalSMBsleep: Int, intervalSMBhc: Int, intervalSMBhighBG: Int): Boolean {
+        val historicalMealTimes = listOf(7, 8, 12, 13, 14, 19, 20, 21)
+        val isMealAnticipated = anticipateMeal(glucoseStatus, lastsmbtime, historicalMealTimes)
         return (lastsmbtime < intervalSMBsnack && snackTime) || (lastsmbtime < intervalSMBmeal && mealTime) || (lastsmbtime < intervalSMBlunch && lunchTime) || (lastsmbtime < intervalSMBdinner && dinnerTime) ||
-            (lastsmbtime < intervalSMBsleep && sleepTime) || (lastsmbtime < intervalSMBhc && highCarbTime) || (lastsmbtime < intervalSMBhighBG && bg > 120)
+            (lastsmbtime < intervalSMBsleep && sleepTime) || (lastsmbtime < intervalSMBhc && highCarbTime) || (lastsmbtime < intervalSMBhighBG && bg > 120 && !isMealAnticipated)
     }
 
     private fun shouldApplySafetyAdjustment(): Boolean {
@@ -889,8 +892,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val significantDelta = 10.0f // Définir une augmentation significative de la glycémie
         val lowActivityThreshold = 100 // Seuil d'activité physique faible
         val rapidIncreaseThreshold = 5.0f // Seuil de delta pour une augmentation rapide
-        val baseMinTimeSinceLastSmb = 10
-        val highCarbMinTimeSinceLastSmb = 5
+        val baseMinTimeSinceLastSmb = 9
+        val highCarbMinTimeSinceLastSmb = 4
         //val minTimeSinceLastSmb = 10
         val bgThreshold = if (hourOfDay in 6..9 || hourOfDay in 11..14 || hourOfDay in 18..21) 100.0f else 120.0f
 
@@ -1487,7 +1490,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         rT.reason.append("adjustedEveningFactor $adjustedEveningFactor")
 
 
-        smbToGive = applySafetyPrecautions(smbToGive)
+        smbToGive = applySafetyPrecautions(glucose_status,smbToGive)
         smbToGive = roundToPoint05(smbToGive)
 
         logDataMLToCsv(predictedSMB, smbToGive)

@@ -464,16 +464,16 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             tdd = (tddWeightedFromLast8H * 0.33) + (tdd2Days * 0.34) + (tddDaily * 0.33)
             if (bg != null) {
                 tdd = when {
-                    sportTime -> tdd * 1.1
-                    sleepTime -> tdd * sleepTimeDynISFAdjFactor
-                    lowCarbTime -> tdd * 1.1
-                    snackTime -> tdd * snackTimeDynISFAdjFactor
-                    highCarbTime -> tdd * hcTimeDynISFAdjFactor
-                    mealTime -> tdd * mealTimeDynISFAdjFactor
+                    sportTime                                                      -> tdd * 1.1
+                    sleepTime                                                      -> tdd * sleepTimeDynISFAdjFactor
+                    lowCarbTime                                                    -> tdd * 1.1
+                    snackTime                                                      -> tdd * snackTimeDynISFAdjFactor
+                    highCarbTime                                                   -> tdd * hcTimeDynISFAdjFactor
+                    mealTime                                                       -> tdd * mealTimeDynISFAdjFactor
                     isMealAnticipated && preferences.get(BooleanKey.OApsAIMIMLFCL) -> tdd * fclDynISFAdjFactor
-                    lunchTime -> tdd * lunchTimeDynISFAdjFactor
-                    dinnerTime -> tdd * dinnerTimeDynISFAdjFactor
-                    bg > 140 -> tdd * dynISFadjusthyper
+                    lunchTime                                                      -> tdd * lunchTimeDynISFAdjFactor
+                    dinnerTime                                                     -> tdd * dinnerTimeDynISFAdjFactor
+                    bg > 140                                                       -> tdd * dynISFadjusthyper
                     else -> tdd * dynISFadjust
                 }
             }
