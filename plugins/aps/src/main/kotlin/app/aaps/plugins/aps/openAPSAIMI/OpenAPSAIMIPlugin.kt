@@ -180,7 +180,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         preferenceFragment.findPreference<SwitchPreference>(rh.gs(app.aaps.core.keys.R.string.key_openaps_sensitivity_raises_target))?.isVisible = autoSensOrDynIsfSensEnabled
         preferenceFragment.findPreference<AdaptiveIntPreference>(rh.gs(app.aaps.core.keys.R.string.key_openaps_uam_smb_max_minutes))?.isVisible = uamEnabled
     }
-    private fun isMealAnticipated(
+    /*private fun isMealAnticipated(
         bg: Float,
         delta: Float,
         shortAvgDelta: Float,
@@ -209,10 +209,45 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         val isMealAnticipated = (isLowActivity && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown))
 
         return isMealAnticipated
+    }*/
+    private fun isMealAnticipated(
+        bg: Float,
+        delta: Float,
+        shortAvgDelta: Float,
+        longAvgDelta: Float,
+        hourOfDay: Int,
+        recentSteps10Minutes: Int,
+        lastSmbMinutesAgo: Int,
+        historicalMealTimes: List<Int> // Liste des heures typiques des repas
+    ): Pair<Boolean, Boolean> {
+        val significantDelta = 10.0f // Définir une augmentation significative de la glycémie
+        val lowActivityThreshold = 100 // Seuil d'activité physique faible
+        val rapidIncreaseThreshold = 5.0f // Seuil de delta pour une augmentation rapide
+        val baseMinTimeSinceLastSmb = 10
+        val highCarbMinTimeSinceLastSmb = 5
+        val bgThreshold = if (hourOfDay in 6..9 || hourOfDay in 11..14 || hourOfDay in 18..21) 100.0f else 120.0f
+
+        // Détecter une augmentation rapide de la glycémie
+        val isRapidBgIncrease = delta > significantDelta && shortAvgDelta > rapidIncreaseThreshold
+
+        // Détecter si l'heure actuelle est une heure typique de repas ou proche de celle-ci
+        val isNearTypicalMealTime = historicalMealTimes.any { abs(hourOfDay - it) <= 1 } // +/- 1 heure autour des heures typiques
+        val isBgAboveThreshold = bg > bgThreshold
+        val isLowActivity = recentSteps10Minutes < lowActivityThreshold
+
+        // Détection des repas à haute teneur en glucides
+        val isHighCarbMeal = delta > 15 && shortAvgDelta > 10 && longAvgDelta > 8
+        val minTimeSinceLastSmb = if (isHighCarbMeal) highCarbMinTimeSinceLastSmb else baseMinTimeSinceLastSmb
+        val isTimeSinceLastSmbSufficient = lastSmbMinutesAgo > minTimeSinceLastSmb && delta > 8
+
+        val isDeltaslowingdown = isTimeSinceLastSmbSufficient && (delta < 5 || shortAvgDelta <= 4 || longAvgDelta <= 3)
+
+        val isMealAnticipated = (isLowActivity && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown))
+
+        return Pair(isMealAnticipated, isHighCarbMeal)
     }
 
-
-    fun anticipateMeal(glucoseStatus: GlucoseStatus,lastSmbMinutesAgo: Int, historicalMealTimes: List<Int>): Boolean {
+    fun anticipateMeal(glucoseStatus: GlucoseStatus,lastSmbMinutesAgo: Int, historicalMealTimes: List<Int>): Pair<Boolean, Boolean> {
         val hourOfDay = Calendar.getInstance()[Calendar.HOUR_OF_DAY]
         val now = System.currentTimeMillis()
         val timeMillis10 = now - 10 * 60 * 1000
@@ -283,7 +318,8 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         val diff = abs(now - lastBolusSMBTime)
         val lastSmbMinutesAgo = (diff / (60 * 1000)).toInt()
         val glucoseStatus = glucoseStatusProvider.glucoseStatusData
-        val isMealAnticipated = glucoseStatus?.let { anticipateMeal(it, lastSmbMinutesAgo, historicalMealTimes) }
+        val (isMealAnticipated, isHighCarbMeal) = anticipateMeal(glucoseStatus!!, lastSmbMinutesAgo, historicalMealTimes)
+
         val dynISFadjust: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustment).toDouble() / 100.0)
         val dynISFadjusthyper: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustmentHyper).toDouble() / 100.0)
         val mealTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMImealAdjISFFact).toDouble() / 100.0)
@@ -317,6 +353,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 highCarbTime                                                           -> tdd * hcTimeDynISFAdjFactor
                 mealTime                                                               -> tdd * mealTimeDynISFAdjFactor
                 isMealAnticipated == true && preferences.get(BooleanKey.OApsAIMIMLFCL) -> tdd * fclDynISFAdjFactor
+                isHighCarbMeal == true && preferences.get(BooleanKey.OApsAIMIMLFCL)    -> tdd * fclDynISFAdjFactor * 1.618
                 lunchTime                                                              -> tdd * lunchTimeDynISFAdjFactor
                 dinnerTime                                                             -> tdd * dinnerTimeDynISFAdjFactor
                 bg > 140                                                               -> tdd * dynISFadjusthyper
@@ -434,7 +471,8 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             val lastBolusSMBTime = getlastBolusSMB?.timestamp ?: 0L
             val diff = abs(now - lastBolusSMBTime)
             val lastSmbMinutesAgo = (diff / (60 * 1000)).toInt()
-            val isMealAnticipated = anticipateMeal(glucoseStatus, lastSmbMinutesAgo, historicalMealTimes)
+            //val isMealAnticipated = anticipateMeal(glucoseStatus, lastSmbMinutesAgo, historicalMealTimes)
+            val (isMealAnticipated, isHighCarbMeal) = anticipateMeal(glucoseStatus!!, lastSmbMinutesAgo, historicalMealTimes)
             val dynISFadjust: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustment).toDouble() / 100.0)
             val dynISFadjusthyper: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustmentHyper).toDouble() / 100.0)
             val mealTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMImealAdjISFFact).toDouble() / 100.0)
@@ -459,16 +497,17 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             tdd = (tddWeightedFromLast8H * 0.33) + (tdd2Days * 0.34) + (tddDaily * 0.33)
             if (bg != null) {
                 tdd = when {
-                    sportTime -> tdd * 1.1
-                    sleepTime -> tdd * sleepTimeDynISFAdjFactor
-                    lowCarbTime -> tdd * 1.1
-                    snackTime -> tdd * snackTimeDynISFAdjFactor
-                    highCarbTime -> tdd * hcTimeDynISFAdjFactor
-                    mealTime -> tdd * mealTimeDynISFAdjFactor
-                    isMealAnticipated && preferences.get(BooleanKey.OApsAIMIMLFCL) -> tdd * fclDynISFAdjFactor
-                    lunchTime -> tdd * lunchTimeDynISFAdjFactor
-                    dinnerTime -> tdd * dinnerTimeDynISFAdjFactor
-                    bg > 140 -> tdd * dynISFadjusthyper
+                    sportTime                                                           -> tdd * 1.1
+                    sleepTime                                                           -> tdd * sleepTimeDynISFAdjFactor
+                    lowCarbTime                                                         -> tdd * 1.1
+                    snackTime                                                           -> tdd * snackTimeDynISFAdjFactor
+                    highCarbTime                                                        -> tdd * hcTimeDynISFAdjFactor
+                    mealTime                                                            -> tdd * mealTimeDynISFAdjFactor
+                    isMealAnticipated && preferences.get(BooleanKey.OApsAIMIMLFCL)      -> tdd * fclDynISFAdjFactor
+                    isHighCarbMeal == true && preferences.get(BooleanKey.OApsAIMIMLFCL) -> tdd * fclDynISFAdjFactor * 1.618
+                    lunchTime                                                           -> tdd * lunchTimeDynISFAdjFactor
+                    dinnerTime                                                          -> tdd * dinnerTimeDynISFAdjFactor
+                    bg > 140                                                            -> tdd * dynISFadjusthyper
                     else -> tdd * dynISFadjust
                 }
             }

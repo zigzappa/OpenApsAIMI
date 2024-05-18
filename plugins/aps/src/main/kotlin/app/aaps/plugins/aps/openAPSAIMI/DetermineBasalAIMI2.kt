@@ -876,7 +876,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         notes = processNotesAndCleanUp(notes)
         return notes
     }
-    private fun isMealAnticipated(
+    /*private fun isMealAnticipated(
         bg: Float,
         delta: Float,
         shortAvgDelta: Float,
@@ -921,7 +921,58 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             historicalMealTimes = historicalMealTimes,
             lastSmbMinutesAgo = lastSmbMinutesAgo
         )
+    }*/
+    private fun isMealAnticipated(
+        bg: Float,
+        delta: Float,
+        shortAvgDelta: Float,
+        longAvgDelta: Float,
+        hourOfDay: Int,
+        recentSteps10Minutes: Int,
+        lastSmbMinutesAgo: Int,
+        historicalMealTimes: List<Int> // Liste des heures typiques des repas
+    ): Pair<Boolean, Boolean> {
+        val significantDelta = 10.0f // Définir une augmentation significative de la glycémie
+        val lowActivityThreshold = 100 // Seuil d'activité physique faible
+        val rapidIncreaseThreshold = 5.0f // Seuil de delta pour une augmentation rapide
+        val baseMinTimeSinceLastSmb = 10
+        val highCarbMinTimeSinceLastSmb = 5
+        val bgThreshold = if (hourOfDay in 6..9 || hourOfDay in 11..14 || hourOfDay in 18..21) 100.0f else 120.0f
+
+        // Détecter une augmentation rapide de la glycémie
+        val isRapidBgIncrease = delta > significantDelta && shortAvgDelta > rapidIncreaseThreshold
+
+        // Détecter si l'heure actuelle est une heure typique de repas ou proche de celle-ci
+        val isNearTypicalMealTime = historicalMealTimes.any { abs(hourOfDay - it) <= 1 } // +/- 1 heure autour des heures typiques
+        val isBgAboveThreshold = bg > bgThreshold
+        val isLowActivity = recentSteps10Minutes < lowActivityThreshold
+
+        // Détection des repas à haute teneur en glucides
+        val isHighCarbMeal = delta > 15 && shortAvgDelta > 10 && longAvgDelta > 8
+        val minTimeSinceLastSmb = if (isHighCarbMeal) highCarbMinTimeSinceLastSmb else baseMinTimeSinceLastSmb
+        val isTimeSinceLastSmbSufficient = lastSmbMinutesAgo > minTimeSinceLastSmb && delta > 8
+
+        val isDeltaslowingdown = isTimeSinceLastSmbSufficient && (delta < 5 || shortAvgDelta <= 4 || longAvgDelta <= 3)
+
+        val isMealAnticipated = (isLowActivity && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown))
+
+        return Pair(isMealAnticipated, isHighCarbMeal)
     }
+
+    fun anticipateMeal(glucoseStatus: GlucoseStatus, lastSmbMinutesAgo: Int, historicalMealTimes: List<Int>): Pair<Boolean, Boolean> {
+        val hourOfDay = Calendar.getInstance()[Calendar.HOUR_OF_DAY]
+        return isMealAnticipated(
+            bg = glucoseStatus.glucose.toFloat(),
+            delta = glucoseStatus.delta.toFloat(),
+            shortAvgDelta = glucoseStatus.shortAvgDelta.toFloat(),
+            longAvgDelta = glucoseStatus.longAvgDelta.toFloat(),
+            hourOfDay = hourOfDay,
+            recentSteps10Minutes = recentSteps10Minutes,
+            historicalMealTimes = historicalMealTimes,
+            lastSmbMinutesAgo = lastSmbMinutesAgo
+        )
+    }
+
     fun determine_basal(
         glucose_status: GlucoseStatus, currenttemp: CurrentTemp, iob_data_array: Array<IobTotal>, profile: OapsProfile, autosens_data: AutosensResult, mealData: MealData,
         microBolusAllowed: Boolean, currentTime: Long, flatBGsDetected: Boolean, dynIsfMode: Boolean
@@ -1439,7 +1490,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }else {
             rT.reason.append("ML Decision data training","ML decision has no enough data to refine the decision")
         }
-        val isMealAnticipated = anticipateMeal(glucose_status,lastsmbtime, historicalMealTimes)
+        //val (isMealAnticipated = anticipateMeal(glucose_status,lastsmbtime, historicalMealTimes)
+        val (isMealAnticipated, isHighCarbMeal) = anticipateMeal(glucose_status, lastsmbtime, historicalMealTimes)
+
         var smbToGive = if (bg > 160  && delta > 8 && predictedSMB == 0.0f) modelcal else predictedSMB
         smbToGive = if (honeymoon && bg < 170) smbToGive * 0.8f else smbToGive
 
@@ -1543,7 +1596,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 17 May 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 18 May 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
@@ -1770,6 +1823,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             val (localconditionResult, _) = isCriticalSafetyCondition()
 
             rate = when {
+                isMealAnticipated -> calculateBasalRate(basal, profile_current_basal, 5.0)
+                isHighCarbMeal -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 snackTime && snackrunTime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 4.0)
                 mealTime && mealruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 lunchTime && lunchruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
