@@ -929,6 +929,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             lastSmbMinutesAgo = lastSmbMinutesAgo
         )
     }
+
     fun determine_basal(
         glucose_status: GlucoseStatus, currenttemp: CurrentTemp, iob_data_array: Array<IobTotal>, profile: OapsProfile, autosens_data: AutosensResult, mealData: MealData,
         microBolusAllowed: Boolean, currentTime: Long, flatBGsDetected: Boolean, dynIsfMode: Boolean
