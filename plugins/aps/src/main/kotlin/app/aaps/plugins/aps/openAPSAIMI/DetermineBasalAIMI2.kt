@@ -889,7 +889,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val significantDelta = 10.0f // Définir une augmentation significative de la glycémie
         val lowActivityThreshold = 100 // Seuil d'activité physique faible
         val rapidIncreaseThreshold = 5.0f // Seuil de delta pour une augmentation rapide
-        val minTimeSinceLastSmb = 10
+        val baseMinTimeSinceLastSmb = 10
+        val highCarbMinTimeSinceLastSmb = 5
+        //val minTimeSinceLastSmb = 10
         val bgThreshold = if (hourOfDay in 6..9 || hourOfDay in 11..14 || hourOfDay in 18..21) 100.0f else 120.0f
 
         // Détecter une augmentation rapide de la glycémie
@@ -898,12 +900,14 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         // Détecter si l'heure actuelle est une heure typique de repas ou proche de celle-ci
         val isNearTypicalMealTime = historicalMealTimes.any { abs(hourOfDay - it) <= 1 } // +/- 1 heure autour des heures typiques
         val isBgAboveThreshold = bg > bgThreshold
+        val isHighCarbMeal = delta > 15 && shortAvgDelta > 12 && longAvgDelta > 10
+        val minTimeSinceLastSmb = if (isHighCarbMeal) highCarbMinTimeSinceLastSmb else baseMinTimeSinceLastSmb
         val isTimeSinceLastSmbSufficient = lastSmbMinutesAgo > minTimeSinceLastSmb && delta > 8
         // Détecter si les pas récents indiquent une faible activité physique
         val isLowActivity = recentSteps10Minutes < lowActivityThreshold
-        val isDeltaslowingdown = isTimeSinceLastSmbSufficient && (delta < 5 || shortAvgDelta <= 4 || longAvgDelta <= 3)
+        val isDeltaslowingdown = delta < 5 || shortAvgDelta <= 4 || longAvgDelta <= 3
 
-        val isMealAnticipated = (isLowActivity && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown))
+        val isMealAnticipated = (isLowActivity && isTimeSinceLastSmbSufficient && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown))
 
         return isMealAnticipated
     }
