@@ -1785,6 +1785,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             val (localconditionResult, _) = isCriticalSafetyCondition()
 
             rate = when {
+                bg > 180 && delta in -6.0..0.0 -> profile_current_basal
                 isMealAnticipated && delta > 15 -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
                 snackTime && snackrunTime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 4.0)
                 mealTime && mealruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
