@@ -305,5 +305,7 @@
     <string name="oaps_aimi_FCLAdjFact_summary">Dynisf Full Closed Loop by automatic detection.</string>
     <string name="OApsAIMI_FCLFactor_title">FCL Reactivity</string>
     <string name="OApsAIMI_FCLFactor_summary">% insulin required for SMB in the FCL mode</string>
+    <string name="oaps_aimi_FCL_interval_summary">FCL SMB interval</string>
+    <string name="oaps_aimi_FCL_interval_title">FCL SMB interval</string>
 
 </resources>

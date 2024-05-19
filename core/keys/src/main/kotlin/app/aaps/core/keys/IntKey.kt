@@ -72,6 +72,7 @@ enum class IntKey(
     OApsAIMIHighBGinterval(R.string.key_oaps_aimi_highBG_interval, 3, 1, 20, defaultedBySM = true),
     OApsAIMImealinterval(R.string.key_oaps_aimi_meal_interval, 3, 1, 20, defaultedBySM = true),
     OApsAIMILunchinterval(R.string.key_oaps_aimi_lunch_interval, 3, 1, 20, defaultedBySM = true),
+    OApsAIMIFCLinterval(R.string.key_oaps_aimi_FCL_interval, 3, 1, 20, defaultedBySM = true),
     OApsAIMIDinnerinterval(R.string.key_oaps_aimi_dinner_interval, 3, 1, 20, defaultedBySM = true),
     OApsAIMIHCinterval(R.string.key_oaps_aimi_HC_interval, 3, 1, 20, defaultedBySM = true),
     OApsAIMISnackinterval(R.string.key_oaps_aimi_snack_interval, 3, 1, 20, defaultedBySM = true),

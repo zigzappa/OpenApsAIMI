@@ -704,6 +704,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                     addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.OApsAIMIMLFCL, title = R.string.oaps_aimi_enableMlFCL_title))
                     addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.OApsAIMIFCLAdjISFFact, dialogMessage = R.string.oaps_aimi_FCLAdjFact_summary, title = R.string.oaps_aimi_FCLAdjFact_title))
                     addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.OApsAIMIFCLFactor, dialogMessage = R.string.OApsAIMI_FCLFactor_summary, title = R.string.OApsAIMI_FCLFactor_title))
+                    addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.OApsAIMIFCLinterval, dialogMessage = R.string.oaps_aimi_FCL_interval_summary, title = R.string.oaps_aimi_FCL_interval_title))
                 })
                 addPreference(preferenceManager.createPreferenceScreen(context).apply {
                     key = "mode_meal"

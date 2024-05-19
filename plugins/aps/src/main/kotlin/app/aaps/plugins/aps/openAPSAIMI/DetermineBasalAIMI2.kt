@@ -453,6 +453,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val intervalSMBsnack = preferences.get(IntKey.OApsAIMISnackinterval)
         val intervalSMBmeal = preferences.get(IntKey.OApsAIMImealinterval)
         val intervalSMBlunch = preferences.get(IntKey.OApsAIMILunchinterval)
+        val intervalSMBFCL = preferences.get(IntKey.OApsAIMIFCLinterval)
         val intervalSMBdinner = preferences.get(IntKey.OApsAIMIDinnerinterval)
         val intervalSMBsleep = preferences.get(IntKey.OApsAIMISleepinterval)
         val intervalSMBhc = preferences.get(IntKey.OApsAIMIHCinterval)
@@ -463,7 +464,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
 
         when {
-            shouldApplyIntervalAdjustment(glucoseStatus, intervalSMBsnack, intervalSMBmeal, intervalSMBlunch, intervalSMBdinner, intervalSMBsleep, intervalSMBhc, intervalSMBhighBG) -> {
+            shouldApplyIntervalAdjustment(glucoseStatus, intervalSMBsnack, intervalSMBmeal, intervalSMBFCL, intervalSMBlunch, intervalSMBdinner, intervalSMBsleep, intervalSMBhc, intervalSMBhighBG) -> {
                 result = 0.0f
             }
             shouldApplySafetyAdjustment() -> {
@@ -484,11 +485,12 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         return result
     }
 
-    private fun shouldApplyIntervalAdjustment(glucoseStatus: GlucoseStatus, intervalSMBsnack: Int, intervalSMBmeal: Int, intervalSMBlunch: Int, intervalSMBdinner: Int, intervalSMBsleep: Int, intervalSMBhc: Int, intervalSMBhighBG: Int): Boolean {
+    private fun shouldApplyIntervalAdjustment(glucoseStatus: GlucoseStatus, intervalSMBsnack: Int, intervalSMBmeal: Int,intervalSMBFCL: Int, intervalSMBlunch: Int, intervalSMBdinner: Int, intervalSMBsleep: Int, intervalSMBhc: Int, intervalSMBhighBG:
+    Int): Boolean {
         val historicalMealTimes = listOf(7, 8, 12, 13, 14, 19, 20, 21)
         val isMealAnticipated = anticipateMeal(glucoseStatus, lastsmbtime, historicalMealTimes)
         return (lastsmbtime < intervalSMBsnack && snackTime) || (lastsmbtime < intervalSMBmeal && mealTime) || (lastsmbtime < intervalSMBlunch && lunchTime) || (lastsmbtime < intervalSMBdinner && dinnerTime) ||
-            (lastsmbtime < intervalSMBsleep && sleepTime) || (lastsmbtime < intervalSMBhc && highCarbTime) || (lastsmbtime < intervalSMBhighBG && bg > 120 && !isMealAnticipated)
+            (lastsmbtime < intervalSMBsleep && sleepTime) || (lastsmbtime < intervalSMBhc && highCarbTime) || (lastsmbtime < intervalSMBhighBG && bg > 120 && !isMealAnticipated) || (lastsmbtime < intervalSMBFCL && isMealAnticipated)
     }
 
     private fun shouldApplySafetyAdjustment(): Boolean {
@@ -879,6 +881,41 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         notes = processNotesAndCleanUp(notes)
         return notes
     }
+    // private fun isMealAnticipated(
+    //     bg: Float,
+    //     delta: Float,
+    //     shortAvgDelta: Float,
+    //     longAvgDelta: Float,
+    //     hourOfDay: Int,
+    //     recentSteps10Minutes: Int,
+    //     lastSmbMinutesAgo: Int,
+    //     historicalMealTimes: List<Int> // Liste des heures typiques des repas
+    // ): Boolean {
+    //     val significantDelta = 10.0f // Définir une augmentation significative de la glycémie
+    //     val lowActivityThreshold = 100 // Seuil d'activité physique faible
+    //     val rapidIncreaseThreshold = 5.0f // Seuil de delta pour une augmentation rapide
+    //     val baseMinTimeSinceLastSmb = 9
+    //     val highCarbMinTimeSinceLastSmb = 4
+    //     //val minTimeSinceLastSmb = 10
+    //     val bgThreshold = if (hourOfDay in 6..9 || hourOfDay in 11..14 || hourOfDay in 18..21) 100.0f else 120.0f
+    //
+    //     // Détecter une augmentation rapide de la glycémie
+    //     val isRapidBgIncrease = delta > significantDelta && shortAvgDelta > rapidIncreaseThreshold
+    //
+    //     // Détecter si l'heure actuelle est une heure typique de repas ou proche de celle-ci
+    //     val isNearTypicalMealTime = historicalMealTimes.any { abs(hourOfDay - it) <= 1 } // +/- 1 heure autour des heures typiques
+    //     val isBgAboveThreshold = bg > bgThreshold
+    //     val isHighCarbMeal = delta > 15 && shortAvgDelta > 12 && longAvgDelta > 10
+    //     val minTimeSinceLastSmb = if (isHighCarbMeal) highCarbMinTimeSinceLastSmb else baseMinTimeSinceLastSmb
+    //     val isTimeSinceLastSmbSufficient = lastSmbMinutesAgo > minTimeSinceLastSmb && delta > 8
+    //     // Détecter si les pas récents indiquent une faible activité physique
+    //     val isLowActivity = recentSteps10Minutes < lowActivityThreshold
+    //     val isDeltaslowingdown = delta < 5 || shortAvgDelta <= 4 || longAvgDelta <= 3
+    //
+    //     val isMealAnticipated = (isLowActivity && isTimeSinceLastSmbSufficient && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown))
+    //
+    //     return isMealAnticipated
+    // }
     private fun isMealAnticipated(
         bg: Float,
         delta: Float,
@@ -889,34 +926,30 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         lastSmbMinutesAgo: Int,
         historicalMealTimes: List<Int> // Liste des heures typiques des repas
     ): Boolean {
+        // Constants
         val significantDelta = 10.0f // Définir une augmentation significative de la glycémie
         val lowActivityThreshold = 100 // Seuil d'activité physique faible
         val rapidIncreaseThreshold = 5.0f // Seuil de delta pour une augmentation rapide
         val baseMinTimeSinceLastSmb = 9
         val highCarbMinTimeSinceLastSmb = 4
-        //val minTimeSinceLastSmb = 10
         val bgThreshold = if (hourOfDay in 6..9 || hourOfDay in 11..14 || hourOfDay in 18..21) 100.0f else 120.0f
 
-        // Détecter une augmentation rapide de la glycémie
-        val isRapidBgIncrease = delta > significantDelta && shortAvgDelta > rapidIncreaseThreshold
+        // Calculate minTimeSinceLastSmb based on meal type
+        val minTimeSinceLastSmb = if (isHighCarbMeal(delta, shortAvgDelta, longAvgDelta)) highCarbMinTimeSinceLastSmb else baseMinTimeSinceLastSmb
 
-        // Détecter si l'heure actuelle est une heure typique de repas ou proche de celle-ci
-        val isNearTypicalMealTime = historicalMealTimes.any { abs(hourOfDay - it) <= 1 } // +/- 1 heure autour des heures typiques
+        // Check conditions
+        val isRapidBgIncrease = delta > significantDelta && shortAvgDelta > rapidIncreaseThreshold
+        val isNearTypicalMealTime = historicalMealTimes.any { kotlin.math.abs(hourOfDay - it) <= 1 }
         val isBgAboveThreshold = bg > bgThreshold
-        val isHighCarbMeal = delta > 15 && shortAvgDelta > 12 && longAvgDelta > 10
-        val minTimeSinceLastSmb = if (isHighCarbMeal) highCarbMinTimeSinceLastSmb else baseMinTimeSinceLastSmb
         val isTimeSinceLastSmbSufficient = lastSmbMinutesAgo > minTimeSinceLastSmb && delta > 8
-        // Détecter si les pas récents indiquent une faible activité physique
         val isLowActivity = recentSteps10Minutes < lowActivityThreshold
         val isDeltaslowingdown = delta < 5 || shortAvgDelta <= 4 || longAvgDelta <= 3
 
-        val isMealAnticipated = (isLowActivity && isTimeSinceLastSmbSufficient && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown))
-
-        return isMealAnticipated
+        // Determine if a meal is anticipated
+        return isLowActivity && isTimeSinceLastSmbSufficient && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown)
     }
 
-
-   private fun anticipateMeal(glucoseStatus: GlucoseStatus,lastSmbMinutesAgo: Int, historicalMealTimes: List<Int>): Boolean {
+    private fun anticipateMeal(glucoseStatus: GlucoseStatus,lastSmbMinutesAgo: Int, historicalMealTimes: List<Int>): Boolean {
         val hourOfDay = Calendar.getInstance()[Calendar.HOUR_OF_DAY]
         return isMealAnticipated(
             bg = glucoseStatus.glucose.toFloat(),
@@ -928,6 +961,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             historicalMealTimes = historicalMealTimes,
             lastSmbMinutesAgo = lastSmbMinutesAgo
         )
+    }
+    // Helper function to determine if a meal is high-carb
+    private fun isHighCarbMeal(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Boolean {
+        return delta > 15 && shortAvgDelta > 12 && longAvgDelta > 10
     }
 
     fun determine_basal(
