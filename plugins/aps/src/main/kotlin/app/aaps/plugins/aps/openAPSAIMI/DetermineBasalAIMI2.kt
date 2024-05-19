@@ -1031,7 +1031,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                  rT.reason.append("Microbolusing Meal Mode ${pbolusM}U. ")
              return rT
          }
-        if (isMealAnticipated && iob in 1.0..2.0 && delta > 20 && shortAvgDelta > 15 && longAvgDelta > 12 && (hourOfDay in 11..14 || hourOfDay in 18..21)){
+        if (isMealAnticipated && iob in 1.0..3.0 && delta > 20 && shortAvgDelta > 15 && longAvgDelta > 12 && (hourOfDay in 11..14 || hourOfDay in 18..21)){
             val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
             rT.units = if (lastBolusSMBUnit != pbolusM.toFloat()) pbolusM else 0.0
             rT.reason.append("Microbolusing FCL Mode using Meal mode prebolus ${pbolusM}U. ")
