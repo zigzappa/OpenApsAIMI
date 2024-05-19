@@ -1024,12 +1024,19 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         this.acceleratingDown = if (delta < -2 && delta - longAvgDelta < -2) 1 else 0
         this.decceleratingDown = if (delta < 0 && (delta > shortAvgDelta || delta > longAvgDelta)) 1 else 0
         this.stable = if (delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 180) 1 else 0
+        val isMealAnticipated = anticipateMeal(glucose_status,lastsmbtime, historicalMealTimes)
          if (isMealModeCondition()){
              val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
                  rT.units = pbolusM
                  rT.reason.append("Microbolusing Meal Mode ${pbolusM}U. ")
              return rT
          }
+        if (isMealAnticipated && iob in 1.0..2.0 && delta > 20 && shortAvgDelta > 15 && longAvgDelta > 12 && (hourOfDay in 11..14 || hourOfDay in 18..21)){
+            val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
+            rT.units = if (lastBolusSMBUnit != pbolusM.toFloat()) pbolusM else 0.0
+            rT.reason.append("Microbolusing FCL Mode using Meal mode prebolus ${pbolusM}U. ")
+            return rT
+        }
         if (isLunchModeCondition()){
             val pbolusLunch: Double = preferences.get(DoubleKey.OApsAIMILunchPrebolus)
                 rT.units = pbolusLunch
@@ -1447,7 +1454,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }else {
             rT.reason.append("ML Decision data training","ML decision has no enough data to refine the decision")
         }
-        val isMealAnticipated = anticipateMeal(glucose_status,lastsmbtime, historicalMealTimes)
+
         var smbToGive = if (bg > 160  && delta > 8 && predictedSMB == 0.0f) modelcal else predictedSMB
         smbToGive = if (honeymoon && bg < 170) smbToGive * 0.8f else smbToGive
 
@@ -1551,7 +1558,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 18 May 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 19 May 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
