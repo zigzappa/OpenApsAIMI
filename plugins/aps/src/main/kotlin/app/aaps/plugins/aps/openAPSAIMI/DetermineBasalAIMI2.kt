@@ -415,9 +415,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (belowTargetAndStableButNoCob) conditionsTrue.add("belowTargetAndStableButNoCob")
         val deceleratingUP = decceleratingUp == 1 && delta <= 0 && bg < 180
         if (deceleratingUP) conditionsTrue.add("deceleratingUP")
-        val droppingFast = bg < 130 && delta < -5
+        val droppingFast = bg < 150 && delta < -5
         if (droppingFast) conditionsTrue.add("droppingFast")
-        val droppingFastAtHigh = bg < 220 && delta < -7
+        val droppingFastAtHigh = bg < 220 && delta <= -7
         if (droppingFastAtHigh) conditionsTrue.add("droppingFastAtHigh")
         val droppingVeryFast = delta < -11
         if (droppingVeryFast) conditionsTrue.add("droppingVeryFast")
@@ -1515,7 +1515,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 19 May 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 20 May 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
