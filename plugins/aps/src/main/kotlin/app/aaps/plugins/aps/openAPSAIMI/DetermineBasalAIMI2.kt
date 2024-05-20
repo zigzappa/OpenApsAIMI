@@ -768,7 +768,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         // Appliquer le facteur de retard ajusté à l'effet de l'insuline
         insulinEffect *= adjustedDelayFactor
         if (bg > normalBgThreshold) {
-            insulinEffect *= 1.1f
+            insulinEffect *= 1.2f
         }
 
         return insulinEffect
@@ -790,9 +790,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             highcarbTime -> Triple(3.5f, 0.75f, 100f) // Repas riche en glucides
             snackTime -> Triple(1.5f, 1.25f, 15f) // Snack
             mealTime -> Triple(2.5f, 1.0f, 55f) // Repas normal
-            lunchTime -> Triple(2.5f, 1.0f, 55f) // Repas normal
-            dinnerTime -> Triple(2.5f, 1.0f, 55f) // Repas normal
-            else -> Triple(2.5f, 1.0f, cob) // Valeur par défaut si aucun type de repas spécifié
+            lunchTime -> Triple(2.5f, 1.0f, 70f) // Repas normal
+            dinnerTime -> Triple(2.5f, 1.0f, 70f) // Repas normal
+            else -> Triple(2.5f, 1.0f, 70f) // Valeur par défaut si aucun type de repas spécifié
         }
         val absorptionTimeInMinutes = averageCarbAbsorptionTime * 60
 
@@ -821,7 +821,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         currentBasalRate: Float // Le taux de basal actuel
     ): Float {
         // Poids pour le lissage. Plus la valeur est proche de 1, plus l'influence du jour le plus récent est grande.
-        val weightRecent = 0.6f
+        val weightRecent = 0.7f
         val weightPrevious = 1.0f - weightRecent
 
         // Calculer la TDD moyenne pondérée
@@ -865,7 +865,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         recentNotes?.forEach { note ->
             if(note.timestamp > olderTimeStamp && note.timestamp <= moreRecentTimeStamp) {
                 val noteText = note.note.lowercase()
-                if (noteText.contains("sleep") || noteText.contains("sport") || noteText.contains("snack") ||
+                if (noteText.contains("sleep") || noteText.contains("sport") || noteText.contains("snack") || noteText.contains("lunch") || noteText.contains("dinner") ||
                     noteText.contains("lowcarb") || noteText.contains("highcarb") || noteText.contains("meal") || noteText.contains("fasting") ||
                     noteText.contains("low treatment") || noteText.contains("less aggressive") ||
                     noteText.contains("more aggressive") || noteText.contains("too aggressive") ||
@@ -1068,7 +1068,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                  rT.reason.append("Microbolusing Meal Mode ${pbolusM}U. ")
              return rT
          }
-        if (isMealAnticipated && iob in 1.0..4.0 && delta > 20 && shortAvgDelta > 15 && longAvgDelta > 12 && (hourOfDay in 11..14 || hourOfDay in 18..21)){
+        if (isMealAnticipated && iob in 0.5..3.0 && delta > 15 && shortAvgDelta > 10 && longAvgDelta > 8 && (hourOfDay in 11..14 || hourOfDay in 18..21)){
             val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
             rT.units = if (lastBolusSMBUnit != pbolusM.toFloat()) pbolusM else 0.0
             rT.reason.append("Microbolusing FCL Mode using Meal mode prebolus ${pbolusM}U. ")
