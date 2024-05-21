@@ -1595,7 +1595,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 20 May 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 21 May 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
@@ -1822,6 +1822,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             val (localconditionResult, _) = isCriticalSafetyCondition()
 
             rate = when {
+                iob < 0.4 && bg > 100 -> profile_current_basal
                 bg > 180 && delta in -6.0..0.0 -> profile_current_basal
                 isMealAnticipated && delta > 15 -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
                 snackTime && snackrunTime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 4.0)
