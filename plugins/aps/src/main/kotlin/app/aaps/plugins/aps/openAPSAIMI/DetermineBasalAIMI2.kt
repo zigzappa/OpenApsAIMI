@@ -944,9 +944,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val isTimeSinceLastSmbSufficient = lastSmbMinutesAgo > minTimeSinceLastSmb && delta > 8
         val isLowActivity = recentSteps10Minutes < lowActivityThreshold
         val isDeltaslowingdown = delta < 5 || shortAvgDelta <= 4 || longAvgDelta <= 3
+        val FCL = preferences.get(BooleanKey.OApsAIMIMLFCL)
 
         // Determine if a meal is anticipated
-        return isLowActivity && isTimeSinceLastSmbSufficient && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown)
+        return FCL && isLowActivity && isTimeSinceLastSmbSufficient && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown)
     }
 
     private fun anticipateMeal(glucoseStatus: GlucoseStatus,lastSmbMinutesAgo: Int, historicalMealTimes: List<Int>): Boolean {
@@ -1516,18 +1517,18 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         // Appliquer les ajustements en fonction de l'heure de la journée
         smbToGive = when {
             bg > 160 && delta > 4 && iob < 0.7 && honeymoon && smbToGive == 0.0f && LocalTime.now().run { (hour in 23..23 || hour in 0..6) } -> 0.15f
-            bg > 120 && delta > 8 &&  iob < 1.0 && !honeymoon && smbToGive < 0.1f -> profile_current_basal.toFloat()
-            highCarbTime -> smbToGive * highcarbfactor.toFloat()
-            mealTime -> smbToGive * mealfactor.toFloat()
-            lunchTime -> smbToGive * lunchfactor.toFloat()
-            dinnerTime -> smbToGive * dinnerfactor.toFloat()
-            snackTime -> smbToGive * snackfactor.toFloat()
-            sleepTime -> smbToGive * sleepfactor.toFloat()
-            isMealAnticipated && preferences.get(BooleanKey.OApsAIMIMLFCL) -> smbToGive * fclfactor.toFloat()
-            hourOfDay in 1..11 -> smbToGive * adjustedMorningFactor.toFloat()
-            hourOfDay in 12..18 -> smbToGive * adjustedAfternoonFactor.toFloat()
-            hourOfDay in 19..23 -> smbToGive * adjustedEveningFactor.toFloat()
-            bg > 120 -> smbToGive * hyperfactor.toFloat()
+            bg > 120 && delta > 8 && iob < 1.0 && !honeymoon && smbToGive < 0.1f                                                             -> profile_current_basal.toFloat()
+            highCarbTime                                                                                                                     -> smbToGive * highcarbfactor.toFloat()
+            mealTime                                                                                                                         -> smbToGive * mealfactor.toFloat()
+            lunchTime                                                                                                                        -> smbToGive * lunchfactor.toFloat()
+            dinnerTime                                                                                                                       -> smbToGive * dinnerfactor.toFloat()
+            snackTime                                                                                                                        -> smbToGive * snackfactor.toFloat()
+            sleepTime                                                                                                                        -> smbToGive * sleepfactor.toFloat()
+            isMealAnticipated                                                                                                                -> smbToGive * fclfactor.toFloat()
+            hourOfDay in 1..11                                                                                                               -> smbToGive * adjustedMorningFactor.toFloat()
+            hourOfDay in 12..18                                                                                                              -> smbToGive * adjustedAfternoonFactor.toFloat()
+            hourOfDay in 19..23                                                                                                              -> smbToGive * adjustedEveningFactor.toFloat()
+            bg > 120 && !isMealAnticipated                                                                                                   -> smbToGive * hyperfactor.toFloat()
             else -> smbToGive
         }
         rT.reason.append("adjustedMorningFactor $adjustedMorningFactor")
@@ -1595,7 +1596,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 22  May 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 23  May 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
@@ -1822,25 +1823,25 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             val (localconditionResult, _) = isCriticalSafetyCondition()
 
             rate = when {
-                iob < 0.4 && bg > 100 -> profile_current_basal
-                bg > 180 && delta in -6.0..0.0 -> profile_current_basal
-                isMealAnticipated && delta > 15 -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
-                snackTime && snackrunTime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 4.0)
-                mealTime && mealruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                lunchTime && lunchruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                lunchTime && lunchruntime in 30..60 && delta > 0 -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
-                dinnerTime && dinnerruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                dinnerTime && dinnerruntime in 30..60 && delta > 0 -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
-                highCarbTime && highCarbrunTime in 0..60 -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                bg > 180 && !honeymoon -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                iob < 0.4 && bg > 100                                                                                                   -> profile_current_basal
+                bg > 180 && delta in -6.0..0.0                                                                                          -> profile_current_basal
+                isMealAnticipated && delta > 15                                                                                         -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
+                snackTime && snackrunTime in 0..30                                                                                      -> calculateBasalRate(basal, profile_current_basal, 4.0)
+                mealTime && mealruntime in 0..30                                                                                        -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                lunchTime && lunchruntime in 0..30                                                                                      -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                lunchTime && lunchruntime in 30..60 && delta > 0                                                                        -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
+                dinnerTime && dinnerruntime in 0..30                                                                                    -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                dinnerTime && dinnerruntime in 30..60 && delta > 0                                                                      -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
+                highCarbTime && highCarbrunTime in 0..60                                                                                -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                bg > 180 && !honeymoon                                                                                                  -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 recentSteps180Minutes > 2500 && averageBeatsPerMinute180 > averageBeatsPerMinute && bg > 140 && delta > 0 && !sportTime -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
-                honeymoon && bg in 140.0..169.0 && delta > 0 -> profile_current_basal
-                honeymoon && bg > 170 && delta > 0 -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
-                honeymoon && delta > 2 && bg in 90.0..119.0 -> profile_current_basal
-                honeymoon && delta > 0 && bg > 110 && eventualBG > 120 && bg < 160 -> profile_current_basal * delta
-                pregnancyEnable && delta > 0 && bg > 110 && !honeymoon -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                localconditionResult && delta > 1 && bg > 90 -> profile_current_basal * delta
-                bg > 110 && !conditionResult && eventualBG > 100 && delta < 4 -> profile_current_basal * delta
+                honeymoon && bg in 140.0..169.0 && delta > 0                                                                            -> profile_current_basal
+                honeymoon && bg > 170 && delta > 0                                                                                      -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
+                honeymoon && delta > 2 && bg in 90.0..119.0                                                                             -> profile_current_basal
+                honeymoon && delta > 0 && bg > 110 && eventualBG > 120 && bg < 160                                                      -> profile_current_basal * delta
+                pregnancyEnable && delta > 0 && bg > 110 && !honeymoon                                                                  -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                localconditionResult && delta > 1 && bg > 90                                                                            -> profile_current_basal * delta
+                bg > 110 && !conditionResult && eventualBG > 100 && delta < 4                                                           -> profile_current_basal * delta
                 else -> 0.0
             }
             rate.let {

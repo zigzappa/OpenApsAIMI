@@ -210,8 +210,9 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         // Détecter si les pas récents indiquent une faible activité physique
         val isLowActivity = recentSteps10Minutes < lowActivityThreshold
         val isDeltaslowingdown = delta < 5 || shortAvgDelta <= 4 || longAvgDelta <= 3
+        val FCL = preferences.get(BooleanKey.OApsAIMIMLFCL)
 
-        val isMealAnticipated = (isLowActivity && isTimeSinceLastSmbSufficient && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown))
+        val isMealAnticipated = (FCL && isLowActivity && isTimeSinceLastSmbSufficient && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown))
 
         return isMealAnticipated
     }
@@ -321,10 +322,10 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 snackTime                                                              -> tdd * snackTimeDynISFAdjFactor
                 highCarbTime                                                           -> tdd * hcTimeDynISFAdjFactor
                 mealTime                                                               -> tdd * mealTimeDynISFAdjFactor
-                isMealAnticipated == true && preferences.get(BooleanKey.OApsAIMIMLFCL) -> tdd * fclDynISFAdjFactor
+                isMealAnticipated == true                                              -> tdd * fclDynISFAdjFactor
                 lunchTime                                                              -> tdd * lunchTimeDynISFAdjFactor
                 dinnerTime                                                             -> tdd * dinnerTimeDynISFAdjFactor
-                bg > 140                                                               -> tdd * dynISFadjusthyper
+                bg > 120 && isMealAnticipated == false                                 -> tdd * dynISFadjusthyper
                 else -> tdd * dynISFadjust
             }
         }
@@ -470,10 +471,10 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                     snackTime                                                      -> tdd * snackTimeDynISFAdjFactor
                     highCarbTime                                                   -> tdd * hcTimeDynISFAdjFactor
                     mealTime                                                       -> tdd * mealTimeDynISFAdjFactor
-                    isMealAnticipated && preferences.get(BooleanKey.OApsAIMIMLFCL) -> tdd * fclDynISFAdjFactor
+                    isMealAnticipated                                              -> tdd * fclDynISFAdjFactor
                     lunchTime                                                      -> tdd * lunchTimeDynISFAdjFactor
                     dinnerTime                                                     -> tdd * dinnerTimeDynISFAdjFactor
-                    bg > 140                                                       -> tdd * dynISFadjusthyper
+                    bg > 120 && !isMealAnticipated                                 -> tdd * dynISFadjusthyper
                     else -> tdd * dynISFadjust
                 }
             }
