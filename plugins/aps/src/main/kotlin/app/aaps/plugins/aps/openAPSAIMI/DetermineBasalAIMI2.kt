@@ -875,7 +875,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         recentNotes?.forEach { note ->
             if(note.timestamp > olderTimeStamp && note.timestamp <= moreRecentTimeStamp) {
                 val noteText = note.note.lowercase()
-                if (noteText.contains("sleep") || noteText.contains("sport") || noteText.contains("snack") ||
+                if (noteText.contains("sleep") || noteText.contains("sport") || noteText.contains("snack") || noteText.contains("lunch") || noteText.contains("dinner") ||
                     noteText.contains("lowcarb") || noteText.contains("highcarb") || noteText.contains("meal") || noteText.contains("fasting") ||
                     noteText.contains("low treatment") || noteText.contains("less aggressive") ||
                     noteText.contains("more aggressive") || noteText.contains("too aggressive") ||
@@ -1740,25 +1740,26 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             val (localconditionResult, _) = isCriticalSafetyCondition()
 
             rate = when {
-                bg > 180 && delta in -6.0..0.0 -> profile_current_basal
-                snackTime && snackrunTime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 4.0)
-                mealTime && mealruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                bfastTime && bfastruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                bfastTime && bfastruntime in 30..60 && delta > 0 -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
-                lunchTime && lunchruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                lunchTime && lunchruntime in 30..60 && delta > 0 -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
-                dinnerTime && dinnerruntime in 0..30 -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                dinnerTime && dinnerruntime in 30..60 && delta > 0 -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
-                highCarbTime && highCarbrunTime in 0..60 -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                iob < 0.4 && bg > 100                                                                                                   -> profile_current_basal
+                bg > 180 && delta in -6.0..0.0                                                                                          -> profile_current_basal
+                snackTime && snackrunTime in 0..30                                                                                      -> calculateBasalRate(basal, profile_current_basal, 4.0)
+                mealTime && mealruntime in 0..30                                                                                        -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                bfastTime && bfastruntime in 0..30                                                                                      -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                bfastTime && bfastruntime in 30..60 && delta > 0                                                                        -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
+                lunchTime && lunchruntime in 0..30                                                                                      -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                lunchTime && lunchruntime in 30..60 && delta > 0                                                                        -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
+                dinnerTime && dinnerruntime in 0..30                                                                                    -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                dinnerTime && dinnerruntime in 30..60 && delta > 0                                                                      -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
+                highCarbTime && highCarbrunTime in 0..60                                                                                -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 recentSteps180Minutes > 2500 && averageBeatsPerMinute180 > averageBeatsPerMinute && bg > 140 && delta > 0 && !sportTime -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
-                bg > 180 && !honeymoon -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                honeymoon && bg in 140.0..169.0 && delta > 0 -> profile_current_basal
-                honeymoon && bg > 170 && delta > 0 -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
-                honeymoon && delta > 2 && bg in 90.0..119.0 -> profile_current_basal
-                honeymoon && delta > 0 && bg > 110 && eventualBG > 120 && bg < 160 -> profile_current_basal * delta
-                pregnancyEnable && delta > 0 && bg > 110 && !honeymoon -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                localconditionResult && delta > 1 && bg > 90 -> profile_current_basal * delta
-                bg > 110 && !conditionResult && eventualBG > 100 && delta < 4 -> profile_current_basal * delta
+                bg > 180 && !honeymoon                                                                                                  -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                honeymoon && bg in 140.0..169.0 && delta > 0                                                                            -> profile_current_basal
+                honeymoon && bg > 170 && delta > 0                                                                                      -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
+                honeymoon && delta > 2 && bg in 90.0..119.0                                                                             -> profile_current_basal
+                honeymoon && delta > 0 && bg > 110 && eventualBG > 120 && bg < 160                                                      -> profile_current_basal * delta
+                pregnancyEnable && delta > 0 && bg > 110 && !honeymoon                                                                  -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                localconditionResult && delta > 1 && bg > 90                                                                            -> profile_current_basal * delta
+                bg > 110 && !conditionResult && eventualBG > 100 && delta < 4                                                           -> profile_current_basal * delta
                 else -> 0.0
             }
             rate.let {
