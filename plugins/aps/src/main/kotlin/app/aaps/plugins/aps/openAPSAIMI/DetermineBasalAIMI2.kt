@@ -1000,6 +1000,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         if (isLunch2ModeCondition()){
             val pbolusLunch2: Double = preferences.get(DoubleKey.OApsAIMILunchPrebolus2)
+            this.maxSMB = pbolusLunch2
             rT.units = pbolusLunch2
             rT.reason.append("Microbolusing 2/2 Meal Mode ${pbolusLunch2}U. ")
             return rT
@@ -1012,6 +1013,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         if (isDinner2ModeCondition()){
             val pbolusDinner2: Double = preferences.get(DoubleKey.OApsAIMIDinnerPrebolus2)
+            this.maxSMB = pbolusDinner2
             rT.units = pbolusDinner2
             rT.reason.append("Microbolusing 2/2 Meal Mode ${pbolusDinner2}U. ")
             return rT
@@ -1515,7 +1517,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 22 May 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 24 May 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
