@@ -881,41 +881,6 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         notes = processNotesAndCleanUp(notes)
         return notes
     }
-    // private fun isMealAnticipated(
-    //     bg: Float,
-    //     delta: Float,
-    //     shortAvgDelta: Float,
-    //     longAvgDelta: Float,
-    //     hourOfDay: Int,
-    //     recentSteps10Minutes: Int,
-    //     lastSmbMinutesAgo: Int,
-    //     historicalMealTimes: List<Int> // Liste des heures typiques des repas
-    // ): Boolean {
-    //     val significantDelta = 10.0f // Définir une augmentation significative de la glycémie
-    //     val lowActivityThreshold = 100 // Seuil d'activité physique faible
-    //     val rapidIncreaseThreshold = 5.0f // Seuil de delta pour une augmentation rapide
-    //     val baseMinTimeSinceLastSmb = 9
-    //     val highCarbMinTimeSinceLastSmb = 4
-    //     //val minTimeSinceLastSmb = 10
-    //     val bgThreshold = if (hourOfDay in 6..9 || hourOfDay in 11..14 || hourOfDay in 18..21) 100.0f else 120.0f
-    //
-    //     // Détecter une augmentation rapide de la glycémie
-    //     val isRapidBgIncrease = delta > significantDelta && shortAvgDelta > rapidIncreaseThreshold
-    //
-    //     // Détecter si l'heure actuelle est une heure typique de repas ou proche de celle-ci
-    //     val isNearTypicalMealTime = historicalMealTimes.any { abs(hourOfDay - it) <= 1 } // +/- 1 heure autour des heures typiques
-    //     val isBgAboveThreshold = bg > bgThreshold
-    //     val isHighCarbMeal = delta > 15 && shortAvgDelta > 12 && longAvgDelta > 10
-    //     val minTimeSinceLastSmb = if (isHighCarbMeal) highCarbMinTimeSinceLastSmb else baseMinTimeSinceLastSmb
-    //     val isTimeSinceLastSmbSufficient = lastSmbMinutesAgo > minTimeSinceLastSmb && delta > 8
-    //     // Détecter si les pas récents indiquent une faible activité physique
-    //     val isLowActivity = recentSteps10Minutes < lowActivityThreshold
-    //     val isDeltaslowingdown = delta < 5 || shortAvgDelta <= 4 || longAvgDelta <= 3
-    //
-    //     val isMealAnticipated = (isLowActivity && isTimeSinceLastSmbSufficient && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown))
-    //
-    //     return isMealAnticipated
-    // }
     private fun isMealAnticipated(
         bg: Float,
         delta: Float,
@@ -1071,6 +1036,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
          }
         if (isMealAnticipated && iob in 0.5..3.0 && delta > 15 && shortAvgDelta > 10 && acceleratingUp == 1 && (hourOfDay in 8..10 || hourOfDay in 11..14 || hourOfDay in 18..21)){
             val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
+            this.maxSMB = pbolusM
             rT.units = if (lastBolusSMBUnit != pbolusM.toFloat()) pbolusM else 0.0
             rT.reason.append("Microbolusing FCL Mode using Meal mode prebolus ${pbolusM}U. ")
             return rT
@@ -1083,6 +1049,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         if (isLunch2ModeCondition()){
             val pbolusLunch2: Double = preferences.get(DoubleKey.OApsAIMILunchPrebolus2)
+            this.maxSMB = pbolusLunch2
             rT.units = pbolusLunch2
             rT.reason.append("Microbolusing 2/2 Meal Mode ${pbolusLunch2}U. ")
             return rT
@@ -1095,6 +1062,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         if (isDinner2ModeCondition()){
             val pbolusDinner2: Double = preferences.get(DoubleKey.OApsAIMIDinnerPrebolus2)
+            this.maxSMB = pbolusDinner2
             rT.units = pbolusDinner2
             rT.reason.append("Microbolusing 2/2 Meal Mode ${pbolusDinner2}U. ")
             return rT
@@ -1596,7 +1564,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 23  May 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 24  May 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
