@@ -33,4 +33,9 @@
     <string name="key_oaps_aimi_FCL_factor">key_oaps_aimi_FCL_factor</string>
     <string name="key_oaps_aimi_FCLAdjFact">key_oaps_aimi_FCLAdjFact</string>
     <string name="key_oaps_aimi_FCL_interval">key_oaps_aimi_FCL_interval</string>
+    <string name="key_oaps_aimi_BF_factor">key_oaps_aimi_BF_factor</string>
+    <string name="key_prebolus_BF_mode">key_prebolus_BF_mode</string>
+    <string name="key_prebolus2_BF_mode">key_prebolus2_BF_mode</string>
+    <string name="key_oaps_aimi_BFAdjFact">key_oaps_aimi_BFAdjFact</string>
+    <string name="key_oaps_aimi_BF_interval">key_oaps_aimi_BF_interval</string>
 </resources>
