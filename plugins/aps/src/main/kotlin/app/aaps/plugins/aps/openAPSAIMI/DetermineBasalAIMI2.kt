@@ -621,12 +621,12 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                     learningRate = 0.001f
                 }else{
                     learningRate = when {
-                        bg in (81.0..119.0) -> 0.00001f
-                        bg in (120.0 .. 139.0) -> 0.0001f
-                        bg in (140.0 .. 200.0) -> 0.001f
+                        bg in (70.0..100.0) -> 0.00001f
+                        bg in (100.0 .. 120.0) -> 0.0001f
+                        bg in (120.0 .. 200.0) -> 0.001f
                         bg >= 200 -> 0.01f
 
-                        else -> 0.0001f
+                        else -> 0.001f
                     }
                 }
 
@@ -1553,10 +1553,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             highCarbTime && highCarbrunTime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because highcarb $highcarbfactor.", currenttemp, rT)
             fastingTime -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because fastingTime", currenttemp, rT)
             sportTime && bg > 169 && delta > 4 -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because sportTime && bg > 170", currenttemp, rT)
-            !honeymoon && delta in 0.0 .. 7.0 && bg in 81.0..111.0 -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because bg lesser than 110 and delta lesser than 8", currenttemp, rT)
+            //!honeymoon && delta in 0.0 .. 7.0 && bg in 81.0..111.0 -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because bg lesser than 110 and delta lesser than 8", currenttemp, rT)
             honeymoon && delta in 0.0.. 6.0 && bg in 99.0..141.0 -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because honeymoon and bg lesser than 140 and delta lesser than 6", currenttemp, rT)
             bg in 81.0..99.0 && delta in 3.0..7.0 && honeymoon -> calculateRate(basal, profile_current_basal, 1.0, "AI Force basal because bg is between 80 and 100 with a small delta.", currenttemp, rT)
-            bg > 145 && delta > 0 && smbToGive == 0.0f && !honeymoon -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because bg is greater than 145 and SMB = 0U.", currenttemp, rT)
+            //bg > 145 && delta > 0 && smbToGive == 0.0f && !honeymoon -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because bg is greater than 145 and SMB = 0U.", currenttemp, rT)
             bg > 120 && delta > 0 && smbToGive == 0.0f && honeymoon -> calculateRate(basal, profile_current_basal, 5.0, "AI Force basal because bg is greater than 120 and SMB = 0U.", currenttemp, rT)
             else -> null
         }
@@ -1814,9 +1814,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             val (localconditionResult, _) = isCriticalSafetyCondition()
 
             rate = when {
-                iob < 0.4 && bg > 100                                                                                                   -> profile_current_basal
+                iob < 0.4 && bg > 100                                                                                                         -> profile_current_basal
                 bg > 180 && delta in -6.0..0.0                                                                                          -> profile_current_basal
-                isMealAnticipated && delta > 15                                                                                         -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
+                isMealAnticipated && delta > 15                                                                                               -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
                 snackTime && snackrunTime in 0..30                                                                                      -> calculateBasalRate(basal, profile_current_basal, 4.0)
                 mealTime && mealruntime in 0..30                                                                                        -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 bfastTime && bfastruntime in 0..30                                                                                      -> calculateBasalRate(basal, profile_current_basal, 10.0)
@@ -1826,15 +1826,15 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 dinnerTime && dinnerruntime in 0..30                                                                                    -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 dinnerTime && dinnerruntime in 30..60 && delta > 0                                                                      -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
                 highCarbTime && highCarbrunTime in 0..60                                                                                -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                bg > 180 && !honeymoon                                                                                                  -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                recentSteps180Minutes > 2500 && averageBeatsPerMinute180 > averageBeatsPerMinute && bg > 140 && delta > 0 && !sportTime -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
+                bg > 180 && !honeymoon                                                                                                        -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                recentSteps180Minutes > 2500 && averageBeatsPerMinute180 > averageBeatsPerMinute && bg > 140 && delta > 0 && !sportTime       -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
                 honeymoon && bg in 140.0..169.0 && delta > 0                                                                            -> profile_current_basal
-                honeymoon && bg > 170 && delta > 0                                                                                      -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
+                honeymoon && bg > 170 && delta > 0                                                                                            -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
                 honeymoon && delta > 2 && bg in 90.0..119.0                                                                             -> profile_current_basal
-                honeymoon && delta > 0 && bg > 110 && eventualBG > 120 && bg < 160                                                      -> profile_current_basal * delta
-                pregnancyEnable && delta > 0 && bg > 110 && !honeymoon                                                                  -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                localconditionResult && delta > 1 && bg > 90                                                                            -> profile_current_basal * delta
-                bg > 110 && !conditionResult && eventualBG > 100 && delta < 4                                                           -> profile_current_basal * delta
+                honeymoon && delta > 0 && bg > 110 && eventualBG > 120 && bg < 160                                                            -> profile_current_basal * delta
+                pregnancyEnable && delta > 0 && bg > 110 && !honeymoon                                                                        -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                localconditionResult && delta > 1 && bg > 90                                                                                  -> profile_current_basal * delta
+                bg > 110 && !conditionResult && eventualBG > 100 && delta in 0.0 .. 4.0                                                 -> profile_current_basal * delta
                 else -> 0.0
             }
             rate.let {
