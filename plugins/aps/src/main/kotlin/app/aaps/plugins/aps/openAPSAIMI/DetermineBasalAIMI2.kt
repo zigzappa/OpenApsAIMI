@@ -875,8 +875,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         recentNotes?.forEach { note ->
             if(note.timestamp > olderTimeStamp && note.timestamp <= moreRecentTimeStamp) {
                 val noteText = note.note.lowercase()
-                if (noteText.contains("sleep") || noteText.contains("sport") || noteText.contains("snack") || noteText.contains("lunch") || noteText.contains("dinner") ||
-                    noteText.contains("lowcarb") || noteText.contains("highcarb") || noteText.contains("meal") || noteText.contains("fasting") ||
+                if (noteText.contains("sleep") || noteText.contains("sport") || noteText.contains("snack") || noteText.contains("bfast") || noteText.contains("lunch") ||
+                    noteText.contains("lowcarb") || noteText.contains("dinner") || noteText.contains("highcarb") || noteText.contains("meal") || noteText.contains("fasting") ||
                     noteText.contains("low treatment") || noteText.contains("less aggressive") ||
                     noteText.contains("more aggressive") || noteText.contains("too aggressive") ||
                     noteText.contains("normal")) {
