@@ -415,7 +415,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (belowTargetAndStableButNoCob) conditionsTrue.add("belowTargetAndStableButNoCob")
         val deceleratingUP = decceleratingUp == 1 && delta <= 0 && bg < 180
         if (deceleratingUP) conditionsTrue.add("deceleratingUP")
-        val droppingFast = bg < 150 && delta < -5
+        val droppingFast = bg < 150 && delta <= -5
         if (droppingFast) conditionsTrue.add("droppingFast")
         val droppingFastAtHigh = bg < 220 && delta <= -7
         if (droppingFastAtHigh) conditionsTrue.add("droppingFastAtHigh")
