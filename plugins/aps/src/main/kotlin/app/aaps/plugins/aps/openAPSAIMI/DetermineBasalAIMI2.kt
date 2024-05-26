@@ -617,12 +617,12 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                     learningRate = 0.001f
                 }else{
                     learningRate = when {
-                        bg in (81.0..119.0) -> 0.00001f
-                        bg in (120.0 .. 139.0) -> 0.0001f
-                        bg in (140.0 .. 200.0) -> 0.001f
+                        bg in (71.0..100.0) -> 0.00001f
+                        bg in (100.0 .. 120.0) -> 0.0001f
+                        bg in (120.0 .. 200.0) -> 0.001f
                         bg >= 200 -> 0.01f
 
-                        else -> 0.0001f
+                        else -> 0.001f
                     }
                 }
 
@@ -1741,7 +1741,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
             rate = when {
                 iob < 0.4 && bg > 100                                                                                                   -> profile_current_basal
-                bg > 180 && delta in -6.0..0.0                                                                                          -> profile_current_basal
+                bg > 180 && delta in -6.0..2.0                                                                                          -> profile_current_basal
                 snackTime && snackrunTime in 0..30                                                                                      -> calculateBasalRate(basal, profile_current_basal, 4.0)
                 mealTime && mealruntime in 0..30                                                                                        -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 bfastTime && bfastruntime in 0..30                                                                                      -> calculateBasalRate(basal, profile_current_basal, 10.0)
@@ -1759,7 +1759,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 honeymoon && delta > 0 && bg > 110 && eventualBG > 120 && bg < 160                                                      -> profile_current_basal * delta
                 pregnancyEnable && delta > 0 && bg > 110 && !honeymoon                                                                  -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 localconditionResult && delta > 1 && bg > 90                                                                            -> profile_current_basal * delta
-                bg > 110 && !conditionResult && eventualBG > 100 && delta < 4                                                           -> profile_current_basal * delta
+                bg > 110 && !conditionResult && eventualBG > 140 && delta in 0.0 .. 4.0                                                          -> profile_current_basal * delta
                 else -> 0.0
             }
             rate.let {
