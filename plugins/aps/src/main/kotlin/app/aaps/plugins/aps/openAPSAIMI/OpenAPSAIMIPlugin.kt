@@ -197,14 +197,26 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         if (cached != null && timestamp < dateUtil.now()) {
             return Pair("HIT", cached)
         }
-
         val tdd7P: Double = preferences.get(DoubleKey.OApsAIMITDD7)
+
+        var tdd7D =  tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))
+        if (tdd7D != null && tdd7D.data.totalAmount > tdd7P && tdd7D.data.totalAmount > 1.1 * tdd7P) {
+            tdd7D.data.totalAmount = 1.1 * tdd7P
+            aapsLogger.info(LTag.APS, "TDD for 7 days limited to 10% increase. New TDD7D: ${tdd7D.data.totalAmount}")
+        }
         var tdd2Days = tddCalculator.averageTDD(tddCalculator.calculate(2, allowMissingDays = false))?.data?.totalAmount ?: 0.0
         if (tdd2Days == 0.0 || tdd2Days < tdd7P) tdd2Days = tdd7P
+
         val tdd2DaysPerHour = tdd2Days / 24
+
         val tddLast4H = tdd2DaysPerHour * 4
+
         var tddDaily = tddCalculator.averageTDD(tddCalculator.calculate(1, allowMissingDays = false))?.data?.totalAmount ?: 0.0
         if (tddDaily == 0.0 || tddDaily < tdd7P / 2) tddDaily = tdd7P
+        if (tddDaily > tdd7P && tddDaily > 1.1 * tdd7P) {
+            tddDaily = 1.1 * tdd7P
+            aapsLogger.info(LTag.APS, "TDD for 1 day limited to 10% increase. New TDDDaily: $tddDaily")
+        }
         var tdd24Hrs = tddCalculator.calculateDaily(-24, 0)?.totalAmount ?: 0.0
         if (tdd24Hrs == 0.0) tdd24Hrs = tdd7P
         val tdd24HrsPerHour = tdd24Hrs / 24
