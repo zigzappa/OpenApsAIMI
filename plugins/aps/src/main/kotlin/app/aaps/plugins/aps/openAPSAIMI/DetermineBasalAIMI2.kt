@@ -84,7 +84,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     private var lastHourTIRabove170: Double = 0.0
     private var lastHourTIRabove120: Double = 0.0
     private var bg = 0.0
-    private var targetBg = 90.0f
+    private var targetBg = 100.0f
     private var normalBgThreshold = 120.0f
     private var delta = 0.0f
     private var shortAvgDelta = 0.0f
@@ -1050,7 +1050,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                  rT.reason.append("Microbolusing Meal Mode ${pbolusM}U. ")
              return rT
          }
-        if (isMealAnticipated && iob in 0.5..3.0 && delta > 15 && shortAvgDelta > 10 && acceleratingUp == 1 && (hourOfDay in 8..10 || hourOfDay in 11..14 || hourOfDay in 18..21)){
+        if (((isMealAnticipated && iob in 0.5..3.0 && delta > 15 && shortAvgDelta > 10 && acceleratingUp == 1) || profile.temptargetSet && targetBg == 80.0f) && (hourOfDay in 8..10 || hourOfDay in 11..14 || hourOfDay in 18..21)){
             val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
             this.maxSMB = pbolusM
             rT.units = if (lastBolusSMBUnit != pbolusM.toFloat()) pbolusM else 0.0
@@ -1583,7 +1583,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 26  May 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 27  May 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")

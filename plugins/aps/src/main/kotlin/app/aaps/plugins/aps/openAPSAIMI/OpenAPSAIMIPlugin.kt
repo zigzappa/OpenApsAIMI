@@ -254,6 +254,16 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         if (sensitivity < 0 && isfMgdl != null) {
             sensitivity = profileUtil.fromMgdlToUnits(isfMgdl.toDouble(), profileFunction.getUnits())
         }
+        if (sensitivity <= 0) {
+            if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
+                aapsLogger.error(LTag.APS, "Calculated sensitivity is invalid (<= 0). Setting to minimum valid value for mmol.")
+                sensitivity = 0.2 // Set to a minimum valid value for mmol
+            } else {
+                aapsLogger.error(LTag.APS, "Calculated sensitivity is invalid (<= 0). Setting to minimum valid value for mg/dL.")
+                sensitivity = 2.0 // Set to a minimum valid value for mg/dL
+            }
+        }
+
 
         dynIsfCache.put(key, sensitivity)
         if (dynIsfCache.size() > 1000) dynIsfCache.clear()
