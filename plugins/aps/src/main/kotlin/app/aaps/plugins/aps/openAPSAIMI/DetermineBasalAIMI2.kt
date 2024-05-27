@@ -1057,6 +1057,19 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             rT.reason.append("Microbolusing FCL Mode using Meal mode prebolus ${pbolusM}U. ")
             return rT
         }
+        if (isbfastModeCondition()){
+            val pbolusbfast: Double = preferences.get(DoubleKey.OApsAIMIBFPrebolus)
+            rT.units = pbolusbfast
+            rT.reason.append("Microbolusing 1/2 Breakfast Mode ${pbolusbfast}U. ")
+            return rT
+        }
+        if (isbfast2ModeCondition()){
+            val pbolusbfast2: Double = preferences.get(DoubleKey.OApsAIMIBFPrebolus2)
+            this.maxSMB = pbolusbfast2
+            rT.units = pbolusbfast2
+            rT.reason.append("Microbolusing 2/2 Breakfast Mode ${pbolusbfast2}U. ")
+            return rT
+        }
         if (isLunchModeCondition()){
             val pbolusLunch: Double = preferences.get(DoubleKey.OApsAIMILunchPrebolus)
                 rT.units = pbolusLunch
