@@ -1530,7 +1530,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 27 May 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 30 May 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
