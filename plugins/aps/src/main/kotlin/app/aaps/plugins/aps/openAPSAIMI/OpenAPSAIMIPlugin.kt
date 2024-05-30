@@ -277,8 +277,17 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         }
 
 
+        // dynIsfCache.put(key, sensitivity)
+        // if (dynIsfCache.size() > 1000) dynIsfCache.clear()
+        // return Pair("CALC", sensitivity)
+        // Check cache size and clear if necessary
+        if (dynIsfCache.size() > 1000) {
+            dynIsfCache.clear()
+        }
+
+// Add calculated sensitivity to cache
         dynIsfCache.put(key, sensitivity)
-        if (dynIsfCache.size() > 1000) dynIsfCache.clear()
+
         return Pair("CALC", sensitivity)
     }
 
