@@ -263,7 +263,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         }
 
         val isfMgdl = profileFunction.getProfile()?.getProfileIsfMgdl()
-        var sensitivity = Round.roundTo(1800 / (tdd * ln(glucoseInMgdl / 75.0 + 1)), 0.1)
+        var sensitivity = Round.roundTo(1800 / (tdd * ln(bg!!.toDouble() / 75.0 + 1)), 0.1)
         if (sensitivity < 0 && isfMgdl != null) {
             sensitivity = profileUtil.fromMgdlToUnits(isfMgdl.toDouble(), profileFunction.getUnits())
         }
