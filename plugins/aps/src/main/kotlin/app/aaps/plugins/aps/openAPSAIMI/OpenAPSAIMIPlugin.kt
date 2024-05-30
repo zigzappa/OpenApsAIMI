@@ -262,11 +262,10 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         }
 
         val isfMgdl = profileFunction.getProfile()?.getProfileIsfMgdl()
-        var sensitivity = Round.roundTo(1800 / (tdd * ln(glucoseInMgdl / 75.0 + 1)), 0.1)
-        if (sensitivity < 0 && isfMgdl != null) {
-            sensitivity = profileUtil.fromMgdlToUnits(isfMgdl.toDouble(), profileFunction.getUnits())
-        }
-        if (sensitivity <= 0) {
+
+        var  sensitivity = if (glucoseInMgdl != null)  Round.roundTo(1800 / (tdd * ln(glucoseInMgdl / 75.0 + 1)), 0.1) else isfMgdl
+
+        if (sensitivity!! < 0) {
             if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
                 aapsLogger.error(LTag.APS, "Calculated sensitivity is invalid (<= 0). Setting to minimum valid value for mmol.")
                 sensitivity = 0.2 // Set to a minimum valid value for mmol
@@ -275,6 +274,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 sensitivity = 2.0 // Set to a minimum valid value for mg/dL
             }
         }
+        sensitivity = if (glucoseInMgdl < 100) isfMgdl else sensitivity
 
 
         // dynIsfCache.put(key, sensitivity)
@@ -440,6 +440,8 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             val tddLast24H = tddCalculator.calculateDaily(-24, 0)
             val tddLast8to4H = tdd24HrsPerHour * 4
             val bg = glucoseStatusProvider.glucoseStatusData?.glucose
+            val unit = profileFunction.getUnits()
+            val glucoseInMgdl = if (unit == GlucoseUnit.MMOL) mmolLToMgdl(bg!!) else bg
             val dynISFadjust: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustment).toDouble() / 100.0)
             val dynISFadjusthyper: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustmentHyper).toDouble() / 100.0)
             val mealTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMImealAdjISFFact).toDouble() / 100.0)
@@ -474,7 +476,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                     bfastTime    -> tdd * bfastTimeDynISFAdjFactor
                     lunchTime    -> tdd * lunchTimeDynISFAdjFactor
                     dinnerTime   -> tdd * dinnerTimeDynISFAdjFactor
-                    bg > 120     -> tdd * dynISFadjusthyper
+                    glucoseInMgdl!! > 120     -> tdd * dynISFadjusthyper
                     else -> tdd * dynISFadjust
                 }
             }
@@ -483,7 +485,18 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             // if (variableSensitivity < 0 && isfMgdl != null) {
             //     variableSensitivity = profileUtil.fromMgdlToUnits(isfMgdl.toDouble(), profileFunction.getUnits())
             // }
-            if (variableSensitivity <= 0 && isfMgdl != null) {
+            // if (variableSensitivity <= 0 && isfMgdl != null) {
+            //     if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
+            //         aapsLogger.error(LTag.APS, "Calculated sensitivity is invalid (<= 0). Setting to minimum valid value for mmol.")
+            //         variableSensitivity = 0.2 // Set to a minimum valid value for mmol
+            //     } else {
+            //         aapsLogger.error(LTag.APS, "Calculated sensitivity is invalid (<= 0). Setting to minimum valid value for mg/dL.")
+            //         variableSensitivity = 2.0 // Set to a minimum valid value for mg/dL
+            //     }
+            // }
+            var  variableSensitivity = if (glucoseInMgdl != null)  Round.roundTo(1800 / (tdd * ln(glucoseInMgdl!! / 75.0 + 1)), 0.1) else isfMgdl
+
+            if (variableSensitivity!! < 0) {
                 if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
                     aapsLogger.error(LTag.APS, "Calculated sensitivity is invalid (<= 0). Setting to minimum valid value for mmol.")
                     variableSensitivity = 0.2 // Set to a minimum valid value for mmol
@@ -492,6 +505,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                     variableSensitivity = 2.0 // Set to a minimum valid value for mg/dL
                 }
             }
+            variableSensitivity = if (glucoseInMgdl!! < 100) isfMgdl else variableSensitivity
 
             // Compare insulin consumption of last 24h with last 7 days average
             val tddRatio = if (preferences.get(BooleanKey.ApsDynIsfAdjustSensitivity)) tdd24Hrs / tdd2Days else 1.0
@@ -554,7 +568,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 temptargetSet = isTempTarget,
                 autosens_max = preferences.get(DoubleKey.AutosensMax),
                 out_units = if (profileFunction.getUnits() == GlucoseUnit.MMOL) "mmol/L" else "mg/dl",
-                variable_sens = variableSensitivity,
+                variable_sens = variableSensitivity!!,
                 insulinDivisor = insulinDivisor,
                 TDD = if (tdd == 0.0) preferences.get(DoubleKey.OApsAIMITDD7) else tdd
             )
