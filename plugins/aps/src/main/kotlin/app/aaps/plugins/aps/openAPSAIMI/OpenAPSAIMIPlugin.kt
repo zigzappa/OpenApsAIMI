@@ -480,20 +480,9 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                     else -> tdd * dynISFadjust
                 }
             }
-            variableSensitivity = Round.roundTo(1800 / (tdd * (ln((glucoseStatus.glucose / insulinDivisor) + 1))), 0.1)
+
             val isfMgdl = profileFunction.getProfile()?.getProfileIsfMgdl()
-            // if (variableSensitivity < 0 && isfMgdl != null) {
-            //     variableSensitivity = profileUtil.fromMgdlToUnits(isfMgdl.toDouble(), profileFunction.getUnits())
-            // }
-            // if (variableSensitivity <= 0 && isfMgdl != null) {
-            //     if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
-            //         aapsLogger.error(LTag.APS, "Calculated sensitivity is invalid (<= 0). Setting to minimum valid value for mmol.")
-            //         variableSensitivity = 0.2 // Set to a minimum valid value for mmol
-            //     } else {
-            //         aapsLogger.error(LTag.APS, "Calculated sensitivity is invalid (<= 0). Setting to minimum valid value for mg/dL.")
-            //         variableSensitivity = 2.0 // Set to a minimum valid value for mg/dL
-            //     }
-            // }
+
             var  variableSensitivity = if (glucoseInMgdl != null)  Round.roundTo(1800 / (tdd * ln(glucoseInMgdl!! / 75.0 + 1)), 0.1) else isfMgdl
 
             if (variableSensitivity!! < 0) {
