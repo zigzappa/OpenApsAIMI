@@ -127,16 +127,14 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
 
         uiInteraction.dismissNotification(Notification.DYN_ISF_FALLBACK)
         profiler.log(LTag.APS, String.format("getIsfMgdl() %s %f %s %s", sensitivity.first, sensitivity.second, dateUtil.dateAndTimeAndSecondsString(start), caller), start)
-        val isf = sensitivity.second?.let { it * multiplier }
-        return if (profileFunction.getUnits() == GlucoseUnit.MMOL) mgdlToMmolL(isf ?: 0.0) else isf
+        return sensitivity.second?.let { it * multiplier }
     }
 
     override fun getIsfMgdl(timestamp: Long, bg: Double, multiplier: Double, timeShift: Int, caller: String): Double? {
         val start = dateUtil.now()
         val sensitivity = calculateVariableIsf(timestamp, bg)
         profiler.log(LTag.APS, String.format("getIsfMgdl() %s %f %s %s", sensitivity.first, sensitivity.second, dateUtil.dateAndTimeAndSecondsString(timestamp), caller), start)
-        val isf = sensitivity.second?.let { it * multiplier }
-        return if (profileFunction.getUnits() == GlucoseUnit.MMOL) mgdlToMmolL(isf ?: 0.0) else isf
+        return sensitivity.second?.let { it * multiplier }
     }
 
     override fun specialEnableCondition(): Boolean {
@@ -179,7 +177,6 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         preferenceFragment.findPreference<AdaptiveIntPreference>(rh.gs(app.aaps.core.keys.R.string.key_openaps_uam_smb_max_minutes))?.isVisible = uamEnabled
     }
     private val dynIsfCache = LongSparseArray<Double>()
-
     private fun calculateVariableIsf(timestamp: Long, bg: Double?): Pair<String, Double?> {
         if (!preferences.get(BooleanKey.ApsUseDynamicSensitivity)) return Pair("OFF", null)
 
@@ -189,25 +186,23 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         }
 
         val glucose = bg ?: glucoseStatusProvider.glucoseStatusData?.glucose ?: return Pair("GLUC", null)
-        val unit = profileFunction.getUnits()
-        val glucoseInMgdl = if (unit == GlucoseUnit.MMOL) mmolLToMgdl(glucose) else glucose
-
+        // Round down to 30 min and use it as a key for caching
+        // Add BG to key as it affects calculation
         val key = timestamp - timestamp % T.mins(30).msecs() + glucose.toLong()
         val cached = dynIsfCache[key]
         if (cached != null && timestamp < dateUtil.now()) {
             return Pair("HIT", cached)
         }
-
         val tdd7P: Double = preferences.get(DoubleKey.OApsAIMITDD7)
 
-        var tdd7D = tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))
+        var tdd7D =  tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))
         if (tdd7D != null && tdd7D.data.totalAmount > tdd7P && tdd7D.data.totalAmount > 1.1 * tdd7P) {
             tdd7D.data.totalAmount = 1.1 * tdd7P
             aapsLogger.info(LTag.APS, "TDD for 7 days limited to 10% increase. New TDD7D: ${tdd7D.data.totalAmount}")
         }
-
         var tdd2Days = tddCalculator.averageTDD(tddCalculator.calculate(2, allowMissingDays = false))?.data?.totalAmount ?: 0.0
         if (tdd2Days == 0.0 || tdd2Days < tdd7P) tdd2Days = tdd7P
+
         val tdd2DaysPerHour = tdd2Days / 24
 
         val tddLast4H = tdd2DaysPerHour * 4
@@ -226,7 +221,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         val dynISFadjust: Double = preferences.get(IntKey.OApsAIMIDynISFAdjustment).toDouble() / 100.0
         val dynISFadjusthyper: Double = preferences.get(IntKey.OApsAIMIDynISFAdjustmentHyper).toDouble() / 100.0
         val mealTimeDynISFAdjFactor: Double = preferences.get(IntKey.OApsAIMImealAdjISFFact).toDouble() / 100.0
-        val bfastTimeDynISFAdjFactor: Double = preferences.get(IntKey.OApsAIMIBFAdjISFFact).toDouble() / 100.0
+        val bfastTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMIBFAdjISFFact).toDouble() / 100.0)
         val lunchTimeDynISFAdjFactor: Double = preferences.get(IntKey.OApsAIMILunchAdjISFFact).toDouble() / 100.0
         val dinnerTimeDynISFAdjFactor: Double = preferences.get(IntKey.OApsAIMIDinnerAdjISFFact).toDouble() / 100.0
         val snackTimeDynISFAdjFactor: Double = preferences.get(IntKey.OApsAIMISnackAdjISFFact).toDouble() / 100.0
@@ -248,40 +243,23 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         var tdd = (tddWeightedFromLast8H * 0.33) + (tdd2Days * 0.34) + (tddDaily * 0.33)
         if (bg != null) {
             tdd = when {
-                sportTime -> tdd * 1.1
-                sleepTime -> tdd * sleepTimeDynISFAdjFactor
-                lowCarbTime -> tdd * 1.1
-                snackTime -> tdd * snackTimeDynISFAdjFactor
-                highCarbTime -> tdd * hcTimeDynISFAdjFactor
-                mealTime -> tdd * mealTimeDynISFAdjFactor
-                bfastTime -> tdd * bfastTimeDynISFAdjFactor
-                lunchTime -> tdd * lunchTimeDynISFAdjFactor
-                dinnerTime -> tdd * dinnerTimeDynISFAdjFactor
-                glucoseInMgdl > 140 -> tdd * dynISFadjusthyper
+                sportTime           -> tdd * 1.1
+                sleepTime           -> tdd * sleepTimeDynISFAdjFactor
+                lowCarbTime         -> tdd * 1.1
+                snackTime           -> tdd * snackTimeDynISFAdjFactor
+                highCarbTime        -> tdd * hcTimeDynISFAdjFactor
+                mealTime            -> tdd * mealTimeDynISFAdjFactor
+                bfastTime           -> tdd * bfastTimeDynISFAdjFactor
+                lunchTime           -> tdd * lunchTimeDynISFAdjFactor
+                dinnerTime          -> tdd * dinnerTimeDynISFAdjFactor
+                glucose > 140 -> tdd * dynISFadjusthyper
                 else -> tdd * dynISFadjust
             }
         }
 
         val isfMgdl = profileFunction.getProfile()?.getProfileIsfMgdl()
-    //     var sensitivity = Round.roundTo(1800 / (tdd * ln(glucose / 75.0 + 1)), 0.1)
-    //     if (sensitivity < 0 && isfMgdl != null) {
-    //         sensitivity = profileUtil.fromMgdlToUnits(isfMgdl.toDouble(), profileFunction.getUnits())
-    //     }
-    //     if (sensitivity <= 0) {
-    //         if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
-    //             aapsLogger.error(LTag.APS, "Calculated sensitivity is invalid (<= 0). Setting to minimum valid value for mmol.")
-    //             sensitivity = 0.2 // Set to a minimum valid value for mmol
-    //         } else {
-    //             aapsLogger.error(LTag.APS, "Calculated sensitivity is invalid (<= 0). Setting to minimum valid value for mg/dL.")
-    //             sensitivity = 2.0 // Set to a minimum valid value for mg/dL
-    //         }
-    //     }
-    //
-    //     dynIsfCache.put(key, sensitivity)
-    //     if (dynIsfCache.size() > 1000) dynIsfCache.clear()
-    //     return Pair("CALC", sensitivity)
-    // }
-        var  sensitivity = if (glucoseInMgdl != null)  Round.roundTo(1800 / (tdd * ln(glucoseInMgdl / 75.0 + 1)), 0.1) else isfMgdl
+
+        var  sensitivity = if (glucose != null)  Round.roundTo(1800 / (tdd * ln(glucose / 75.0 + 1)), 0.1) else isfMgdl
 
         if (sensitivity!! < 0) {
             if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
@@ -292,33 +270,15 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 sensitivity = 2.0 // Set to a minimum valid value for mg/dL
             }
         }
-        sensitivity = if (glucoseInMgdl < 100) isfMgdl else sensitivity
-
-
-        // dynIsfCache.put(key, sensitivity)
-        // if (dynIsfCache.size() > 1000) dynIsfCache.clear()
-        // return Pair("CALC", sensitivity)
-        // Check cache size and clear if necessary
+        sensitivity = if (glucose < 100) isfMgdl else sensitivity
         if (dynIsfCache.size() > 1000) {
             dynIsfCache.clear()
         }
-
 // Add calculated sensitivity to cache
         dynIsfCache.put(key, sensitivity)
 
         return Pair("CALC", sensitivity)
     }
-
-    // Fonction utilitaire pour convertir mg/dL en mmol/L
-    private fun mgdlToMmolL(mgdl: Double): Double {
-        return mgdl * 0.0555
-    }
-
-    // Fonction utilitaire pour convertir mmol/L en mg/dL
-    private fun mmolLToMgdl(mmolL: Double): Double {
-        return mmolL / 0.0555
-    }
-
     override fun invoke(initiator: String, tempBasalFallback: Boolean) {
         aapsLogger.debug(LTag.APS, "invoke from $initiator tempBasalFallback: $tempBasalFallback")
         lastAPSResult = null
@@ -352,15 +312,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 hardLimits.maxIC()
             )
         ) return
-
-        // Vérification des limites de sensibilité en fonction de l'unité
-        val isfValue = profile.getIsfMgdl("OpenAPSAIMIPlugin")
-        val isfLimitMin = if (profileFunction.getUnits() == GlucoseUnit.MMOL) mgdlToMmolL(HardLimits
-
-                                                                                              .MIN_ISF) else HardLimits.MIN_ISF
-        val isfLimitMax = if (profileFunction.getUnits() == GlucoseUnit.MMOL) mgdlToMmolL(HardLimits.MAX_ISF) else HardLimits.MAX_ISF
-
-        if (!hardLimits.checkHardLimits(isfValue, app.aaps.core.ui.R.string.profile_sensitivity_value, isfLimitMin, isfLimitMax)) return
+        if (!hardLimits.checkHardLimits(profile.getIsfMgdl("OpenAPSAIMIPlugin"), app.aaps.core.ui.R.string.profile_sensitivity_value, HardLimits.MIN_ISF, HardLimits.MAX_ISF)) return
         if (!hardLimits.checkHardLimits(profile.getMaxDailyBasal(), app.aaps.core.ui.R.string.profile_max_daily_basal_value, 0.02, hardLimits.maxBasal())) return
         if (!hardLimits.checkHardLimits(pump.baseBasalRate, app.aaps.core.ui.R.string.current_basal_value, 0.01, hardLimits.maxBasal())) return
 
@@ -377,46 +329,15 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             rate = tb?.convertedToAbsolute(now, profile) ?: 0.0,
             minutesrunning = tb?.getPassedDurationToTimeInMinutes(now)
         )
-
-        // Vérification et conversion des limites de glucose en fonction de l'unité
-        var minBg = if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
-            mgdlToMmolL(hardLimits.verifyHardLimits(Round.roundTo(profile.getTargetLowMgdl(), 0.1), app.aaps.core.ui.R.string.profile_low_target, HardLimits.LIMIT_MIN_BG[0], HardLimits.LIMIT_MIN_BG[1]))
-        } else {
-            hardLimits.verifyHardLimits(Round.roundTo(profile.getTargetLowMgdl(), 0.1), app.aaps.core.ui.R.string.profile_low_target, HardLimits.LIMIT_MIN_BG[0], HardLimits.LIMIT_MIN_BG[1])
-        }
-
-        var maxBg = if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
-            mgdlToMmolL(hardLimits.verifyHardLimits(Round.roundTo(profile.getTargetHighMgdl(), 0.1), app.aaps.core.ui.R.string.profile_high_target, HardLimits.LIMIT_MAX_BG[0], HardLimits.LIMIT_MAX_BG[1]))
-        } else {
-            hardLimits.verifyHardLimits(Round.roundTo(profile.getTargetHighMgdl(), 0.1), app.aaps.core.ui.R.string.profile_high_target, HardLimits.LIMIT_MAX_BG[0], HardLimits.LIMIT_MAX_BG[1])
-        }
-
-        var targetBg = if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
-            mgdlToMmolL(hardLimits.verifyHardLimits(profile.getTargetMgdl(), app.aaps.core.ui.R.string.temp_target_value, HardLimits.LIMIT_TARGET_BG[0], HardLimits.LIMIT_TARGET_BG[1]))
-        } else {
-            hardLimits.verifyHardLimits(profile.getTargetMgdl(), app.aaps.core.ui.R.string.temp_target_value, HardLimits.LIMIT_TARGET_BG[0], HardLimits.LIMIT_TARGET_BG[1])
-        }
-
+        var minBg = hardLimits.verifyHardLimits(Round.roundTo(profile.getTargetLowMgdl(), 0.1), app.aaps.core.ui.R.string.profile_low_target, HardLimits.LIMIT_MIN_BG[0], HardLimits.LIMIT_MIN_BG[1])
+        var maxBg = hardLimits.verifyHardLimits(Round.roundTo(profile.getTargetHighMgdl(), 0.1), app.aaps.core.ui.R.string.profile_high_target, HardLimits.LIMIT_MAX_BG[0], HardLimits.LIMIT_MAX_BG[1])
+        var targetBg = hardLimits.verifyHardLimits(profile.getTargetMgdl(), app.aaps.core.ui.R.string.temp_target_value, HardLimits.LIMIT_TARGET_BG[0], HardLimits.LIMIT_TARGET_BG[1])
         var isTempTarget = false
         persistenceLayer.getTemporaryTargetActiveAt(dateUtil.now())?.let { tempTarget ->
             isTempTarget = true
-            minBg = if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
-                mgdlToMmolL(hardLimits.verifyHardLimits(tempTarget.lowTarget, app.aaps.core.ui.R.string.temp_target_low_target, HardLimits.LIMIT_TEMP_MIN_BG[0], HardLimits.LIMIT_TEMP_MIN_BG[1]))
-            } else {
-                hardLimits.verifyHardLimits(tempTarget.lowTarget, app.aaps.core.ui.R.string.temp_target_low_target, HardLimits.LIMIT_TEMP_MIN_BG[0], HardLimits.LIMIT_TEMP_MIN_BG[1])
-            }
-
-            maxBg = if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
-                mgdlToMmolL(hardLimits.verifyHardLimits(tempTarget.highTarget, app.aaps.core.ui.R.string.temp_target_high_target, HardLimits.LIMIT_TEMP_MAX_BG[0], HardLimits.LIMIT_TEMP_MAX_BG[1]))
-            } else {
-                hardLimits.verifyHardLimits(tempTarget.highTarget, app.aaps.core.ui.R.string.temp_target_high_target, HardLimits.LIMIT_TEMP_MAX_BG[0], HardLimits.LIMIT_TEMP_MAX_BG[1])
-            }
-
-            targetBg = if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
-                mgdlToMmolL(hardLimits.verifyHardLimits(tempTarget.target(), app.aaps.core.ui.R.string.temp_target_value, HardLimits.LIMIT_TEMP_TARGET_BG[0], HardLimits.LIMIT_TEMP_TARGET_BG[1]))
-            } else {
-                hardLimits.verifyHardLimits(tempTarget.target(), app.aaps.core.ui.R.string.temp_target_value, HardLimits.LIMIT_TEMP_TARGET_BG[0], HardLimits.LIMIT_TEMP_TARGET_BG[1])
-            }
+            minBg = hardLimits.verifyHardLimits(tempTarget.lowTarget, app.aaps.core.ui.R.string.temp_target_low_target, HardLimits.LIMIT_TEMP_MIN_BG[0], HardLimits.LIMIT_TEMP_MIN_BG[1])
+            maxBg = hardLimits.verifyHardLimits(tempTarget.highTarget, app.aaps.core.ui.R.string.temp_target_high_target, HardLimits.LIMIT_TEMP_MAX_BG[0], HardLimits.LIMIT_TEMP_MAX_BG[1])
+            targetBg = hardLimits.verifyHardLimits(tempTarget.target(), app.aaps.core.ui.R.string.temp_target_value, HardLimits.LIMIT_TEMP_TARGET_BG[0], HardLimits.LIMIT_TEMP_TARGET_BG[1])
         }
         val insulin = activePlugin.activeInsulin
         val insulinDivisor = when {
@@ -436,14 +357,14 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
 
             val tdd7P: Double = preferences.get(DoubleKey.OApsAIMITDD7)
 
-            var tdd7D = tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))
+            var tdd7D =  tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))
             if (tdd7D != null && tdd7D.data.totalAmount > tdd7P && tdd7D.data.totalAmount > 1.1 * tdd7P) {
                 tdd7D.data.totalAmount = 1.1 * tdd7P
                 aapsLogger.info(LTag.APS, "TDD for 7 days limited to 10% increase. New TDD7D: ${tdd7D.data.totalAmount}")
             }
-
             var tdd2Days = tddCalculator.averageTDD(tddCalculator.calculate(2, allowMissingDays = false))?.data?.totalAmount ?: 0.0
             if (tdd2Days == 0.0 || tdd2Days < tdd7P) tdd2Days = tdd7P
+
             val tdd2DaysPerHour = tdd2Days / 24
 
             val tddLast4H = tdd2DaysPerHour * 4
@@ -460,8 +381,6 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             val tddLast24H = tddCalculator.calculateDaily(-24, 0)
             val tddLast8to4H = tdd24HrsPerHour * 4
             val bg = glucoseStatusProvider.glucoseStatusData?.glucose
-            val unit = profileFunction.getUnits()
-            val glucoseInMgdl = if (unit == GlucoseUnit.MMOL) mmolLToMgdl(bg!!) else bg
             val dynISFadjust: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustment).toDouble() / 100.0)
             val dynISFadjusthyper: Double = (preferences.get(IntKey.OApsAIMIDynISFAdjustmentHyper).toDouble() / 100.0)
             val mealTimeDynISFAdjFactor: Double = (preferences.get(IntKey.OApsAIMImealAdjISFFact).toDouble() / 100.0)
@@ -481,31 +400,29 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             val highCarbTime = therapy.highCarbTime
             val mealTime = therapy.mealTime
             val bfastTime = therapy.bfastTime
-
-
             val lunchTime = therapy.lunchTime
             val dinnerTime = therapy.dinnerTime
             val tddWeightedFromLast8H = ((1.4 * tddLast4H) + (0.6 * tddLast8to4H)) * 3
             tdd = (tddWeightedFromLast8H * 0.33) + (tdd2Days * 0.34) + (tddDaily * 0.33)
             if (bg != null) {
                 tdd = when {
-                    sportTime -> tdd * 1.1
-                    sleepTime -> tdd * sleepTimeDynISFAdjFactor
-                    lowCarbTime -> tdd * 1.1
-                    snackTime -> tdd * snackTimeDynISFAdjFactor
+                    sportTime    -> tdd * 1.1
+                    sleepTime    -> tdd * sleepTimeDynISFAdjFactor
+                    lowCarbTime  -> tdd * 1.1
+                    snackTime    -> tdd * snackTimeDynISFAdjFactor
                     highCarbTime -> tdd * hcTimeDynISFAdjFactor
-                    mealTime -> tdd * mealTimeDynISFAdjFactor
-                    bfastTime -> tdd * bfastTimeDynISFAdjFactor
-                    lunchTime -> tdd * lunchTimeDynISFAdjFactor
-                    dinnerTime -> tdd * dinnerTimeDynISFAdjFactor
-                    bg > 140 -> tdd * dynISFadjusthyper
+                    mealTime     -> tdd * mealTimeDynISFAdjFactor
+                    bfastTime    -> tdd * bfastTimeDynISFAdjFactor
+                    lunchTime    -> tdd * lunchTimeDynISFAdjFactor
+                    dinnerTime   -> tdd * dinnerTimeDynISFAdjFactor
+                    bg!! > 140     -> tdd * dynISFadjusthyper
                     else -> tdd * dynISFadjust
                 }
             }
 
             val isfMgdl = profileFunction.getProfile()?.getProfileIsfMgdl()
 
-            var  variableSensitivity = if (glucoseInMgdl != null)  Round.roundTo(1800 / (tdd * ln(glucoseInMgdl!! / 75.0 + 1)), 0.1) else isfMgdl
+            var  variableSensitivity = if (bg != null)  Round.roundTo(1800 / (tdd * ln(bg!! / insulinDivisor + 1)), 0.1) else isfMgdl
 
             if (variableSensitivity!! < 0) {
                 if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
@@ -516,7 +433,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                     variableSensitivity = 2.0 // Set to a minimum valid value for mg/dL
                 }
             }
-            variableSensitivity = if (glucoseInMgdl!! < 100) isfMgdl else variableSensitivity
+            variableSensitivity = if (bg!! < 100) isfMgdl else variableSensitivity
 
             // Compare insulin consumption of last 24h with last 7 days average
             val tddRatio = if (preferences.get(BooleanKey.ApsDynIsfAdjustSensitivity)) tdd24Hrs / tdd2Days else 1.0
