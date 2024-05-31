@@ -269,8 +269,12 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 aapsLogger.error(LTag.APS, "Calculated sensitivity is invalid (<= 0). Setting to minimum valid value for mg/dL.")
                 sensitivity = 2.0 // Set to a minimum valid value for mg/dL
             }
+        }else if (sensitivity!! > (2 * profileUtil.fromMgdlToUnits(isfMgdl!!, profileFunction.getUnits()))){
+            sensitivity = 2 * profileUtil.fromMgdlToUnits(isfMgdl!!, profileFunction.getUnits())
         }
-        sensitivity = if (glucose < 100) isfMgdl else sensitivity
+
+        sensitivity = if (glucose < 100) profileUtil.fromMgdlToUnits(isfMgdl!!, profileFunction.getUnits()) else sensitivity
+
         if (dynIsfCache.size() > 1000) {
             dynIsfCache.clear()
         }
@@ -432,8 +436,10 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                     aapsLogger.error(LTag.APS, "Calculated sensitivity is invalid (<= 0). Setting to minimum valid value for mg/dL.")
                     variableSensitivity = 2.0 // Set to a minimum valid value for mg/dL
                 }
+            }else if (variableSensitivity > 2 * profileUtil.fromMgdlToUnits(isfMgdl!!, profileFunction.getUnits())){
+                variableSensitivity = 2 * profileUtil.fromMgdlToUnits(isfMgdl!!, profileFunction.getUnits())
             }
-            variableSensitivity = if (bg!! < 100) isfMgdl else variableSensitivity
+            variableSensitivity = if (bg!! < 100) profileUtil.fromMgdlToUnits(isfMgdl!!, profileFunction.getUnits()) else variableSensitivity
 
             // Compare insulin consumption of last 24h with last 7 days average
             val tddRatio = if (preferences.get(BooleanKey.ApsDynIsfAdjustSensitivity)) tdd24Hrs / tdd2Days else 1.0
