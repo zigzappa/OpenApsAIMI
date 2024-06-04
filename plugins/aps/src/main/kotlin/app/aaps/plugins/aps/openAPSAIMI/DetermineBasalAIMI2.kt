@@ -1596,7 +1596,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 30  May 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 04  Jun 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
@@ -1827,7 +1827,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             val (localconditionResult, _) = isCriticalSafetyCondition()
 
             rate = when {
-                iob < 0.4 && bg > 100 && delta >= 0                                                                                           -> profile_current_basal
+                iob < 0.4 && bg in 90.0..100.0 && delta in 0.0..5.0 && !sportTime                                                                              -> profile_current_basal
+                iob < 0.6 && bg in 100.0..120.0 && delta in 0.0..6.0 && !sportTime                                                                             -> profile_current_basal * 2
+                iob < 0.8 && bg in 120.0..130.0 && delta in 0.0..6.0 && !sportTime                                                                             -> profile_current_basal * 4
                 bg > 180 && delta in -6.0..0.0                                                                                          -> profile_current_basal
                 isMealAnticipated && delta > 15                                                                                               -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
                 snackTime && snackrunTime in 0..30                                                                                      -> calculateBasalRate(basal, profile_current_basal, 4.0)
@@ -1839,7 +1841,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 dinnerTime && dinnerruntime in 0..30                                                                                    -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 dinnerTime && dinnerruntime in 30..60 && delta > 0                                                                      -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
                 highCarbTime && highCarbrunTime in 0..60                                                                                -> calculateBasalRate(basal, profile_current_basal, 10.0)
-                bg > 180 && !honeymoon                                                                                                        -> calculateBasalRate(basal, profile_current_basal, 10.0)
+                bg > 180 && !honeymoon && delta > 0                                                                                           -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 recentSteps180Minutes > 2500 && averageBeatsPerMinute180 > averageBeatsPerMinute && bg > 140 && delta > 0 && !sportTime       -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
                 honeymoon && bg in 140.0..169.0 && delta > 0                                                                            -> profile_current_basal
                 honeymoon && bg > 170 && delta > 0                                                                                            -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
@@ -1847,7 +1849,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 honeymoon && delta > 0 && bg > 110 && eventualBG > 120 && bg < 160                                                            -> profile_current_basal * delta
                 pregnancyEnable && delta > 0 && bg > 110 && !honeymoon                                                                        -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 localconditionResult && delta > 1 && bg > 90                                                                                  -> profile_current_basal * delta
-                bg > 110 && !conditionResult && eventualBG > 100 && delta in 0.0 .. 4.0                                                 -> profile_current_basal * delta
+                bg > 100 && !conditionResult && eventualBG > 100 && delta in 0.0 .. 4.0 && !sportTime                                   -> profile_current_basal * delta
                 else -> 0.0
             }
             rate.let {
