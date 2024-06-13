@@ -401,11 +401,11 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
         val nosmbHM = iob > 0.7 && honeymoon && delta < 8 && !mealTime && !bfastTime && !lunchTime && !dinnerTime && eventualBG < 130
         if (nosmbHM) conditionsTrue.add("nosmbHM")
-        val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
+        val nosmb = iob >= 2*maxSMB && bg < 120 && delta < 10 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
         if (nosmb) conditionsTrue.add("nosmb")
         val fasting = fastingTime
         if (fasting) conditionsTrue.add("fasting")
-        val belowMinThreshold = bg < 100 && delta < 10 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
+        val belowMinThreshold = bg < 130 && delta < 10 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
         if (belowMinThreshold) conditionsTrue.add("belowMinThreshold")
         val isNewCalibration = iscalibration && delta > 10
         if (isNewCalibration) conditionsTrue.add("isNewCalibration")
@@ -413,7 +413,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (belowTargetAndDropping) conditionsTrue.add("belowTargetAndDropping")
         val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 10 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
         if (belowTargetAndStableButNoCob) conditionsTrue.add("belowTargetAndStableButNoCob")
-        val droppingFast = bg < 150 && delta < -5
+        val droppingFast = bg < 160 && delta < -5
         if (droppingFast) conditionsTrue.add("droppingFast")
         val droppingFastAtHigh = bg < 220 && delta <= -7
         if (droppingFastAtHigh) conditionsTrue.add("droppingFastAtHigh")
@@ -680,7 +680,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     }
     private fun calculateGFactor(delta: Float, lastHourTIRabove120: Double, bg: Float): Double {
         val deltaFactor = delta / 10 // Ajuster selon les besoins
-        val bgFactor = if (bg > 120) 1.2 else if (bg < 100) 0.7 else 1.0
+        val bgFactor = if (bg > 150) 1.2 else if (bg < 100) 0.7 else 1.0
 
         // Introduire un facteur basé sur lastHourTIRabove170
         val tirFactor = 1.0 + lastHourTIRabove120 * 0.05 // Exemple: 5% d'augmentation pour chaque unité de lastHourTIRabove170
@@ -698,8 +698,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         } else {
             delta
         }
-        val hypoAdjustment = if (bg < 120 || (iob > 3 * maxSMB)) 0.8f else 1.0f
-        val factorAdjustment = if (bg < 100) 0.2f else 0.3f
+        val hypoAdjustment = if (bg < 110 || (iob > 3 * maxSMB)) 0.8f else 1.0f
+        val factorAdjustment = if (bg < 120) 0.2f else 0.3f
         val bgAdjustment = 1.0f + (ln(abs(adjustedDelta.toDouble()) + 1) - 1) * factorAdjustment
         val scalingFactor = 1.0f - (bg - targetBg).toFloat() / (120 - targetBg) * 0.5f
         val maxIncreaseFactor = 1.7f
@@ -972,7 +972,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         this.maxIob = preferences.get(DoubleKey.ApsSmbMaxIob)
         this.maxSMB = preferences.get(DoubleKey.OApsAIMIMaxSMB)
         this.maxSMBHB = preferences.get(DoubleKey.OApsAIMIHighBGMaxSMB)
-        this.maxSMB = if (bg > 120) maxSMBHB else maxSMB
+        this.maxSMB = if (bg > 150) maxSMBHB else maxSMB
         this.tir1DAYabove = tirCalculator.averageTIR(tirCalculator.calculate(1, 65.0, 180.0))?.abovePct()!!
         this.currentTIRLow = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.belowPct()!!
         this.currentTIRRange = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.inRangePct()!!
@@ -1166,7 +1166,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         var sensitivityRatio: Double
         val high_temptarget_raises_sensitivity = profile.exercise_mode || profile.high_temptarget_raises_sensitivity
-        val normalTarget = 100 // evaluate high/low temptarget against 100, not scheduled target (which might change)
+        val normalTarget = 130 // evaluate high/low temptarget against 100, not scheduled target (which might change)
         // when temptarget is 160 mg/dL, run 50% basal (120 = 75%; 140 = 60%),  80 mg/dL with low_temptarget_lowers_sensitivity would give 1.5x basal, but is limited to autosens_max (1.2x by default)
         val halfBasalTarget = profile.half_basal_exercise_target
 
@@ -1175,9 +1175,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 this.targetBg = 130.0f
             }
             !profile.temptargetSet && eventualBG >= 160 && delta > 5 -> {
-                var hyperTarget = max(80.0, profile.target_bg - (bg - profile.target_bg) / 3).toInt()
+                var hyperTarget = max(110.0, profile.target_bg - (bg - profile.target_bg) / 3).toInt()
                 hyperTarget = (hyperTarget * min(circadianSensitivity, 1.0)).toInt()
-                hyperTarget = max(hyperTarget, 80)
+                hyperTarget = max(hyperTarget, 110)
                 this.targetBg = hyperTarget.toFloat()
                 target_bg = hyperTarget.toDouble()
                 val c = (halfBasalTarget - normalTarget).toDouble()
@@ -1188,7 +1188,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 consoleLog.add("Sensitivity ratio set to $sensitivityRatio based on temp target of $target_bg; ")
             }
             !profile.temptargetSet && circadianSmb > 0.1 && eventualBG < 100 -> {
-                val hypoTarget = 120 * max(1.0, circadianSensitivity)
+                val hypoTarget = 130 * max(1.0, circadianSensitivity)
                 this.targetBg = min(hypoTarget.toFloat(), 166.0f)
                 target_bg = targetBg.toDouble()
                 val c = (halfBasalTarget - normalTarget).toDouble()
@@ -1527,7 +1527,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             hourOfDay in 1..11                                                                                                               -> smbToGive * adjustedMorningFactor.toFloat()
             hourOfDay in 12..18                                                                                                              -> smbToGive * adjustedAfternoonFactor.toFloat()
             hourOfDay in 19..23                                                                                                              -> smbToGive * adjustedEveningFactor.toFloat()
-            bg > 120 && !isMealAnticipated                                                                                                   -> smbToGive * hyperfactor.toFloat()
+            bg > 130 && !isMealAnticipated                                                                                                   -> smbToGive * hyperfactor.toFloat()
             else -> smbToGive
         }
         rT.reason.append("adjustedMorningFactor $adjustedMorningFactor")
@@ -1570,7 +1570,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             honeymoon && delta in 0.0.. 6.0 && bg in 99.0..141.0 -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because honeymoon and bg lesser than 140 and delta lesser than 6", currenttemp, rT)
             bg in 81.0..99.0 && delta in 3.0..7.0 && honeymoon -> calculateRate(basal, profile_current_basal, 1.0, "AI Force basal because bg is between 80 and 100 with a small delta.", currenttemp, rT)
             //bg > 145 && delta > 0 && smbToGive == 0.0f && !honeymoon -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because bg is greater than 145 and SMB = 0U.", currenttemp, rT)
-            bg > 120 && delta > 0 && smbToGive == 0.0f && honeymoon -> calculateRate(basal, profile_current_basal, 5.0, "AI Force basal because bg is greater than 120 and SMB = 0U.", currenttemp, rT)
+            bg > 130 && delta > 0 && smbToGive == 0.0f && honeymoon -> calculateRate(basal, profile_current_basal, 5.0, "AI Force basal because bg is greater than 120 and SMB = 0U.", currenttemp, rT)
             else -> null
         }
         rate?.let {
@@ -1596,7 +1596,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 04  Jun 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL-Cata, 13 Jun 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
