@@ -597,10 +597,15 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
                     val input = colIndices.mapNotNull { index -> cols.getOrNull(index)?.toFloatOrNull() }.toFloatArray()
                     // Calculez et ajoutez l'indicateur de tendance directement dans 'input'
+                    // val trendIndicator = when {
+                    //     delta > 0 && shortAvgDelta > 0 && longAvgDelta > 0 -> 1
+                    //     delta < -2 && shortAvgDelta < -2 && longAvgDelta < 0 -> -1
+                    //     else                                               -> 0
+                    // }
                     val trendIndicator = when {
-                        delta > 0 && shortAvgDelta > 0 && longAvgDelta > 0 -> 1
-                        delta < -2 && shortAvgDelta < -2 && longAvgDelta < 0 -> -1
-                        else                                               -> 0
+                        (delta * 0.6) + (shortAvgDelta * 0.3) + (longAvgDelta * 0.1) > 0.5 -> 1 // Tendance à la hausse
+                        (delta * 0.6) + (shortAvgDelta * 0.3) + (longAvgDelta * 0.1) < -0.5 -> -1 // Tendance à la baisse
+                        else -> 0 // Pas de tendance claire
                     }
                     val enhancedInput = input.copyOf(input.size + 1)
                     enhancedInput[input.size] = trendIndicator.toFloat()
@@ -615,36 +620,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 if (inputs.isEmpty() || targets.isEmpty()) {
                     return predictedSMB
                 }
-                // val epochs = 30000.0
-                // var learningRate: Float
-                // if (preferences.get(BooleanKey.OApsAIMIMLLearningRate)){
-                //     learningRate = 0.001f
-                // }else{
-                //     learningRate = when {
-                //         bg in (70.0..100.0) -> 0.00001f
-                //         bg in (100.0 .. 120.0) -> 0.0001f
-                //         bg in (120.0 .. 200.0) -> 0.001f
-                //         bg >= 200 -> 0.01f
-                //
-                //         else -> 0.001f
-                //     }
-                // }
                 val epochs = 30000.0
                 var learningRate = 0.001f // Default learning rate
                 val decayFactor = 0.99 // For exponential decay
-
-                // // Déterminer la taille de l'ensemble de validation
-                // val validationSize = (inputs.size * 0.1).toInt() // Par exemple, 10% pour la validation
-                //
-                // // Diviser les données en ensembles d'entraînement et de validation
-                // val validationInputs = inputs.takeLast(validationSize)
-                // val validationTargets = targets.takeLast(validationSize)
-                // val trainingInputs = inputs.take(inputs.size - validationSize)
-                // val trainingTargets = targets.take(targets.size - validationSize)
-                //
-                // // Création et entraînement du réseau de neurones
-                // val neuralNetwork = AimiNeuralNetwork(inputs.first().size, 5, 1)
-                // neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs.toInt(), learningRate)
                 val k = 5
                 var neuralNetwork: AimiNeuralNetwork? = null
                 val foldSize = inputs.size / k
