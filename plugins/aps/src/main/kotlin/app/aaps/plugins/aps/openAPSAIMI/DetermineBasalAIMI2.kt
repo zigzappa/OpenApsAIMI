@@ -615,44 +615,64 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 if (inputs.isEmpty() || targets.isEmpty()) {
                     return predictedSMB
                 }
+                // val epochs = 30000.0
+                // var learningRate: Float
+                // if (preferences.get(BooleanKey.OApsAIMIMLLearningRate)){
+                //     learningRate = 0.001f
+                // }else{
+                //     learningRate = when {
+                //         bg in (70.0..100.0) -> 0.00001f
+                //         bg in (100.0 .. 120.0) -> 0.0001f
+                //         bg in (120.0 .. 200.0) -> 0.001f
+                //         bg >= 200 -> 0.01f
+                //
+                //         else -> 0.001f
+                //     }
+                // }
                 val epochs = 30000.0
-                var learningRate: Float
-                if (preferences.get(BooleanKey.OApsAIMIMLLearningRate)){
-                    learningRate = 0.001f
-                }else{
-                    learningRate = when {
-                        bg in (70.0..100.0) -> 0.00001f
-                        bg in (100.0 .. 120.0) -> 0.0001f
-                        bg in (120.0 .. 200.0) -> 0.001f
-                        bg >= 200 -> 0.01f
+                var learningRate = 0.001f // Default learning rate
+                val decayFactor = 0.99 // For exponential decay
 
-                        else -> 0.001f
+                // // Déterminer la taille de l'ensemble de validation
+                // val validationSize = (inputs.size * 0.1).toInt() // Par exemple, 10% pour la validation
+                //
+                // // Diviser les données en ensembles d'entraînement et de validation
+                // val validationInputs = inputs.takeLast(validationSize)
+                // val validationTargets = targets.takeLast(validationSize)
+                // val trainingInputs = inputs.take(inputs.size - validationSize)
+                // val trainingTargets = targets.take(targets.size - validationSize)
+                //
+                // // Création et entraînement du réseau de neurones
+                // val neuralNetwork = AimiNeuralNetwork(inputs.first().size, 5, 1)
+                // neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs.toInt(), learningRate)
+                val k = 5
+                var neuralNetwork: AimiNeuralNetwork? = null
+                val foldSize = inputs.size / k
+                for (i in 0 until k) {
+                    val validationInputs = inputs.subList(i * foldSize, (i + 1) * foldSize)
+                    val validationTargets = targets.subList(i * foldSize, (i + 1) * foldSize)
+                    val trainingInputs = inputs.minus(validationInputs)
+                    val trainingTargets = targets.minus(validationTargets)
+
+                    neuralNetwork = AimiNeuralNetwork(inputs.first().size, 5, 1)
+
+                    // Training loop with learning rate decay
+                    for (epoch in 1..epochs.toInt()) {
+                        neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, 1, learningRate) // Train for one epoch
+                        learningRate *= decayFactor.toFloat() // Exponential decay
                     }
                 }
-
-                // Déterminer la taille de l'ensemble de validation
-                val validationSize = (inputs.size * 0.1).toInt() // Par exemple, 10% pour la validation
-
-                // Diviser les données en ensembles d'entraînement et de validation
-                val validationInputs = inputs.takeLast(validationSize)
-                val validationTargets = targets.takeLast(validationSize)
-                val trainingInputs = inputs.take(inputs.size - validationSize)
-                val trainingTargets = targets.take(targets.size - validationSize)
-
-                // Création et entraînement du réseau de neurones
-                val neuralNetwork = AimiNeuralNetwork(inputs.first().size, 5, 1)
-                neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs.toInt(), learningRate)
 
                 do {
                     totalDifference = 0.0f
 
                     for (enhancedInput in inputs) {
                         val predictedrefineSMB = finalRefinedSMB// Prédiction du modèle TFLite
-                        val refinedSMB = refineSMB(predictedrefineSMB, neuralNetwork, enhancedInput)
+                        val refinedSMB = neuralNetwork?.let { refineSMB(predictedrefineSMB, it, enhancedInput) }
                         if (delta > 10 && bg > 100) {
                             isAggressiveResponseNeeded = true
                         }
-                        val difference = abs(predictedrefineSMB - refinedSMB)
+                        val difference = abs(predictedrefineSMB - refinedSMB!!)
                         totalDifference += difference
                         if (difference in 0.0..2.5) {
                             finalRefinedSMB = if (refinedSMB > 0.0f) refinedSMB else 0.0f
@@ -1596,7 +1616,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 04  Jun 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 16 Jun 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
@@ -1616,7 +1636,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             appendLine("fastingtime: {fastingTime}")
             appendLine("intervalsmb: {intervalsmb}")
             appendLine("mealruntime: {mealruntime}")
-            appendLine("bfasthruntime: {bfastruntime}")
+            appendLine("bfastruntime: {bfastruntime}")
             appendLine("lunchruntime: {lunchruntime}")
             appendLine("dinnerruntime: {dinnerruntime}")
             appendLine("snackrunTime: {snackrunTime}")
