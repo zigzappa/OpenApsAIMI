@@ -620,7 +620,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 if (inputs.isEmpty() || targets.isEmpty()) {
                     return predictedSMB
                 }
-                val epochsPerIteration = 1000
+                val epochsPerIteration = 100
                 val totalEpochs = 30000.0
                 var learningRate = 0.001f // Default learning rate
                 val decayFactor = 0.99 // For exponential decay
@@ -1597,7 +1597,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 18 Jun 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 19 Jun 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
