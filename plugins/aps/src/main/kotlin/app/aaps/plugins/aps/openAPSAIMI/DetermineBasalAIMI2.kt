@@ -919,7 +919,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         // Check conditions
         val isRapidBgIncrease = delta > significantDelta && shortAvgDelta > rapidIncreaseThreshold
-        val isNearTypicalMealTime = historicalMealTimes.any { kotlin.math.abs(hourOfDay - it) <= 1 }
+        val isNearTypicalMealTime = historicalMealTimes.any { abs(hourOfDay - it) <= 1 }
         val isBgAboveThreshold = bg > bgThreshold
         val isTimeSinceLastSmbSufficient = lastSmbMinutesAgo > minTimeSinceLastSmb && delta > 8
         val isLowActivity = recentSteps10Minutes < lowActivityThreshold
