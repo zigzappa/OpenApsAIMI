@@ -627,7 +627,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                     return predictedSMB
                 }
                 val epochsPerIteration = 10000
-                val totalEpochs = 50000.0
+                val totalEpochs = 30000.0
                 var learningRate = 0.001f // Default learning rate
                 val decayFactor = 0.99 // For exponential decay
                 val k = 5
@@ -818,13 +818,13 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val activityImpact = (recentSteps5min - recentSteps10min) * 0.05
 
         // Calcul de l'indicateur de tendance
-        val trendValue = (delta * 0.3) + (shortAvgDelta * 0.15) + (longAvgDelta * 0.05) + (insulinEffect * 0.3) + (activityImpact * 0.05)
+        val trendValue = (delta * 0.5) + (shortAvgDelta * 0.25) + (longAvgDelta * 0.15) + (insulinEffect * 0.2) + (activityImpact * 0.1)
 
         return when {
-            trendValue > 1.0 -> 1 // Forte tendance à la hausse
-            trendValue < -1.0 -> -1 // Forte tendance à la baisse
-            abs(trendValue) < 0.5 -> 0 // Pas de tendance significative
-            trendValue > 0.5 -> 2 // Faible tendance à la hausse
+            trendValue > 0.8 -> 1 // Forte tendance à la hausse
+            trendValue < -0.8 -> -1 // Forte tendance à la baisse
+            abs(trendValue) < 0.3 -> 0 // Pas de tendance significative
+            trendValue > 0.3 -> 2 // Faible tendance à la hausse
             else -> -2 // Faible tendance à la baisse
         }
     }
@@ -1639,7 +1639,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 19 Jun 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 20 Jun 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
