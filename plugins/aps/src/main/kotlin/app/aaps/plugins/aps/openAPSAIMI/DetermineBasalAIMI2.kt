@@ -565,7 +565,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         return smbToGive.toFloat()
     }
-    private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, predictedSMB: Float): Float {
+    private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, predictedSMB: Float, profile: OapsProfile): Float {
         val minutesToConsider = 2500.0
         val linesToConsider = (minutesToConsider / 5).toInt()
         var totalDifference: Float
@@ -602,11 +602,17 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                     //     delta < -2 && shortAvgDelta < -2 && longAvgDelta < 0 -> -1
                     //     else                                               -> 0
                     // }
-                    val trendIndicator = when {
-                        (delta * 0.6) + (shortAvgDelta * 0.3) + (longAvgDelta * 0.1) > 0.5 -> 1 // Tendance à la hausse
-                        (delta * 0.6) + (shortAvgDelta * 0.3) + (longAvgDelta * 0.1) < -0.5 -> -1 // Tendance à la baisse
-                        else -> 0 // Pas de tendance claire
-                    }
+                    // val trendIndicator = when {
+                    //     (delta * 0.6) + (shortAvgDelta * 0.3) + (longAvgDelta * 0.1) > 0.5 -> 1 // Tendance à la hausse
+                    //     (delta * 0.6) + (shortAvgDelta * 0.3) + (longAvgDelta * 0.1) < -0.5 -> -1 // Tendance à la baisse
+                    //     else -> 0 // Pas de tendance claire
+                    // }
+                    val trendIndicator = calculateTrendIndicator(
+                        delta, shortAvgDelta, longAvgDelta,
+                        bg.toFloat(), iob, variableSensitivity, cob, normalBgThreshold,
+                        recentSteps180Minutes, averageBeatsPerMinute.toFloat(), averageBeatsPerMinute10.toFloat(),
+                        profile.insulinDivisor.toFloat(), recentSteps5Minutes, recentSteps10Minutes
+                    )
                     val enhancedInput = input.copyOf(input.size + 1)
                     enhancedInput[input.size] = trendIndicator.toFloat()
 
@@ -620,8 +626,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 if (inputs.isEmpty() || targets.isEmpty()) {
                     return predictedSMB
                 }
-                val epochsPerIteration = 100
-                val totalEpochs = 30000.0
+                val epochsPerIteration = 10000
+                val totalEpochs = 50000.0
                 var learningRate = 0.001f // Default learning rate
                 val decayFactor = 0.99 // For exponential decay
                 val k = 5
@@ -785,6 +791,42 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
 
         return insulinEffect
+    }
+    private fun calculateTrendIndicator(
+        delta: Float,
+        shortAvgDelta: Float,
+        longAvgDelta: Float,
+        bg: Float,
+        iob: Float,
+        variableSensitivity: Float,
+        cob: Float,
+        normalBgThreshold: Float,
+        recentSteps180Min: Int,
+        averageBeatsPerMinute: Float,
+        averageBeatsPerMinute10: Float,
+        insulinDivisor: Float,
+        recentSteps5min: Int,
+        recentSteps10min: Int
+    ): Int {
+        // Calcul de l'impact de l'insuline
+        val insulinEffect = calculateInsulinEffect(
+            bg, iob, variableSensitivity, cob, normalBgThreshold, recentSteps180Min,
+            averageBeatsPerMinute, averageBeatsPerMinute10, insulinDivisor
+        )
+
+        // Calcul de l'impact de l'activité physique
+        val activityImpact = (recentSteps5min - recentSteps10min) * 0.05
+
+        // Calcul de l'indicateur de tendance
+        val trendValue = (delta * 0.3) + (shortAvgDelta * 0.15) + (longAvgDelta * 0.05) + (insulinEffect * 0.3) + (activityImpact * 0.05)
+
+        return when {
+            trendValue > 1.0 -> 1 // Forte tendance à la hausse
+            trendValue < -1.0 -> -1 // Forte tendance à la baisse
+            abs(trendValue) < 0.5 -> 0 // Pas de tendance significative
+            trendValue > 0.5 -> 2 // Faible tendance à la hausse
+            else -> -2 // Faible tendance à la baisse
+        }
     }
     private fun predictFutureBg(
         bg: Float,
@@ -1477,7 +1519,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             val minutesToConsider = 2500.0
             val linesToConsider = (minutesToConsider / 5).toInt()
             if (allLines.size > linesToConsider) {
-                val refinedSMB = neuralnetwork5(delta, shortAvgDelta, longAvgDelta, predictedSMB)
+                val refinedSMB = neuralnetwork5(delta, shortAvgDelta, longAvgDelta, predictedSMB, profile)
                 this.predictedSMB = refinedSMB
                 basal =
                     when {
