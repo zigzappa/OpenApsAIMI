@@ -626,10 +626,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 if (inputs.isEmpty() || targets.isEmpty()) {
                     return predictedSMB
                 }
-                val epochsPerIteration = 10000
-                val totalEpochs = 30000.0
-                var learningRate = 0.001f // Default learning rate
-                val decayFactor = 0.99 // For exponential decay
+                val epochsPerIteration = 30000
+                val totalEpochs = 90000.0
+                var learningRate = 0.0005f // Default learning rate
+                val decayFactor = 0.97f // For exponential decay
                 val k = 5
                 var neuralNetwork: AimiNeuralNetwork? = null
                 val foldSize = inputs.size / k
@@ -645,7 +645,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                     for (epoch in 1..totalEpochs.toInt() step epochsPerIteration) {
                         for (innerEpoch in 0 until epochsPerIteration) {
                             neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, 1, learningRate)
-                            learningRate *= decayFactor.toFloat() // Exponential decay
+                            learningRate *= decayFactor // Exponential decay
                         }
                     }
                 }
@@ -1639,7 +1639,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 20 Jun 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 26 Jun 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
