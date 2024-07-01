@@ -596,17 +596,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                     val cols = line.split(",").map { it.trim() }
 
                     val input = colIndices.mapNotNull { index -> cols.getOrNull(index)?.toFloatOrNull() }.toFloatArray()
-                    // Calculez et ajoutez l'indicateur de tendance directement dans 'input'
-                    // val trendIndicator = when {
-                    //     delta > 0 && shortAvgDelta > 0 && longAvgDelta > 0 -> 1
-                    //     delta < -2 && shortAvgDelta < -2 && longAvgDelta < 0 -> -1
-                    //     else                                               -> 0
-                    // }
-                    // val trendIndicator = when {
-                    //     (delta * 0.6) + (shortAvgDelta * 0.3) + (longAvgDelta * 0.1) > 0.5 -> 1 // Tendance à la hausse
-                    //     (delta * 0.6) + (shortAvgDelta * 0.3) + (longAvgDelta * 0.1) < -0.5 -> -1 // Tendance à la baisse
-                    //     else -> 0 // Pas de tendance claire
-                    // }
+
                     val trendIndicator = calculateTrendIndicator(
                         delta, shortAvgDelta, longAvgDelta,
                         bg.toFloat(), iob, variableSensitivity, cob, normalBgThreshold,
@@ -626,10 +616,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 if (inputs.isEmpty() || targets.isEmpty()) {
                     return predictedSMB
                 }
-                val epochsPerIteration = 30000
-                val totalEpochs = 90000.0
-                var learningRate = 0.0005f // Default learning rate
-                val decayFactor = 0.97f // For exponential decay
+                val epochsPerIteration = 3000
+                val totalEpochs = 30000.0
+                var learningRate = 0.001f // Default learning rate
+                val decayFactor = 0.98f // For exponential decay
                 val k = 5
                 var neuralNetwork: AimiNeuralNetwork? = null
                 val foldSize = inputs.size / k
@@ -821,10 +811,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val trendValue = (delta * 0.5) + (shortAvgDelta * 0.25) + (longAvgDelta * 0.15) + (insulinEffect * 0.2) + (activityImpact * 0.1)
 
         return when {
-            trendValue > 0.8 -> 1 // Forte tendance à la hausse
-            trendValue < -0.8 -> -1 // Forte tendance à la baisse
-            abs(trendValue) < 0.3 -> 0 // Pas de tendance significative
-            trendValue > 0.3 -> 2 // Faible tendance à la hausse
+            trendValue > 1.0 -> 1 // Forte tendance à la hausse
+            trendValue < -1.0 -> -1 // Forte tendance à la baisse
+            abs(trendValue) < 0.5 -> 0 // Pas de tendance significative
+            trendValue > 0.5 -> 2 // Faible tendance à la hausse
             else -> -2 // Faible tendance à la baisse
         }
     }
@@ -1093,7 +1083,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                  rT.reason.append("Microbolusing Meal Mode ${pbolusM}U. ")
              return rT
          }
-        if (((isMealAnticipated && iob in 0.5..3.0 && delta > 15 && shortAvgDelta > 10 && acceleratingUp == 1) || profile.temptargetSet && targetBg == 80.0f) && (hourOfDay in 8..10 || hourOfDay in 11..14 || hourOfDay in 18..21)){
+        if (!sportTime && ((isMealAnticipated && iob in 0.5..3.0 && delta > 15 && shortAvgDelta > 10 && acceleratingUp == 1) || profile.temptargetSet && targetBg == 80.0f) && (hourOfDay in 8..10 || hourOfDay in 11..14 || hourOfDay in 18..21)){
             val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
             this.maxSMB = pbolusM
             rT.units = if (lastBolusSMBUnit != pbolusM.toFloat()) pbolusM else 0.0
@@ -1639,7 +1629,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 26 Jun 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 01 July 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
