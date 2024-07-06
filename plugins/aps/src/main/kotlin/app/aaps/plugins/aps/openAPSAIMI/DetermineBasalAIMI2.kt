@@ -616,10 +616,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 if (inputs.isEmpty() || targets.isEmpty()) {
                     return predictedSMB
                 }
-                val epochsPerIteration = 3000
+                val epochsPerIteration = 10000
                 val totalEpochs = 30000.0
                 var learningRate = 0.001f // Default learning rate
-                val decayFactor = 0.98f // For exponential decay
+                val decayFactor = 0.99f // For exponential decay
                 val k = 5
                 var neuralNetwork: AimiNeuralNetwork? = null
                 val foldSize = inputs.size / k
@@ -632,9 +632,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                     neuralNetwork = AimiNeuralNetwork(inputs.first().size, 5, 1)
 
                     // Training loop with learning rate decay
-                    for (epoch in 1..totalEpochs.toInt() step epochsPerIteration) {
-                        for (innerEpoch in 0 until epochsPerIteration) {
-                            neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, 1, learningRate)
+                    for (epoch in 10000..totalEpochs.toInt() step epochsPerIteration) {
+                        for (innerEpoch in 1000 until epochsPerIteration) {
+                            neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, 10000, learningRate)
                             learningRate *= decayFactor // Exponential decay
                         }
                     }
@@ -1629,7 +1629,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 01 July 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 06 July 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
