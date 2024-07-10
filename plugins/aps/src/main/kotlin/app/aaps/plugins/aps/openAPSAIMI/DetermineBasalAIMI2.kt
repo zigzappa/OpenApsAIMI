@@ -1050,7 +1050,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                  rT.reason.append("Microbolusing Meal Mode ${pbolusM}U. ")
              return rT
          }
-        if (((isMealAnticipated && iob in 0.5..3.0 && delta > 15 && shortAvgDelta > 10 && acceleratingUp == 1) || profile.temptargetSet && targetBg == 80.0f) && (hourOfDay in 8..10 || hourOfDay in 11..14 || hourOfDay in 18..21)){
+        if (!sportTime && ((isMealAnticipated && iob in 0.5..3.0 && delta > 15 && shortAvgDelta > 10 && acceleratingUp == 1) || profile.temptargetSet && targetBg == 80.0f) && (hourOfDay in 8..10 || hourOfDay in 11..14 || hourOfDay in 18..21)){
             val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
             this.maxSMB = pbolusM
             rT.units = if (lastBolusSMBUnit != pbolusM.toFloat()) pbolusM else 0.0
@@ -1616,7 +1616,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             appendLine("fastingtime: {fastingTime}")
             appendLine("intervalsmb: {intervalsmb}")
             appendLine("mealruntime: {mealruntime}")
-            appendLine("bfasthruntime: {bfastruntime}")
+            appendLine("bfastruntime: {bfastruntime}")
             appendLine("lunchruntime: {lunchruntime}")
             appendLine("dinnerruntime: {dinnerruntime}")
             appendLine("snackrunTime: {snackrunTime}")
