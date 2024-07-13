@@ -940,12 +940,12 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         historicalMealTimes: List<Int> // Liste des heures typiques des repas
     ): Boolean {
         // Constants
-        val significantDelta = 10.0f // Définir une augmentation significative de la glycémie
-        val lowActivityThreshold = 100 // Seuil d'activité physique faible
-        val rapidIncreaseThreshold = 5.0f // Seuil de delta pour une augmentation rapide
-        val baseMinTimeSinceLastSmb = 9
-        val highCarbMinTimeSinceLastSmb = 4
-        val bgThreshold = if (hourOfDay in 6..9 || hourOfDay in 11..14 || hourOfDay in 18..21) 100.0f else 120.0f
+        val significantDelta = 15.0f // Augmentation de l'augmentation significative de la glycémie
+        val lowActivityThreshold = 150 // Augmentation du seuil d'activité physique faible
+        val rapidIncreaseThreshold = 7.0f // Augmentation du seuil de delta pour une augmentation rapide
+        val baseMinTimeSinceLastSmb = 12
+        val highCarbMinTimeSinceLastSmb = 6
+        val bgThreshold = if (hourOfDay in 6..9 || hourOfDay in 11..14 || hourOfDay in 18..21) 120.0f else 140.0f
 
         // Calculate minTimeSinceLastSmb based on meal type
         val minTimeSinceLastSmb = if (isHighCarbMeal(delta, shortAvgDelta, longAvgDelta)) highCarbMinTimeSinceLastSmb else baseMinTimeSinceLastSmb
@@ -954,14 +954,15 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val isRapidBgIncrease = delta > significantDelta && shortAvgDelta > rapidIncreaseThreshold
         val isNearTypicalMealTime = historicalMealTimes.any { kotlin.math.abs(hourOfDay - it) <= 1 }
         val isBgAboveThreshold = bg > bgThreshold
-        val isTimeSinceLastSmbSufficient = lastSmbMinutesAgo > minTimeSinceLastSmb && delta > 8
+        val isTimeSinceLastSmbSufficient = lastSmbMinutesAgo > minTimeSinceLastSmb && delta > 10
         val isLowActivity = recentSteps10Minutes < lowActivityThreshold
-        val isDeltaslowingdown = delta < 5 || shortAvgDelta <= 4 || longAvgDelta <= 3
+        val isDeltaslowingdown = delta < 7 || shortAvgDelta <= 6 || longAvgDelta <= 5
         val FCL = preferences.get(BooleanKey.OApsAIMIMLFCL)
 
         // Determine if a meal is anticipated
         return FCL && isLowActivity && isTimeSinceLastSmbSufficient && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown)
     }
+
 
     private fun anticipateMeal(glucoseStatus: GlucoseStatus,lastSmbMinutesAgo: Int, historicalMealTimes: List<Int>): Boolean {
         val hourOfDay = Calendar.getInstance()[Calendar.HOUR_OF_DAY]
