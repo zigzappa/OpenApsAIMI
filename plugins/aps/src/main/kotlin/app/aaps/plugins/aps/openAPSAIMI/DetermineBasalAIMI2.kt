@@ -939,9 +939,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         historicalMealTimes: List<Int> // Liste des heures typiques des repas
     ): Boolean {
         // Constants
-        val significantDelta = 10.0f // Définir une augmentation significative de la glycémie
-        val lowActivityThreshold = 100 // Seuil d'activité physique faible
-        val rapidIncreaseThreshold = 5.0f // Seuil de delta pour une augmentation rapide
+        val significantDelta = 13.0f // Définir une augmentation significative de la glycémie
+        val lowActivityThreshold = 120 // Seuil d'activité physique faible
+        val rapidIncreaseThreshold = 7.0f // Seuil de delta pour une augmentation rapide
         val baseMinTimeSinceLastSmb = 9
         val highCarbMinTimeSinceLastSmb = 4
         val bgThreshold = if (hourOfDay in 6..9 || hourOfDay in 11..14 || hourOfDay in 18..21) 100.0f else 120.0f
@@ -955,7 +955,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val isBgAboveThreshold = bg > bgThreshold
         val isTimeSinceLastSmbSufficient = lastSmbMinutesAgo > minTimeSinceLastSmb && delta > 8
         val isLowActivity = recentSteps10Minutes < lowActivityThreshold
-        val isDeltaslowingdown = delta < 5 || shortAvgDelta <= 4 || longAvgDelta <= 3
+        val isDeltaslowingdown = delta < 7 || shortAvgDelta <= 6 || longAvgDelta <= 5
         val FCL = preferences.get(BooleanKey.OApsAIMIMLFCL)
 
         // Determine if a meal is anticipated
@@ -1629,7 +1629,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 13 July 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 16 July 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
