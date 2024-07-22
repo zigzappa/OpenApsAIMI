@@ -1405,14 +1405,14 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         val timenow = LocalTime.now().hour
         val sixAMHour = LocalTime.of(6, 0).hour
-        if (averageBeatsPerMinute != 0.0) {
-            this.basalaimi = when {
-                averageBeatsPerMinute >= averageBeatsPerMinute180 && recentSteps5Minutes > 100 && recentSteps10Minutes > 200 -> (basalaimi * 0.65).toFloat()
-                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute > averageBeatsPerMinute180 && bg >= 130 && recentSteps10Minutes == 0 && timenow > sixAMHour -> (basalaimi * 1.2).toFloat()
-                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute < averageBeatsPerMinute180 && recentSteps10Minutes == 0 && bg >= 110 -> (basalaimi * 1.1).toFloat()
-                else -> basalaimi
-            }
-        }
+        // if (averageBeatsPerMinute != 0.0) {
+        //     this.basalaimi = when {
+        //         averageBeatsPerMinute >= averageBeatsPerMinute180 && recentSteps5Minutes > 100 && recentSteps10Minutes > 200 -> (basalaimi * 0.65).toFloat()
+        //         averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute > averageBeatsPerMinute180 && bg >= 130 && recentSteps10Minutes == 0 && timenow > sixAMHour -> (basalaimi * 1.2).toFloat()
+        //         averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute < averageBeatsPerMinute180 && recentSteps10Minutes == 0 && bg >= 110 -> (basalaimi * 1.1).toFloat()
+        //         else -> basalaimi
+        //     }
+        // }
 
         val pregnancyEnable = preferences.get(BooleanKey.OApsAIMIpregnancy)
 
@@ -1629,7 +1629,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 16 July 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 22 July 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
