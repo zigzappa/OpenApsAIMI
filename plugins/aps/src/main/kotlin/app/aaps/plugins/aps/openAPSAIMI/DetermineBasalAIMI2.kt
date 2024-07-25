@@ -676,11 +676,11 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         return if (globalConvergenceReached) finalRefinedSMB else predictedSMB
     }
     private fun calculateGFactor(delta: Float, lastHourTIRabove120: Double, bg: Float): Double {
-        val deltaFactor = delta / 10 // Ajuster selon les besoins
+        val deltaFactor = if (bg > 100) delta / 10 else 1.0f // Ajuster selon les besoins
         val bgFactor = if (bg > 120) 1.2 else if (bg < 100) 0.7 else 1.0
 
         // Introduire un facteur basé sur lastHourTIRabove170
-        val tirFactor = 1.0 + lastHourTIRabove120 * 0.05 // Exemple: 5% d'augmentation pour chaque unité de lastHourTIRabove170
+        val tirFactor = if (bg > 100) 1.0 + lastHourTIRabove120 * 0.05 else 1.0 // Exemple: 5% d'augmentation pour chaque unité de lastHourTIRabove170
 
         // Combinez les facteurs pour obtenir un ajustement global
         return deltaFactor * bgFactor * tirFactor
@@ -1430,10 +1430,15 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
 
 
-        this.variableSensitivity = max(
-            profile.sens.toFloat() / 4.0f,
-            sens.toFloat() * calculateGFactor(delta, lastHourTIRabove120, bg.toFloat()).toFloat()
-        )
+        this.variableSensitivity = if (bg < 100) {
+            profile.sens.toFloat()
+        } else {
+            max(
+                profile.sens.toFloat() / 4.0f,
+                sens.toFloat() * calculateGFactor(delta, lastHourTIRabove120, bg.toFloat()).toFloat()
+            )
+        }
+
 
         if (recentSteps5Minutes > 100 && recentSteps10Minutes > 200 && bg < 130 && delta < 10 || recentSteps180Minutes > 1500 && bg < 130 && delta < 10) {
             this.variableSensitivity *= 1.5f * calculateGFactor(delta, lastHourTIRabove120, bg.toFloat()).toFloat()
@@ -1629,7 +1634,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 22 July 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 25 July 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
