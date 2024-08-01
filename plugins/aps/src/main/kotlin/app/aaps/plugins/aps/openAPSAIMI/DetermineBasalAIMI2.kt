@@ -1565,7 +1565,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             hourOfDay in 1..11                                                                                                               -> smbToGive * adjustedMorningFactor.toFloat()
             hourOfDay in 12..18                                                                                                              -> smbToGive * adjustedAfternoonFactor.toFloat()
             hourOfDay in 19..23                                                                                                              -> smbToGive * adjustedEveningFactor.toFloat()
-            bg > 120 && !isMealAnticipated                                                                                                   -> smbToGive * hyperfactor.toFloat()
+            bg > 120 && delta > 7 && !isMealAnticipated                                                                                                   -> smbToGive * hyperfactor.toFloat()
             else -> smbToGive
         }
         rT.reason.append("adjustedMorningFactor $adjustedMorningFactor")
@@ -1634,7 +1634,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 25 July 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 01 August 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
