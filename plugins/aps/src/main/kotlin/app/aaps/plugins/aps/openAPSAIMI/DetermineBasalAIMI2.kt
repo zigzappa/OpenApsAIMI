@@ -640,6 +640,19 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                     }
                 }
 
+                // Déterminer la taille de l'ensemble de validation
+                val validationSize = (inputs.size * 0.1).toInt() // Par exemple, 10% pour la validation
+
+                // Diviser les données en ensembles d'entraînement et de validation
+                val validationInputs = inputs.takeLast(validationSize)
+                val validationTargets = targets.takeLast(validationSize)
+                val trainingInputs = inputs.take(inputs.size - validationSize)
+                val trainingTargets = targets.take(targets.size - validationSize)
+
+                // Création et entraînement du réseau de neurones
+                val neuralNetwork = AimiNeuralNetwork(inputs.first().size, 5, 1)
+                neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs.toInt(), learningRate)
+
                 do {
                     totalDifference = 0.0f
 
@@ -676,11 +689,11 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         return if (globalConvergenceReached) finalRefinedSMB else predictedSMB
     }
     private fun calculateGFactor(delta: Float, lastHourTIRabove120: Double, bg: Float): Double {
-        val deltaFactor = delta / 10 // Ajuster selon les besoins
-        val bgFactor = if (bg > 150) 1.2 else if (bg < 100) 0.7 else 1.0
+        val deltaFactor = if (bg > 130) delta / 10 else 1.0f // Ajuster selon les besoins
+        val bgFactor = if (bg > 150) 1.2 else if (bg < 130) 0.7 else 1.0
 
         // Introduire un facteur basé sur lastHourTIRabove170
-        val tirFactor = 1.0 + lastHourTIRabove120 * 0.05 // Exemple: 5% d'augmentation pour chaque unité de lastHourTIRabove170
+        val tirFactor = if (bg > 140) 1.0 + lastHourTIRabove120 * 0.05 else 1.0 // Exemple: 5% d'augmentation pour chaque unité de lastHourTIRabove170
 
         // Combinez les facteurs pour obtenir un ajustement global
         return deltaFactor * bgFactor * tirFactor
@@ -695,10 +708,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         } else {
             delta
         }
-        val hypoAdjustment = if (bg < 110 || (iob > 3 * maxSMB)) 0.8f else 1.0f
-        val factorAdjustment = if (bg < 120) 0.2f else 0.3f
+        val hypoAdjustment = if (bg < 120 || (iob > 3 * maxSMB)) 0.8f else 1.0f
+        val factorAdjustment = if (bg < 120) 0.1f else 0.2f
         val bgAdjustment = 1.0f + (ln(abs(adjustedDelta.toDouble()) + 1) - 1) * factorAdjustment
-        val scalingFactor = 1.0f - (bg - targetBg).toFloat() / (120 - targetBg) * 0.5f
+        val scalingFactor = 1.0f - (bg - targetBg).toFloat() / (140 - targetBg) * 0.5f
         val maxIncreaseFactor = 1.7f
         val maxDecreaseFactor = 0.7f // Limite la diminution à 30% de la valeur d'origine
 
@@ -855,13 +868,14 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             0f
         }
 
-        var futureBg = bg - insulinEffect + carbEffect
-        if (futureBg < 39f) {
-            futureBg = 39f
+        var futureBg = bg - insulinEffect * 0.85f + carbEffect * 0.85f // Réduction de l'impact de l'insuline et des glucides
+        if (futureBg < 50f) { // Ajustement du seuil minimum
+            futureBg = 50f
         }
 
         return futureBg
     }
+
 
     private fun calculateSmoothBasalRate(
         tdd2Days: Float, // Total Daily Dose (TDD) pour le jour le plus récent
@@ -1432,10 +1446,14 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         this.basalaimi = if (basalaimi > profile_current_basal * 2) (profile_current_basal.toFloat() * 2) else basalaimi
 
-        this.variableSensitivity = max(
-            profile.sens.toFloat() / 4.0f,
-            sens.toFloat() * calculateGFactor(delta, lastHourTIRabove120, bg.toFloat()).toFloat()
-        )
+        this.variableSensitivity = if (bg < 130) {
+            profile.sens.toFloat()
+        } else {
+            max(
+                profile.sens.toFloat() / 2.5f,
+                sens.toFloat() * calculateGFactor(delta, lastHourTIRabove120, bg.toFloat()).toFloat()
+            )
+        }
 
         if (recentSteps5Minutes > 100 && recentSteps10Minutes > 200 && bg < 130 && delta < 10 || recentSteps180Minutes > 1500 && bg < 130 && delta < 10) {
             this.variableSensitivity *= 1.5f * calculateGFactor(delta, lastHourTIRabove120, bg.toFloat()).toFloat()
@@ -1443,7 +1461,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (recentSteps30Minutes > 500 && recentSteps5Minutes >= 0 && recentSteps5Minutes < 100 && bg < 130 && delta < 10) {
             this.variableSensitivity *= 1.3f * calculateGFactor(delta, lastHourTIRabove120, bg.toFloat()).toFloat()
         }
-        if (variableSensitivity < 2) this.variableSensitivity = profile.sens.toFloat()
+        if (variableSensitivity < 20) this.variableSensitivity = profile.sens.toFloat()
         if (variableSensitivity > (3 * profile.sens.toFloat())) this.variableSensitivity = profile.sens.toFloat() * 3
 
         sens = variableSensitivity.toDouble()
@@ -1593,7 +1611,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             variable_sens = variableSensitivity.toDouble()
         )
         var rate = when {
-            snackTime && snackrunTime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 4.0, "AI Force basal because mealTime $snackrunTime.", currenttemp, rT)
+            snackTime && snackrunTime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 4.0, "AI Force basal because snackTime $snackrunTime.", currenttemp, rT)
             mealTime && mealruntime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because mealTime $mealruntime.", currenttemp, rT)
             bfastTime && bfastruntime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because bfastTime $bfastruntime.", currenttemp, rT)
             lunchTime && lunchruntime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because lunchTime $lunchruntime.", currenttemp, rT)
