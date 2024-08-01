@@ -500,9 +500,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     Int, intervalSMBhighBG:
     Int): Boolean {
         val historicalMealTimes = listOf(7, 8, 12, 13, 14, 19, 20, 21)
-        val isMealAnticipated = anticipateMeal(glucoseStatus, lastsmbtime, historicalMealTimes)
+        //val isMealAnticipated = anticipateMeal(glucoseStatus, lastsmbtime, historicalMealTimes)
         return (lastsmbtime < intervalSMBsnack && snackTime) || (lastsmbtime < intervalSMBmeal && mealTime) || (lastsmbtime < intervalSMBbfast && bfastTime) || (lastsmbtime < intervalSMBlunch && lunchTime) || (lastsmbtime < intervalSMBdinner && dinnerTime) ||
-            (lastsmbtime < intervalSMBsleep && sleepTime) || (lastsmbtime < intervalSMBhc && highCarbTime) || (lastsmbtime < intervalSMBhighBG && bg > 120 && !isMealAnticipated) || (lastsmbtime < intervalSMBFCL && isMealAnticipated)
+            (lastsmbtime < intervalSMBsleep && sleepTime) || (lastsmbtime < intervalSMBhc && highCarbTime) //|| (lastsmbtime < intervalSMBhighBG && bg > 120 && !isMealAnticipated) || (lastsmbtime < intervalSMBFCL && isMealAnticipated)
     }
 
     private fun shouldApplySafetyAdjustment(): Boolean {
@@ -565,7 +565,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         return smbToGive.toFloat()
     }
-    private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, predictedSMB: Float): Float {
+    private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, predictedSMB: Float, profile: OapsProfile): Float {
         val minutesToConsider = 2500.0
         val linesToConsider = (minutesToConsider / 5).toInt()
         var totalDifference: Float
@@ -597,11 +597,12 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
                     val input = colIndices.mapNotNull { index -> cols.getOrNull(index)?.toFloatOrNull() }.toFloatArray()
                     // Calculez et ajoutez l'indicateur de tendance directement dans 'input'
-                    val trendIndicator = when {
-                        delta > 0 && shortAvgDelta > 0 && longAvgDelta > 0 -> 1
-                        delta < -2 && shortAvgDelta < -2 && longAvgDelta < 0 -> -1
-                        else                                               -> 0
-                    }
+                    val trendIndicator = calculateTrendIndicator(
+                        delta, shortAvgDelta, longAvgDelta,
+                        bg.toFloat(), iob, variableSensitivity, cob, normalBgThreshold,
+                        recentSteps180Minutes, averageBeatsPerMinute.toFloat(), averageBeatsPerMinute10.toFloat(),
+                        profile.insulinDivisor.toFloat(), recentSteps5Minutes, recentSteps10Minutes
+                    )
                     val enhancedInput = input.copyOf(input.size + 1)
                     enhancedInput[input.size] = trendIndicator.toFloat()
 
@@ -615,44 +616,40 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 if (inputs.isEmpty() || targets.isEmpty()) {
                     return predictedSMB
                 }
-                val epochs = 30000.0
-                var learningRate: Float
-                if (preferences.get(BooleanKey.OApsAIMIMLLearningRate)){
-                    learningRate = 0.001f
-                }else{
-                    learningRate = when {
-                        bg in (70.0..100.0) -> 0.00001f
-                        bg in (100.0 .. 120.0) -> 0.0001f
-                        bg in (120.0 .. 200.0) -> 0.001f
-                        bg >= 200 -> 0.01f
+                val epochsPerIteration = 10000
+                val totalEpochs = 30000.0
+                var learningRate = 0.001f // Default learning rate
+                val decayFactor = 0.99f // For exponential decay
+                val k = 5
+                var neuralNetwork: AimiNeuralNetwork? = null
+                val foldSize = inputs.size / k
+                for (i in 0 until k) {
+                    val validationInputs = inputs.subList(i * foldSize, (i + 1) * foldSize)
+                    val validationTargets = targets.subList(i * foldSize, (i + 1) * foldSize)
+                    val trainingInputs = inputs.minus(validationInputs)
+                    val trainingTargets = targets.minus(validationTargets)
 
-                        else -> 0.001f
+                    neuralNetwork = AimiNeuralNetwork(inputs.first().size, 5, 1)
+
+                    // Training loop with learning rate decay
+                    for (epoch in 10000..totalEpochs.toInt() step epochsPerIteration) {
+                        for (innerEpoch in 1000 until epochsPerIteration) {
+                            neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, 10000, learningRate)
+                            learningRate *= decayFactor // Exponential decay
+                        }
                     }
                 }
-
-                // Déterminer la taille de l'ensemble de validation
-                val validationSize = (inputs.size * 0.1).toInt() // Par exemple, 10% pour la validation
-
-                // Diviser les données en ensembles d'entraînement et de validation
-                val validationInputs = inputs.takeLast(validationSize)
-                val validationTargets = targets.takeLast(validationSize)
-                val trainingInputs = inputs.take(inputs.size - validationSize)
-                val trainingTargets = targets.take(targets.size - validationSize)
-
-                // Création et entraînement du réseau de neurones
-                val neuralNetwork = AimiNeuralNetwork(inputs.first().size, 5, 1)
-                neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs.toInt(), learningRate)
 
                 do {
                     totalDifference = 0.0f
 
                     for (enhancedInput in inputs) {
                         val predictedrefineSMB = finalRefinedSMB// Prédiction du modèle TFLite
-                        val refinedSMB = refineSMB(predictedrefineSMB, neuralNetwork, enhancedInput)
+                        val refinedSMB = neuralNetwork?.let { refineSMB(predictedrefineSMB, it, enhancedInput) }
                         if (delta > 10 && bg > 100) {
                             isAggressiveResponseNeeded = true
                         }
-                        val difference = abs(predictedrefineSMB - refinedSMB)
+                        val difference = abs(predictedrefineSMB - refinedSMB!!)
                         totalDifference += difference
                         if (difference in 0.0..2.5) {
                             finalRefinedSMB = if (refinedSMB > 0.0f) refinedSMB else 0.0f
@@ -715,6 +712,43 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             adjustFactor(afternoonFactor),
             adjustFactor(eveningFactor)
         )
+    }
+
+    private fun calculateTrendIndicator(
+        delta: Float,
+        shortAvgDelta: Float,
+        longAvgDelta: Float,
+        bg: Float,
+        iob: Float,
+        variableSensitivity: Float,
+        cob: Float,
+        normalBgThreshold: Float,
+        recentSteps180Min: Int,
+        averageBeatsPerMinute: Float,
+        averageBeatsPerMinute10: Float,
+        insulinDivisor: Float,
+        recentSteps5min: Int,
+        recentSteps10min: Int
+    ): Int {
+        // Calcul de l'impact de l'insuline
+        val insulinEffect = calculateInsulinEffect(
+            bg, iob, variableSensitivity, cob, normalBgThreshold, recentSteps180Min,
+            averageBeatsPerMinute, averageBeatsPerMinute10, insulinDivisor
+        )
+
+        // Calcul de l'impact de l'activité physique
+        val activityImpact = (recentSteps5min - recentSteps10min) * 0.05
+
+        // Calcul de l'indicateur de tendance
+        val trendValue = (delta * 0.5) + (shortAvgDelta * 0.25) + (longAvgDelta * 0.15) + (insulinEffect * 0.2) + (activityImpact * 0.1)
+
+        return when {
+            trendValue > 1.0 -> 1 // Forte tendance à la hausse
+            trendValue < -1.0 -> -1 // Forte tendance à la baisse
+            abs(trendValue) < 0.5 -> 0 // Pas de tendance significative
+            trendValue > 0.5 -> 2 // Faible tendance à la hausse
+            else -> -2 // Faible tendance à la baisse
+        }
     }
     private fun calculateAdjustedDelayFactor(
         bg: Float,
@@ -895,53 +929,53 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         notes = processNotesAndCleanUp(notes)
         return notes
     }
-    private fun isMealAnticipated(
-        bg: Float,
-        delta: Float,
-        shortAvgDelta: Float,
-        longAvgDelta: Float,
-        hourOfDay: Int,
-        recentSteps10Minutes: Int,
-        lastSmbMinutesAgo: Int,
-        historicalMealTimes: List<Int> // Liste des heures typiques des repas
-    ): Boolean {
-        // Constants
-        val significantDelta = 10.0f // Définir une augmentation significative de la glycémie
-        val lowActivityThreshold = 100 // Seuil d'activité physique faible
-        val rapidIncreaseThreshold = 5.0f // Seuil de delta pour une augmentation rapide
-        val baseMinTimeSinceLastSmb = 9
-        val highCarbMinTimeSinceLastSmb = 4
-        val bgThreshold = if (hourOfDay in 6..9 || hourOfDay in 11..14 || hourOfDay in 18..21) 100.0f else 120.0f
-
-        // Calculate minTimeSinceLastSmb based on meal type
-        val minTimeSinceLastSmb = if (isHighCarbMeal(delta, shortAvgDelta, longAvgDelta)) highCarbMinTimeSinceLastSmb else baseMinTimeSinceLastSmb
-
-        // Check conditions
-        val isRapidBgIncrease = delta > significantDelta && shortAvgDelta > rapidIncreaseThreshold
-        val isNearTypicalMealTime = historicalMealTimes.any { kotlin.math.abs(hourOfDay - it) <= 1 }
-        val isBgAboveThreshold = bg > bgThreshold
-        val isTimeSinceLastSmbSufficient = lastSmbMinutesAgo > minTimeSinceLastSmb && delta > 8
-        val isLowActivity = recentSteps10Minutes < lowActivityThreshold
-        val isDeltaslowingdown = delta < 5 || shortAvgDelta <= 4 || longAvgDelta <= 3
-        val FCL = preferences.get(BooleanKey.OApsAIMIMLFCL)
-
-        // Determine if a meal is anticipated
-        return FCL && isLowActivity && isTimeSinceLastSmbSufficient && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown)
-    }
-
-    private fun anticipateMeal(glucoseStatus: GlucoseStatus,lastSmbMinutesAgo: Int, historicalMealTimes: List<Int>): Boolean {
-        val hourOfDay = Calendar.getInstance()[Calendar.HOUR_OF_DAY]
-        return isMealAnticipated(
-            bg = glucoseStatus.glucose.toFloat(),
-            delta = glucoseStatus.delta.toFloat(),
-            shortAvgDelta = glucoseStatus.shortAvgDelta.toFloat(),
-            longAvgDelta = glucoseStatus.longAvgDelta.toFloat(),
-            hourOfDay = hourOfDay,
-            recentSteps10Minutes = recentSteps10Minutes,
-            historicalMealTimes = historicalMealTimes,
-            lastSmbMinutesAgo = lastSmbMinutesAgo
-        )
-    }
+    // private fun isMealAnticipated(
+    //     bg: Float,
+    //     delta: Float,
+    //     shortAvgDelta: Float,
+    //     longAvgDelta: Float,
+    //     hourOfDay: Int,
+    //     recentSteps10Minutes: Int,
+    //     lastSmbMinutesAgo: Int,
+    //     historicalMealTimes: List<Int> // Liste des heures typiques des repas
+    // ): Boolean {
+    //     // Constants
+    //     val significantDelta = 10.0f // Définir une augmentation significative de la glycémie
+    //     val lowActivityThreshold = 100 // Seuil d'activité physique faible
+    //     val rapidIncreaseThreshold = 5.0f // Seuil de delta pour une augmentation rapide
+    //     val baseMinTimeSinceLastSmb = 9
+    //     val highCarbMinTimeSinceLastSmb = 4
+    //     val bgThreshold = if (hourOfDay in 6..9 || hourOfDay in 11..14 || hourOfDay in 18..21) 100.0f else 120.0f
+    //
+    //     // Calculate minTimeSinceLastSmb based on meal type
+    //     val minTimeSinceLastSmb = if (isHighCarbMeal(delta, shortAvgDelta, longAvgDelta)) highCarbMinTimeSinceLastSmb else baseMinTimeSinceLastSmb
+    //
+    //     // Check conditions
+    //     val isRapidBgIncrease = delta > significantDelta && shortAvgDelta > rapidIncreaseThreshold
+    //     val isNearTypicalMealTime = historicalMealTimes.any { kotlin.math.abs(hourOfDay - it) <= 1 }
+    //     val isBgAboveThreshold = bg > bgThreshold
+    //     val isTimeSinceLastSmbSufficient = lastSmbMinutesAgo > minTimeSinceLastSmb && delta > 8
+    //     val isLowActivity = recentSteps10Minutes < lowActivityThreshold
+    //     val isDeltaslowingdown = delta < 5 || shortAvgDelta <= 4 || longAvgDelta <= 3
+    //     val FCL = preferences.get(BooleanKey.OApsAIMIMLFCL)
+    //
+    //     // Determine if a meal is anticipated
+    //     return FCL && isLowActivity && isTimeSinceLastSmbSufficient && (isRapidBgIncrease && isBgAboveThreshold && !isDeltaslowingdown || isNearTypicalMealTime && isBgAboveThreshold && !isDeltaslowingdown)
+    // }
+    //
+    // private fun anticipateMeal(glucoseStatus: GlucoseStatus,lastSmbMinutesAgo: Int, historicalMealTimes: List<Int>): Boolean {
+    //     val hourOfDay = Calendar.getInstance()[Calendar.HOUR_OF_DAY]
+    //     return isMealAnticipated(
+    //         bg = glucoseStatus.glucose.toFloat(),
+    //         delta = glucoseStatus.delta.toFloat(),
+    //         shortAvgDelta = glucoseStatus.shortAvgDelta.toFloat(),
+    //         longAvgDelta = glucoseStatus.longAvgDelta.toFloat(),
+    //         hourOfDay = hourOfDay,
+    //         recentSteps10Minutes = recentSteps10Minutes,
+    //         historicalMealTimes = historicalMealTimes,
+    //         lastSmbMinutesAgo = lastSmbMinutesAgo
+    //     )
+    // }
     // Helper function to determine if a meal is high-carb
     private fun isHighCarbMeal(delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Boolean {
         return delta > 15 && shortAvgDelta > 12 && longAvgDelta > 10
@@ -1043,20 +1077,20 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         this.acceleratingDown = if (delta < -2 && delta - longAvgDelta < -2) 1 else 0
         this.decceleratingDown = if (delta < 0 && (delta > shortAvgDelta || delta > longAvgDelta)) 1 else 0
         this.stable = if (delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 180) 1 else 0
-        val isMealAnticipated = anticipateMeal(glucose_status,lastsmbtime, historicalMealTimes)
+        //val isMealAnticipated = anticipateMeal(glucose_status,lastsmbtime, historicalMealTimes)
          if (isMealModeCondition()){
              val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
                  rT.units = pbolusM
                  rT.reason.append("Microbolusing Meal Mode ${pbolusM}U. ")
              return rT
          }
-        if (((isMealAnticipated && iob in 0.5..3.0 && delta > 15 && shortAvgDelta > 10 && acceleratingUp == 1) || profile.temptargetSet && targetBg == 80.0f) && (hourOfDay in 8..10 || hourOfDay in 11..14 || hourOfDay in 18..21)){
-            val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
-            this.maxSMB = pbolusM
-            rT.units = if (lastBolusSMBUnit != pbolusM.toFloat()) pbolusM else 0.0
-            rT.reason.append("Microbolusing FCL Mode using Meal mode prebolus ${pbolusM}U. ")
-            return rT
-        }
+        // if (((isMealAnticipated && iob in 0.5..3.0 && delta > 15 && shortAvgDelta > 10 && acceleratingUp == 1) || profile.temptargetSet && targetBg == 80.0f) && (hourOfDay in 8..10 || hourOfDay in 11..14 || hourOfDay in 18..21)){
+        //     val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
+        //     this.maxSMB = pbolusM
+        //     rT.units = if (lastBolusSMBUnit != pbolusM.toFloat()) pbolusM else 0.0
+        //     rT.reason.append("Microbolusing FCL Mode using Meal mode prebolus ${pbolusM}U. ")
+        //     return rT
+        // }
         if (isbfastModeCondition()){
             val pbolusbfast: Double = preferences.get(DoubleKey.OApsAIMIBFPrebolus)
             rT.units = pbolusbfast
@@ -1372,14 +1406,14 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         val timenow = LocalTime.now().hour
         val sixAMHour = LocalTime.of(6, 0).hour
-        if (averageBeatsPerMinute != 0.0) {
-            this.basalaimi = when {
-                averageBeatsPerMinute >= averageBeatsPerMinute180 && recentSteps5Minutes > 100 && recentSteps10Minutes > 200 -> (basalaimi * 0.65).toFloat()
-                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute > averageBeatsPerMinute180 && bg >= 130 && recentSteps10Minutes == 0 && timenow > sixAMHour -> (basalaimi * 1.2).toFloat()
-                averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute < averageBeatsPerMinute180 && recentSteps10Minutes == 0 && bg >= 110 -> (basalaimi * 1.1).toFloat()
-                else -> basalaimi
-            }
-        }
+        // if (averageBeatsPerMinute != 0.0) {
+        //     this.basalaimi = when {
+        //         averageBeatsPerMinute >= averageBeatsPerMinute180 && recentSteps5Minutes > 100 && recentSteps10Minutes > 200 -> (basalaimi * 0.65).toFloat()
+        //         averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute > averageBeatsPerMinute180 && bg >= 130 && recentSteps10Minutes == 0 && timenow > sixAMHour -> (basalaimi * 1.2).toFloat()
+        //         averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute < averageBeatsPerMinute180 && recentSteps10Minutes == 0 && bg >= 110 -> (basalaimi * 1.1).toFloat()
+        //         else -> basalaimi
+        //     }
+        // }
 
         val pregnancyEnable = preferences.get(BooleanKey.OApsAIMIpregnancy)
 
@@ -1396,6 +1430,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             }
         }
 
+        this.basalaimi = if (basalaimi > profile_current_basal * 2) (profile_current_basal.toFloat() * 2) else basalaimi
 
         this.variableSensitivity = max(
             profile.sens.toFloat() / 4.0f,
@@ -1476,7 +1511,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             val minutesToConsider = 2500.0
             val linesToConsider = (minutesToConsider / 5).toInt()
             if (allLines.size > linesToConsider) {
-                val refinedSMB = neuralnetwork5(delta, shortAvgDelta, longAvgDelta, predictedSMB)
+                val refinedSMB = neuralnetwork5(delta, shortAvgDelta, longAvgDelta, predictedSMB, profile)
                 this.predictedSMB = refinedSMB
                 basal =
                     when {
@@ -1504,7 +1539,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val dinnerfactor: Double = preferences.get(DoubleKey.OApsAIMIDinnerFactor) / 100.0
         val snackfactor: Double = preferences.get(DoubleKey.OApsAIMISnackFactor) / 100.0
         val sleepfactor: Double = preferences.get(DoubleKey.OApsAIMIsleepFactor) / 100.0
-        val fclfactor: Double = preferences.get(DoubleKey.OApsAIMIFCLFactor) / 100.0
+        //val fclfactor: Double = preferences.get(DoubleKey.OApsAIMIFCLFactor) / 100.0
 
         val adjustedFactors = adjustFactorsBasedOnBgAndHypo(
                 morningfactor.toFloat(), afternoonfactor.toFloat(), eveningfactor.toFloat()
@@ -1523,11 +1558,11 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             dinnerTime                                                                                                                       -> smbToGive * dinnerfactor.toFloat()
             snackTime                                                                                                                        -> smbToGive * snackfactor.toFloat()
             sleepTime                                                                                                                        -> smbToGive * sleepfactor.toFloat()
-            isMealAnticipated                                                                                                                -> smbToGive * fclfactor.toFloat()
-            hourOfDay in 1..11                                                                                                               -> smbToGive * adjustedMorningFactor.toFloat()
-            hourOfDay in 12..18                                                                                                              -> smbToGive * adjustedAfternoonFactor.toFloat()
-            hourOfDay in 19..23                                                                                                              -> smbToGive * adjustedEveningFactor.toFloat()
-            bg > 130 && !isMealAnticipated                                                                                                   -> smbToGive * hyperfactor.toFloat()
+            //isMealAnticipated                                                                                                              -> smbToGive * fclfactor.toFloat()
+            hourOfDay in 1..11                                                                                                         -> smbToGive * adjustedMorningFactor.toFloat()
+            hourOfDay in 12..18                                                                                                        -> smbToGive * adjustedAfternoonFactor.toFloat()
+            hourOfDay in 19..23                                                                                                        -> smbToGive * adjustedEveningFactor.toFloat()
+            //bg > 140                                                                                                                         -> smbToGive * hyperfactor.toFloat()
             else -> smbToGive
         }
         rT.reason.append("adjustedMorningFactor $adjustedMorningFactor")
@@ -1596,12 +1631,12 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL-Cata, 13 Jun 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL-Cata, 01 August 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
             appendLine("predictedSMB: {predictedSMB}")
-            appendLine("isMealAnticipated: {isMealAnticipated}")
+            //appendLine("isMealAnticipated: {isMealAnticipated}")
             appendLine("Max IOB: {maxIob}")
             appendLine("Max SMB: {maxSMB}")
             appendLine("sleep: {sleepTime}")
@@ -1616,7 +1651,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             appendLine("fastingtime: {fastingTime}")
             appendLine("intervalsmb: {intervalsmb}")
             appendLine("mealruntime: {mealruntime}")
-            appendLine("bfasthruntime: {bfastruntime}")
+            appendLine("bfastruntime: {bfastruntime}")
             appendLine("lunchruntime: {lunchruntime}")
             appendLine("dinnerruntime: {dinnerruntime}")
             appendLine("snackrunTime: {snackrunTime}")
@@ -1694,7 +1729,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 "modelcal" to modelcal,
                 "predictedSMB" to predictedSMB,
                 "smbToGive" to smbToGive,
-                "isMealAnticipated" to isMealAnticipated,
+                //"isMealAnticipated" to isMealAnticipated,
                 "adjustedFactors" to adjustedFactors,
                 "maxIob" to maxIob,
                 "maxSMB" to maxSMB,
@@ -1833,9 +1868,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 bg < 80 && delta < 0                                                                                                          -> 0.0
                 bg < 80 && delta >= 0 && iob > 0.0                                                                                            -> profile_current_basal * 0.5
                 bg > 180 && delta in -6.0..0.0                                                                                          -> profile_current_basal
-                eventualBG < 65 && !snackTime && !mealTime && !isMealAnticipated && !lunchTime && !dinnerTime && !highCarbTime && !bfastTime  -> 0.0
-                isMealAnticipated && delta > 15                                                                                               -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
-                eventualBG > 180 && !snackTime && !mealTime && !isMealAnticipated && !lunchTime && !dinnerTime && !highCarbTime && !bfastTime && !sportTime  ->calculateBasalRate(basal, profile_current_basal, 5.0)
+                eventualBG < 65 && !snackTime && !mealTime && !lunchTime && !dinnerTime && !highCarbTime && !bfastTime  -> 0.0
+                //isMealAnticipated && delta > 15                                                                                               -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
+                eventualBG > 180 && !snackTime && !mealTime && !lunchTime && !dinnerTime && !highCarbTime && !bfastTime && !sportTime  ->calculateBasalRate(basal, profile_current_basal, 5.0)
                 snackTime && snackrunTime in 0..30                                                                                      -> calculateBasalRate(basal, profile_current_basal, 4.0)
                 mealTime && mealruntime in 0..30                                                                                        -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 bfastTime && bfastruntime in 0..30                                                                                      -> calculateBasalRate(basal, profile_current_basal, 10.0)
