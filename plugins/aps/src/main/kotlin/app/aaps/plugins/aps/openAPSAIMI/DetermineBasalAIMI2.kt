@@ -640,19 +640,6 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                     }
                 }
 
-                // Déterminer la taille de l'ensemble de validation
-                val validationSize = (inputs.size * 0.1).toInt() // Par exemple, 10% pour la validation
-
-                // Diviser les données en ensembles d'entraînement et de validation
-                val validationInputs = inputs.takeLast(validationSize)
-                val validationTargets = targets.takeLast(validationSize)
-                val trainingInputs = inputs.take(inputs.size - validationSize)
-                val trainingTargets = targets.take(targets.size - validationSize)
-
-                // Création et entraînement du réseau de neurones
-                val neuralNetwork = AimiNeuralNetwork(inputs.first().size, 5, 1)
-                neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, epochs.toInt(), learningRate)
-
                 do {
                     totalDifference = 0.0f
 
