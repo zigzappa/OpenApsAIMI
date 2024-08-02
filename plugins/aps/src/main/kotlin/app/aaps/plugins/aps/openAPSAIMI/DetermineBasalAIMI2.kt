@@ -1634,7 +1634,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 01 August 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-FCL, 02 August 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
@@ -1865,9 +1865,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             val (localconditionResult, _) = isCriticalSafetyCondition()
 
             rate = when {
-                iob < 0.4 && bg in 90.0..100.0 && delta in 0.0..5.0 && !sportTime                                                 -> profile_current_basal
+                //iob < 0.4 && bg in 90.0..100.0 && delta in 0.0..5.0 && !sportTime                                                 -> profile_current_basal
                 iob < 0.6 && bg in 100.0..120.0 && delta in 0.0..6.0 && !sportTime                                                -> profile_current_basal * 2
-                iob < 0.8 && bg in 120.0..130.0 && delta in 0.0..6.0 && !sportTime                                                -> profile_current_basal * 4
+                //iob < 0.8 && bg in 120.0..130.0 && delta in 0.0..6.0 && !sportTime                                                -> profile_current_basal * 4
                 bg < 80 && delta < 0                                                                                                          -> 0.0
                 bg < 80 && delta >= 0 && iob > 0.0                                                                                            -> profile_current_basal * 0.5
                 bg > 180 && delta in -6.0..0.0                                                                                          -> profile_current_basal
