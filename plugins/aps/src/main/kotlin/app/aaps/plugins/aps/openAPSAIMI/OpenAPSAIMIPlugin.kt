@@ -1,5 +1,6 @@
 package app.aaps.plugins.aps.openAPSAIMI
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -121,6 +122,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
     override var lastAPSResult: DetermineBasalResult? = null
     override fun supportsDynamicIsf(): Boolean = preferences.get(BooleanKey.ApsUseDynamicSensitivity)
 
+    @SuppressLint("DefaultLocale")
     override fun getIsfMgdl(multiplier: Double, timeShift: Int, caller: String): Double? {
         val start = dateUtil.now()
         val sensitivity = calculateVariableIsf(start, bg = null)
@@ -130,6 +132,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         return sensitivity.second?.let { it * multiplier }
     }
 
+    @SuppressLint("DefaultLocale")
     override fun getIsfMgdl(timestamp: Long, bg: Double, multiplier: Double, timeShift: Int, caller: String): Double? {
         val start = dateUtil.now()
         val sensitivity = calculateVariableIsf(timestamp, bg)
@@ -195,7 +198,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         }
         val tdd7P: Double = preferences.get(DoubleKey.OApsAIMITDD7)
 
-        var tdd7D =  tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))
+        val tdd7D =  tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))
         if (tdd7D != null && tdd7D.data.totalAmount > tdd7P && tdd7D.data.totalAmount > 1.1 * tdd7P) {
             tdd7D.data.totalAmount = 1.1 * tdd7P
             aapsLogger.info(LTag.APS, "TDD for 7 days limited to 10% increase. New TDD7D: ${tdd7D.data.totalAmount}")
@@ -658,14 +661,6 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 title = "Training ML and Modes"
                 addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.OApsAIMIMLtraining, title = R.string.oaps_aimi_enableMlTraining_title))
                 addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.OApsAIMIMLLearningRate, title = R.string.oaps_aimi_enableMlLearningRate_title))
-                addPreference(preferenceManager.createPreferenceScreen(context).apply {
-                    key = "mode_FCL"
-                    title = "Full Closed Loop"
-                    addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.OApsAIMIMLFCL, title = R.string.oaps_aimi_enableMlFCL_title))
-                    addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.OApsAIMIFCLAdjISFFact, dialogMessage = R.string.oaps_aimi_FCLAdjFact_summary, title = R.string.oaps_aimi_FCLAdjFact_title))
-                    addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.OApsAIMIFCLFactor, dialogMessage = R.string.OApsAIMI_FCLFactor_summary, title = R.string.OApsAIMI_FCLFactor_title))
-                    addPreference(AdaptiveIntPreference(ctx = context, intKey = IntKey.OApsAIMIFCLinterval, dialogMessage = R.string.oaps_aimi_FCL_interval_summary, title = R.string.oaps_aimi_FCL_interval_title))
-                })
                 addPreference(preferenceManager.createPreferenceScreen(context).apply {
                     key = "mode_meal"
                     title = "Meal Mode settings"
