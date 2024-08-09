@@ -326,10 +326,13 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         file.appendText(valuesToRecord + "\n")
     }
-    private fun applySafetyPrecautions(glucoseStatus: GlucoseStatus, smbToGiveParam: Float): Float {
+    private fun applySafetyPrecautions(mealData: MealData, smbToGiveParam: Float): Float {
         var smbToGive = smbToGiveParam
         val (conditionResult, _) = isCriticalSafetyCondition()
         if (conditionResult) return 0.0f
+
+        if (mealData.slopeFromMaxDeviation < 0 || mealData.slopeFromMaxDeviation <= 0.2 && mealData.slopeFromMinDeviation > 0.2 ) return 0.0f
+        if (mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMaxDeviation <= 0.2 && mealData.slopeFromMinDeviation > 0.1 && mealData.slopeFromMinDeviation <= 0.3) return smbToGive/2
 
         if (isSportSafetyCondition()) return 0.0f
         // Ajustements basés sur des conditions spécifiques
@@ -1507,7 +1510,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         rT.reason.append("adjustedEveningFactor $adjustedEveningFactor")
 
 
-        smbToGive = applySafetyPrecautions(glucose_status,smbToGive)
+        smbToGive = applySafetyPrecautions(mealData,smbToGive)
         smbToGive = roundToPoint05(smbToGive)
 
         logDataMLToCsv(predictedSMB, smbToGive)
@@ -1568,7 +1571,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 03 August 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 09 August 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
@@ -1821,6 +1824,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 pregnancyEnable && delta > 0 && bg > 110 && !honeymoon                                                                        -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 localconditionResult && delta > 1 && bg > 90                                                                                  -> profile_current_basal * delta
                 bg > 100 && !conditionResult && eventualBG > 100 && delta in 0.0 .. 4.0 && !sportTime                                   -> profile_current_basal * delta
+                // New Conditions
+                mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg < 80 && delta >= 0                             -> profile_current_basal * 0.5
+                mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMaxDeviation <= 0.2 && mealData.slopeFromMinDeviation > 0 && mealData.slopeFromMinDeviation <= 0.2 && bg in 80.0..100.0 -> profile_current_basal * 1.5
+                mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg in 80.0..100.0 && delta > 0              -> profile_current_basal * 0.8
                 else -> 0.0
             }
             rate.let {
