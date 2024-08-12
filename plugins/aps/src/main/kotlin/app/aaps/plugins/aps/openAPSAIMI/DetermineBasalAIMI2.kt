@@ -328,15 +328,11 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     }
     private fun applySafetyPrecautions(mealData: MealData, smbToGiveParam: Float): Float {
         var smbToGive = smbToGiveParam
-        val (conditionResult, _) = isCriticalSafetyCondition()
+        val (conditionResult, _) = isCriticalSafetyCondition(mealData)
         if (conditionResult) return 0.0f
-
-        if (mealData.slopeFromMaxDeviation <= -1.5 && mealData.slopeFromMinDeviation > 0.3 ) return 0.0f
-        if (mealData.slopeFromMaxDeviation in -0.5..0.1 && mealData.slopeFromMinDeviation in 0.1..0.4 && bg > 100) return smbToGive/3
-
         if (isSportSafetyCondition()) return 0.0f
         // Ajustements basés sur des conditions spécifiques
-        smbToGive = applySpecificAdjustments(smbToGive)
+        smbToGive = applySpecificAdjustments(mealData, smbToGive)
 
         smbToGive = finalizeSmbToGive(smbToGive)
         // Appliquer les limites maximum
@@ -399,8 +395,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     private fun roundToPoint05(number: Float): Float {
         return (number * 20.0).roundToInt() / 20.0f
     }
-    private fun isCriticalSafetyCondition(): Pair<Boolean, String> {
+    private fun isCriticalSafetyCondition(mealData: MealData): Pair<Boolean, String> {
         val conditionsTrue = mutableListOf<String>()
+        val slopedeviation = mealData.slopeFromMaxDeviation <= -1.5 && mealData.slopeFromMinDeviation > 0.3
+        if (slopedeviation) conditionsTrue.add("slopedeviation")
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
         val nosmbHM = iob > 0.7 && honeymoon && delta < 8 && !mealTime && !bfastTime && !lunchTime && !dinnerTime && eventualBG < 130
         if (nosmbHM) conditionsTrue.add("nosmbHM")
@@ -438,7 +436,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (nosmbhoneymoon) conditionsTrue.add("nosmbhoneymoon")
         val bg90 = bg < 90
         if (bg90) conditionsTrue.add("bg90")
-        val result = belowTargetAndDropping || belowTargetAndStableButNoCob || nosmbHM ||
+        val result = belowTargetAndDropping || belowTargetAndStableButNoCob || nosmbHM || slopedeviation ||
             droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval || bg90 ||
             fasting || nosmb || isNewCalibration || stablebg || belowMinThreshold || acceleratingDown || decceleratingdown || nosmbhoneymoon
 
@@ -461,7 +459,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         return sport || sport1 || sport2 || sport3 || sport4 || sport5
 
     }
-    private fun applySpecificAdjustments(smbToGive: Float): Float {
+    private fun applySpecificAdjustments(mealData: MealData,smbToGive: Float): Float {
         var result = smbToGive
         val intervalSMBsnack = preferences.get(IntKey.OApsAIMISnackinterval)
         val intervalSMBmeal = preferences.get(IntKey.OApsAIMImealinterval)
@@ -486,6 +484,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             }
             shouldApplyTimeAdjustment() -> {
                 result = 0.0f
+                this.intervalsmb = 10
+            }
+            mealData.slopeFromMaxDeviation in -0.5..0.1 && mealData.slopeFromMinDeviation in 0.1..0.4 && bg > 100 -> {
+                result /= 3
                 this.intervalsmb = 10
             }
         }
@@ -1568,10 +1570,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             }, Target: ${convertBG(target_bg)}}"
         )
 
-        val (conditionResult, conditionsTrue) = isCriticalSafetyCondition()
+        val (conditionResult, conditionsTrue) = isCriticalSafetyCondition(mealData)
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 11 August 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 12 August 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
@@ -1797,7 +1799,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 }
 
             }
-            val (localconditionResult, _) = isCriticalSafetyCondition()
+            val (localconditionResult, _) = isCriticalSafetyCondition(mealData)
 
             rate = when {
                 iob < 0.6 && bg in 100.0..120.0 && delta in 0.0..6.0 && !sportTime                                                -> profile_current_basal * 2
