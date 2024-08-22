@@ -180,6 +180,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         preferenceFragment.findPreference<AdaptiveIntPreference>(rh.gs(app.aaps.core.keys.R.string.key_openaps_uam_smb_max_minutes))?.isVisible = uamEnabled
     }
     private val dynIsfCache = LongSparseArray<Double>()
+    @Synchronized
     private fun calculateVariableIsf(timestamp: Long, bg: Double?): Pair<String, Double?> {
         if (!preferences.get(BooleanKey.ApsUseDynamicSensitivity)) return Pair("OFF", null)
 

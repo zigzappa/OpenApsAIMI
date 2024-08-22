@@ -51,7 +51,7 @@ class HeartRateListener(
 
     /** How often we send values to the phone. */
     private val samplingIntervalMillis = 30_000L
-    private val sampler = Sampler(now)
+    private val sampler = Sampler(now, sp)
     private var schedule: Disposable? = null
 
     /** We only use values with these accuracies and ignore NO_CONTACT and UNRELIABLE. */
@@ -195,7 +195,6 @@ class HeartRateListener(
                 currentBpm = heartRate
             }
         }
-
         fun averageHeartrate(duration: Long, timestamp: Long, device: String): EventData.ActionHeartRate? {
             lock.withLock {
                 cleanActionHeartRatehistory(timestamp)  // clean oldest values from memory
