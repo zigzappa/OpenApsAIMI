@@ -1897,6 +1897,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 pregnancyEnable && delta > 0 && bg > 110 && !honeymoon                                                                        -> calculateBasalRate(basal, profile_current_basal, 10.0)
                 localconditionResult && delta > 1 && bg > 90                                                                                  -> profile_current_basal * delta
                 bg > 100 && !conditionResult && eventualBG > 100 && delta in 0.0 .. 4.0 && !sportTime                                   -> profile_current_basal * delta
+                // New Conditions
+                mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg > 110 && delta >= 0                             -> profile_current_basal * 0.5
+                mealData.slopeFromMaxDeviation in 0.0..0.2 && mealData.slopeFromMinDeviation in 0.0..0.2 && bg in 120.0..150.0 && delta > 0 -> profile_current_basal
+                mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg in 100.0..120.0 && delta > 0              -> profile_current_basal * 0.8
                 else -> 0.0
             }
             rate.let {
