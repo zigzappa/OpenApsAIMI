@@ -1422,8 +1422,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             this.basalaimi = when {
                 tirbasalhAP != null && tirbasalhAP >= 5 -> (basalaimi * 2.0).toFloat()
                 lastHourTIRAbove != null && lastHourTIRAbove >= 2 -> (basalaimi * 1.8).toFloat()
-                timenow < sixAMHour -> (basalaimi * 1.4).toFloat()
-                timenow > sixAMHour -> (basalaimi * 1.6).toFloat()
+                timenow < sixAMHour -> (basalaimi * 1.2).toFloat()
+                timenow > sixAMHour -> (basalaimi * 1.4).toFloat()
                 tirbasal3B <= 5 && tirbasal3IR in 70.0..80.0 -> (basalaimi * 1.1).toFloat()
                 tirbasal3B <= 5 && tirbasal3IR <= 70 -> (basalaimi * 1.3).toFloat()
                 tirbasal3B > 5 && tirbasal3A!! < 5 -> (basalaimi * 0.85).toFloat()
@@ -1433,7 +1433,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         this.basalaimi = if (basalaimi > profile_current_basal * 2) (profile_current_basal.toFloat() * 2) else basalaimi
 
-        this.variableSensitivity = if (bg < 130) {
+        this.variableSensitivity = if (bg < 150) {
             profile.sens.toFloat()
         } else {
             max(
@@ -1567,7 +1567,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             hourOfDay in 1..11                                                                                                         -> smbToGive * adjustedMorningFactor.toFloat()
             hourOfDay in 12..18                                                                                                        -> smbToGive * adjustedAfternoonFactor.toFloat()
             hourOfDay in 19..23                                                                                                        -> smbToGive * adjustedEveningFactor.toFloat()
-            //bg > 140                                                                                                                         -> smbToGive * hyperfactor.toFloat()
+            bg > 180 && delta > 5 && iob < 1.2                                                                                                           -> smbToGive * hyperfactor.toFloat()
             else -> smbToGive
         }
         rT.reason.append("adjustedMorningFactor $adjustedMorningFactor")
