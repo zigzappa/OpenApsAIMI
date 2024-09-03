@@ -1557,7 +1557,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         // Appliquer les ajustements en fonction de l'heure de la journée
         smbToGive = when {
-            bg > 160 && delta > 4 && iob < 0.7 && honeymoon && smbToGive == 0.0f && LocalTime.now().run { (hour in 23..23 || hour in 0..6) } -> 0.15f
+            bg > 160 && delta > 4 && iob < 0.7 && honeymoon && smbToGive == 0.0f && LocalTime.now().run { (hour in 23..23 || hour in 0..10) } -> 0.15f
             bg > 120 && delta > 8 && iob < 1.0 && !honeymoon && smbToGive < 0.1f                                                             -> profile_current_basal.toFloat()
             highCarbTime                                                                                                                     -> smbToGive * highcarbfactor.toFloat()
             mealTime                                                                                                                         -> smbToGive * mealfactor.toFloat()
@@ -1639,7 +1639,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition(mealData)
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-Cata, 24 August 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2-Cata, 03 September 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
