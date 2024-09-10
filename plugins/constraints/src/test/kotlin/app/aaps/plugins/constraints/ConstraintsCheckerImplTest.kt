@@ -31,6 +31,7 @@ import app.aaps.plugins.constraints.safety.SafetyPlugin
 import app.aaps.plugins.source.GlimpPlugin
 import app.aaps.pump.dana.DanaPump
 import app.aaps.pump.dana.database.DanaHistoryDatabase
+import app.aaps.pump.dana.keys.DanaStringKey
 import app.aaps.pump.danar.DanaRPlugin
 import app.aaps.pump.danars.DanaRSPlugin
 import app.aaps.pump.insight.InsightPlugin
@@ -103,7 +104,6 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
         `when`(rh.gs(app.aaps.core.ui.R.string.pumplimit)).thenReturn("pump limit")
         `when`(rh.gs(app.aaps.core.ui.R.string.limitingbolus)).thenReturn("Limiting bolus to %.1f U because of %s")
         `when`(rh.gs(R.string.hardlimit)).thenReturn("hard limit")
-        `when`(rh.gs(app.aaps.core.keys.R.string.key_child)).thenReturn("child")
         `when`(rh.gs(R.string.limitingcarbs)).thenReturn("Limiting carbs to %d g because of %s")
         `when`(rh.gs(app.aaps.plugins.aps.R.string.limiting_iob)).thenReturn("Limiting IOB to %.1f U because of %s")
         `when`(rh.gs(app.aaps.core.ui.R.string.limitingbasalratio)).thenReturn("Limiting max basal rate to %1\$.2f U/h because of %2\$s")
@@ -121,7 +121,7 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
         `when`(sp.getString(app.aaps.pump.dana.R.string.key_danars_name, "")).thenReturn("")
         `when`(sp.getString(app.aaps.pump.dana.R.string.key_danars_address, "")).thenReturn("")
         // R
-        `when`(sp.getString(app.aaps.pump.dana.R.string.key_danar_bt_name, "")).thenReturn("")
+        `when`(preferences.get(DanaStringKey.DanaBtName)).thenReturn("")
 
         //SafetyPlugin
         constraintChecker = ConstraintsCheckerImpl(activePlugin, aapsLogger)
@@ -133,12 +133,12 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
         objectivesPlugin = ObjectivesPlugin(injector, aapsLogger, rh, activePlugin, sp, config)
         danaRPlugin = DanaRPlugin(
             aapsLogger, aapsSchedulers, rxBus, context, rh, constraintChecker, activePlugin, sp, commandQueue, danaPump, dateUtil, fabricPrivacy, pumpSync,
-            uiInteraction, danaHistoryDatabase, decimalFormatter, instantiator
+            preferences, uiInteraction, danaHistoryDatabase, decimalFormatter, instantiator
         )
         danaRSPlugin =
             DanaRSPlugin(
                 aapsLogger, aapsSchedulers, rxBus, context, rh, constraintChecker, profileFunction,
-                sp, commandQueue, danaPump, pumpSync, detailedBolusInfoStorage, temporaryBasalStorage,
+                sp, commandQueue, danaPump, pumpSync, preferences, detailedBolusInfoStorage, temporaryBasalStorage,
                 fabricPrivacy, dateUtil, uiInteraction, danaHistoryDatabase, decimalFormatter, instantiator
             )
         insightPlugin = InsightPlugin(
@@ -158,7 +158,7 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
             )
         safetyPlugin =
             SafetyPlugin(
-                aapsLogger, rh, sp, preferences, constraintChecker, activePlugin, hardLimits,
+                aapsLogger, rh, preferences, constraintChecker, activePlugin, hardLimits,
                 config, persistenceLayer, dateUtil, uiInteraction, decimalFormatter
             )
         val constraintsPluginsList = ArrayList<PluginBase>()
