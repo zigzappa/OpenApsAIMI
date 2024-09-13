@@ -956,6 +956,17 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val diff = abs(now - lastBolusSMBTime)
         this.lastsmbtime = (diff / (60 * 1000)).toInt()
         this.maxIob = preferences.get(DoubleKey.ApsSmbMaxIob)
+        // Tarciso Dynamic Max IOB
+        var DinMaxIob = ((bg/100.0)*(bg/55.0)+(delta/2.0)).toFloat()
+        if (DinMaxIob < 1.0) {DinMaxIob = 1.0F
+        }
+        if (DinMaxIob > maxIob) if (bg>149 && delta>3){
+            DinMaxIob = (maxIob+1).toFloat()
+        }
+        else {
+            DinMaxIob = maxIob.toFloat()
+           }
+        this.maxIob = DinMaxIob.toDouble()
         this.maxSMB = preferences.get(DoubleKey.OApsAIMIMaxSMB)
         this.maxSMBHB = preferences.get(DoubleKey.OApsAIMIHighBGMaxSMB)
         this.maxSMB = if (bg > 120) maxSMBHB else maxSMB
