@@ -126,17 +126,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
     override fun getIsfMgdl(multiplier: Double, timeShift: Int, caller: String): Double? {
         val start = dateUtil.now()
         val sensitivity = calculateVariableIsf(start, bg = null)
-
-        uiInteraction.dismissNotification(Notification.DYN_ISF_FALLBACK)
         profiler.log(LTag.APS, String.format("getIsfMgdl() %s %f %s %s", sensitivity.first, sensitivity.second, dateUtil.dateAndTimeAndSecondsString(start), caller), start)
-        return sensitivity.second?.let { it * multiplier }
-    }
-
-    @SuppressLint("DefaultLocale")
-    override fun getIsfMgdl(timestamp: Long, bg: Double, multiplier: Double, timeShift: Int, caller: String): Double? {
-        val start = dateUtil.now()
-        val sensitivity = calculateVariableIsf(timestamp, bg)
-        profiler.log(LTag.APS, String.format("getIsfMgdl() %s %f %s %s", sensitivity.first, sensitivity.second, dateUtil.dateAndTimeAndSecondsString(timestamp), caller), start)
         return sensitivity.second?.let { it * multiplier }
     }
 
