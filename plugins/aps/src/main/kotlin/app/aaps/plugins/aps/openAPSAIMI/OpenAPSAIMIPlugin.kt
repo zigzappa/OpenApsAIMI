@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.LongSparseArray
+import androidx.core.util.forEach
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
@@ -116,6 +117,21 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
     aapsLogger, rh
 ), APS, PluginConstraints {
 
+    override fun onStart() {
+        super.onStart()
+        var count = 0
+        val apsResults = persistenceLayer.getApsResults(dateUtil.now() - T.days(1).msecs(), dateUtil.now())
+        apsResults.forEach {
+            val glucose = it.glucoseStatus?.glucose ?: return@forEach
+            val variableSens = it.variableSens ?: return@forEach
+            val timestamp = it.date
+            val key = timestamp - timestamp % T.mins(30).msecs() + glucose.toLong()
+            if (variableSens > 0) dynIsfCache.put(key, variableSens)
+            count++
+        }
+        aapsLogger.debug(LTag.APS, "Loaded $count variable sensitivity values from database")
+    }
+
     // last values
     override var lastAPSRun: Long = 0
     override val algorithm = APSResult.Algorithm.AIMI
@@ -128,6 +144,20 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         val sensitivity = calculateVariableIsf(start, bg = null)
         profiler.log(LTag.APS, String.format("getIsfMgdl() %s %f %s %s", sensitivity.first, sensitivity.second, dateUtil.dateAndTimeAndSecondsString(start), caller), start)
         return sensitivity.second?.let { it * multiplier }
+    }
+    override fun getAverageIsfMgdl(timestamp: Long, caller: String): Double? {
+        var count = 0
+        var sum = 0.0
+        val start = timestamp - T.hours(24).msecs()
+        dynIsfCache.forEach { key, value ->
+            if (key in start..timestamp) {
+                count++
+                sum += value
+            }
+        }
+        val sensitivity = if (count == 0) null else sum / count
+        aapsLogger.debug(LTag.APS, "getAverageIsfMgdl() $sensitivity from $count values ${dateUtil.dateAndTimeAndSecondsString(timestamp)} $caller")
+        return sensitivity
     }
 
     override fun specialEnableCondition(): Boolean {
