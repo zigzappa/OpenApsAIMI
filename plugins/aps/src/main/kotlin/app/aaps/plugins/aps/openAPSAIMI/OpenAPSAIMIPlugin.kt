@@ -146,6 +146,10 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         return sensitivity.second?.let { it * multiplier }
     }
     override fun getAverageIsfMgdl(timestamp: Long, caller: String): Double? {
+        if (dynIsfCache == null || dynIsfCache.size() == 0) {
+            aapsLogger.warn(LTag.APS, "dynIsfCache is null or empty. Unable to calculate average ISF.")
+            return null
+        }
         var count = 0
         var sum = 0.0
         val start = timestamp - T.hours(24).msecs()
