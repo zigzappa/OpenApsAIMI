@@ -84,7 +84,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     private var lastHourTIRabove170: Double = 0.0
     private var lastHourTIRabove120: Double = 0.0
     private var bg = 0.0
-    private var targetBg = 100.0f
+    private var targetBg = 110.0f
     private var normalBgThreshold = 120.0f
     private var delta = 0.0f
     private var shortAvgDelta = 0.0f
@@ -453,9 +453,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         return Pair(result, conditionsTrueString)
     }
     private fun isSportSafetyCondition(): Boolean {
-        val sport = targetBg >= 140 && recentSteps5Minutes >= 200 && recentSteps10Minutes >= 500
-        val sport1 = targetBg >= 140 && recentSteps5Minutes >= 200 && averageBeatsPerMinute > averageBeatsPerMinute60
-        val sport2 = recentSteps5Minutes >= 200 && averageBeatsPerMinute > averageBeatsPerMinute60
+        val sport = targetBg >= 140 && recentSteps5Minutes >= 200 && recentSteps10Minutes >= 400
+        val sport1 = targetBg >= 140 && recentSteps5Minutes >= 200 && averageBeatsPerMinute > averageBeatsPerMinute10
+        val sport2 = recentSteps5Minutes >= 200 && averageBeatsPerMinute > averageBeatsPerMinute10
         val sport3 = recentSteps5Minutes >= 200 && recentSteps10Minutes >= 500
         val sport4 = targetBg >= 140
         val sport5= sportTime
@@ -1565,7 +1565,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             dinnerTime && dinnerruntime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because dinnerTime $dinnerruntime.", currenttemp, rT)
             highCarbTime && highCarbrunTime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because highcarb $highcarbfactor.", currenttemp, rT)
             fastingTime -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because fastingTime", currenttemp, rT)
-            sportTime && bg > 169 && delta > 4 -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because sportTime && bg > 170", currenttemp, rT)
+            sportTime && bg > 169 && delta > 4 -> calculateRate(profile_current_basal, profile_current_basal, 1.3, "AI Force basal because sportTime && bg > 170", currenttemp, rT)
             //!honeymoon && delta in 0.0 .. 7.0 && bg in 81.0..111.0 -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because bg lesser than 110 and delta lesser than 8", currenttemp, rT)
             honeymoon && delta in 0.0.. 6.0 && bg in 99.0..141.0 -> calculateRate(profile_current_basal, profile_current_basal, delta.toDouble(), "AI Force basal because honeymoon and bg lesser than 140 and delta lesser than 6", currenttemp, rT)
             bg in 81.0..99.0 && delta in 3.0..7.0 && honeymoon -> calculateRate(basal, profile_current_basal, 1.0, "AI Force basal because bg is between 80 and 100 with a small delta.", currenttemp, rT)
@@ -1596,7 +1596,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition(mealData)
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 17 september 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 20 september 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")

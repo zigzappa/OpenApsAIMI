@@ -267,8 +267,8 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         val lunchTime = therapy.lunchTime
         val dinnerTime = therapy.dinnerTime
 
-        val tddWeightedFromLast8H = ((1.4 * tddLast4H) + (0.6 * tddLast8to4H)) * 3
-        var tdd = (tddWeightedFromLast8H * 0.33) + (tdd2Days * 0.34) + (tddDaily * 0.33)
+        val tddWeightedFromLast8H = ((1.2 * tdd2DaysPerHour) + (0.3 * tddLast4H) + (0.5 * tddLast8to4H)) * 3
+        var tdd = (tddWeightedFromLast8H * 0.20) + (tdd2Days * 0.50) + (tddDaily * 0.30)
         if (bg != null) {
             tdd = when {
                 sportTime           -> tdd * 1.1
@@ -300,16 +300,75 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         }else if (sensitivity!! > (2 * profileUtil.fromMgdlToUnits(isfMgdl!!, profileFunction.getUnits()))){
             sensitivity = 2 * profileUtil.fromMgdlToUnits(isfMgdl!!, profileFunction.getUnits())
         }
-
+        // Apply smoothing with interpolation
+        sensitivity = smoothSensitivityChange(sensitivity, glucose)
         sensitivity = if (glucose < 100) profileUtil.fromMgdlToUnits(isfMgdl!!, profileFunction.getUnits()) else sensitivity
 
         if (dynIsfCache.size() > 1000) {
             dynIsfCache.clear()
         }
-// Add calculated sensitivity to cache
+        // Add calculated sensitivity to cache
         dynIsfCache.put(key, sensitivity)
 
         return Pair("CALC", sensitivity)
+    }
+    // Modified smoothSensitivityChange function using interpolate logic
+    private fun smoothSensitivityChange(sensitivity: Double, glucose: Double?): Double {
+        if (glucose == null) return sensitivity
+
+        // Interpolation based on glucose levels
+        val interpolatedISF = interpolate(glucose)
+
+        // Weighted combination of current sensitivity and interpolated ISF for smoother transitions
+        val smoothingFactor = 0.25
+        return (sensitivity * (1 - smoothingFactor)) + (interpolatedISF * smoothingFactor)
+    }
+    // Interpolation function to adjust ISF based on glucose levels
+    fun interpolate(xdata: Double): Double {
+        // Define ISF behavior based on glucose level ranges
+        val polyX = arrayOf(50.0, 60.0, 80.0, 90.0, 100.0, 110.0, 150.0, 180.0, 200.0)
+        val polyY = arrayOf(-0.5, -0.5, -0.3, -0.2, 0.0, 0.0, 0.5, 0.7, 0.7)
+        val polymax: Int = polyX.size - 1
+
+        var newVal = 1.0
+        var lowVal = polyY[0]
+        var topVal = polyY[polymax]
+        var lowX = polyX[0]
+        var topX = polyX[polymax]
+
+        if (xdata < polyX[0]) {
+            // Extrapolate backwards
+            lowX = polyX[0]
+            topX = polyX[1]
+            lowVal = polyY[0]
+            topVal = polyY[1]
+        } else if (xdata > polyX[polymax]) {
+            // Extrapolate forwards
+            lowX = polyX[polymax - 1]
+            topX = polyX[polymax]
+            lowVal = polyY[polymax - 1]
+            topVal = polyY[polymax]
+        } else {
+            // Interpolate
+            for (i in 0 until polymax) {
+                if (xdata < polyX[i + 1]) {
+                    lowX = polyX[i]
+                    topX = polyX[i + 1]
+                    lowVal = polyY[i]
+                    topVal = polyY[i + 1]
+                    break
+                }
+            }
+        }
+        newVal = lowVal + (topVal - lowVal) / (topX - lowX) * (xdata - lowX)
+
+        // Apply weights for higher or lower glucose ranges if needed
+        newVal = if (xdata > 100) {
+            newVal * 1.1 // Higher weight for higher glucose levels
+        } else {
+            newVal * 0.9 // Lower weight for lower glucose levels
+        }
+        return newVal
     }
     override fun invoke(initiator: String, tempBasalFallback: Boolean) {
         aapsLogger.debug(LTag.APS, "invoke from $initiator tempBasalFallback: $tempBasalFallback")
@@ -434,8 +493,10 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             val bfastTime = therapy.bfastTime
             val lunchTime = therapy.lunchTime
             val dinnerTime = therapy.dinnerTime
-            val tddWeightedFromLast8H = ((1.4 * tddLast4H) + (0.6 * tddLast8to4H)) * 3
-            tdd = (tddWeightedFromLast8H * 0.33) + (tdd2Days * 0.34) + (tddDaily * 0.33)
+            // val tddWeightedFromLast8H = ((1.4 * tddLast4H) + (0.6 * tddLast8to4H)) * 3
+            // tdd = (tddWeightedFromLast8H * 0.33) + (tdd2Days * 0.34) + (tddDaily * 0.33)
+            val tddWeightedFromLast8H = ((1.2 * tdd2DaysPerHour) + (0.3 * tddLast4H) + (0.5 * tddLast8to4H)) * 3
+            tdd = (tddWeightedFromLast8H * 0.20) + (tdd2Days * 0.50) + (tddDaily * 0.30)
             if (bg != null) {
                 tdd = when {
                     sportTime    -> tdd * 1.1
@@ -467,6 +528,8 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             }else if (variableSensitivity > 2 * profileUtil.fromMgdlToUnits(isfMgdl!!, profileFunction.getUnits())){
                 variableSensitivity = 2 * profileUtil.fromMgdlToUnits(isfMgdl!!, profileFunction.getUnits())
             }
+            // Apply smoothing with interpolation
+            variableSensitivity = smoothSensitivityChange(variableSensitivity, bg)
             variableSensitivity = if (bg!! < 100) profileUtil.fromMgdlToUnits(isfMgdl!!, profileFunction.getUnits()) else variableSensitivity
 
             // Compare insulin consumption of last 24h with last 7 days average
