@@ -267,8 +267,8 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         val lunchTime = therapy.lunchTime
         val dinnerTime = therapy.dinnerTime
 
-        val tddWeightedFromLast8H = ((1.2 * tdd2DaysPerHour) + (0.3 * tddLast4H) + (0.5 * tddLast8to4H)) * 3
-        var tdd = (tddWeightedFromLast8H * 0.20) + (tdd2Days * 0.50) + (tddDaily * 0.30)
+        val tddWeightedFromLast8H = ((0.3 * tdd2DaysPerHour) + (1.2 * tddLast4H) + (0.5 * tddLast8to4H)) * 3
+        var tdd = (tddWeightedFromLast8H * 0.60) + (tdd2Days * 0.10) + (tddDaily * 0.30)
         if (bg != null) {
             tdd = when {
                 sportTime           -> tdd * 1.1
@@ -320,7 +320,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         val interpolatedISF = interpolate(glucose)
 
         // Weighted combination of current sensitivity and interpolated ISF for smoother transitions
-        val smoothingFactor = 0.25
+        val smoothingFactor = 0.1
         return (sensitivity * (1 - smoothingFactor)) + (interpolatedISF * smoothingFactor)
     }
     // Interpolation function to adjust ISF based on glucose levels
