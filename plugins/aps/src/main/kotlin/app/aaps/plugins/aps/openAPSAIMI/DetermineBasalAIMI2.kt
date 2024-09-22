@@ -505,8 +505,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     }
 
     private fun shouldApplyIntervalAdjustment(intervalSMBhighBG: Int, intervalSMBsnack: Int, intervalSMBmeal: Int,intervalSMBbfast: Int, intervalSMBlunch: Int, intervalSMBdinner: Int, intervalSMBsleep: Int, intervalSMBhc: Int): Boolean {
+        val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
         return (lastsmbtime < intervalSMBsnack && snackTime) || (lastsmbtime < intervalSMBmeal && mealTime) || (lastsmbtime < intervalSMBbfast && bfastTime) || (lastsmbtime < intervalSMBlunch && lunchTime) || (lastsmbtime < intervalSMBdinner && dinnerTime) ||
-            (lastsmbtime < intervalSMBsleep && sleepTime) || (lastsmbtime < intervalSMBhc && highCarbTime) || (lastsmbtime < intervalSMBhighBG && bg > 120)
+            (lastsmbtime < intervalSMBsleep && sleepTime) || (lastsmbtime < intervalSMBhc && highCarbTime) || (!honeymoon && lastsmbtime < intervalSMBhighBG && bg > 120) || (honeymoon && lastsmbtime < intervalSMBhighBG && bg > 180)
     }
 
     private fun shouldApplySafetyAdjustment(): Boolean {
@@ -680,15 +681,24 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         return if (globalConvergenceReached) finalRefinedSMB else predictedSMB
     }
     private fun calculateGFactor(delta: Float, lastHourTIRabove120: Double, bg: Float): Double {
-        val deltaFactor = if (bg > 100) delta / 10 else 1.0f // Ajuster selon les besoins
-        val bgFactor = if (bg > 120) 1.2 else if (bg < 100) 0.7 else 1.0
+        val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
 
-        // Introduire un facteur basé sur lastHourTIRabove170
-        val tirFactor = if (bg > 100) 1.0 + lastHourTIRabove120 * 0.05 else 1.0 // Exemple: 5% d'augmentation pour chaque unité de lastHourTIRabove170
+        // Initialiser les facteurs
+        var deltaFactor = if (bg > 100) delta / 10 else 1.0f // Ajuster selon les besoins
+        var bgFactor = if (bg > 120) 1.2 else if (bg < 100) 0.7 else 1.0
+        var tirFactor = if (bg > 100) 1.0 + lastHourTIRabove120 * 0.05 else 1.0 // Exemple: 5% d'augmentation pour chaque unité de lastHourTIRabove170
+
+        // Modifier les facteurs si honeymoon est vrai
+        if (honeymoon) {
+            deltaFactor = if (bg > 130) delta / 10 else 1.0f // Ajuster selon les besoins pour honeymoon
+            bgFactor = if (bg > 150) 1.2 else if (bg < 130) 0.7 else 1.0
+            tirFactor = if (bg > 140) 1.0 + lastHourTIRabove120 * 0.05 else 1.0 // Ajuster pour honeymoon
+        }
 
         // Combinez les facteurs pour obtenir un ajustement global
         return deltaFactor * bgFactor * tirFactor
     }
+
     private fun adjustFactorsBasedOnBgAndHypo(
         morningFactor: Float,
         afternoonFactor: Float,
@@ -699,8 +709,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         } else {
             delta
         }
+        val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
         val hypoAdjustment = if (bg < 120 || (iob > 3 * maxSMB)) 0.8f else 1.0f
-        val factorAdjustment = if (bg < 100) 0.2f else 0.3f
+        var factorAdjustment = if (bg < 100) 0.2f else 0.3f
+        if (honeymoon) factorAdjustment = if (bg<120) 0.1f else 0.2f
         val bgAdjustment = 1.0f + (ln(abs(adjustedDelta.toDouble()) + 1) - 1) * factorAdjustment
         val scalingFactor = 1.0f - (bg - targetBg).toFloat() / (120 - targetBg) * 0.5f
         val maxIncreaseFactor = 1.7f
@@ -857,10 +869,12 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         } else {
             0f
         }
-
+        val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
         var futureBg = bg - insulinEffect + carbEffect
-        if (futureBg < 39f) {
+        if (!honeymoon && futureBg < 39f) {
             futureBg = 39f
+        }else if(honeymoon && futureBg < 50f){
+            futureBg = 50f
         }
 
         return futureBg
@@ -946,7 +960,6 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             consoleLog = consoleLog,
             consoleError = consoleError
         )
-        val historicalMealTimes = listOf(7, 8, 12, 13, 14, 19, 20, 21)
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
         this.bg = glucose_status.glucose
         val getlastBolusSMB = persistenceLayer.getNewestBolusOfType(BS.Type.SMB)
@@ -967,7 +980,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
 // Ajustement de DinMaxIob selon bg et delta
         if (DinMaxIob > maxIob) {
-            if (bg > 149 && delta > 3) {
+            if (bg > 149 && delta > 3 && !honeymoon) {
                 DinMaxIob = (maxIob + 1).toFloat()
             } else {
                 DinMaxIob = maxIob.toFloat()
@@ -1163,8 +1176,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         var sensitivityRatio: Double
         val high_temptarget_raises_sensitivity = profile.exercise_mode || profile.high_temptarget_raises_sensitivity
-        val normalTarget = 100 // evaluate high/low temptarget against 100, not scheduled target (which might change)
-        // when temptarget is 160 mg/dL, run 50% basal (120 = 75%; 140 = 60%),  80 mg/dL with low_temptarget_lowers_sensitivity would give 1.5x basal, but is limited to autosens_max (1.2x by default)
+        val normalTarget = if (honeymoon) 130 else 100
+
         val halfBasalTarget = profile.half_basal_exercise_target
 
         when {
@@ -1172,9 +1185,11 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 this.targetBg = 130.0f
             }
             !profile.temptargetSet && eventualBG >= 160 && delta > 5 -> {
-                var hyperTarget = max(80.0, profile.target_bg - (bg - profile.target_bg) / 3).toInt()
+                var baseTarget = if (honeymoon) 110.0 else 80.0
+                var hyperTarget = max(baseTarget, profile.target_bg - (bg - profile.target_bg) / 3).toInt()
                 hyperTarget = (hyperTarget * min(circadianSensitivity, 1.0)).toInt()
-                hyperTarget = max(hyperTarget, 80)
+                hyperTarget = max(hyperTarget, baseTarget.toInt())
+
                 this.targetBg = hyperTarget.toFloat()
                 target_bg = hyperTarget.toDouble()
                 val c = (halfBasalTarget - normalTarget).toDouble()
@@ -1185,7 +1200,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 consoleLog.add("Sensitivity ratio set to $sensitivityRatio based on temp target of $target_bg; ")
             }
             !profile.temptargetSet && circadianSmb > 0.1 && eventualBG < 100 -> {
-                val hypoTarget = 120 * max(1.0, circadianSensitivity)
+                val baseHypoTarget = if (honeymoon) 130.0 else 120.0
+                val hypoTarget = baseHypoTarget * max(1.0, circadianSensitivity)
                 this.targetBg = min(hypoTarget.toFloat(), 166.0f)
                 target_bg = targetBg.toDouble()
                 val c = (halfBasalTarget - normalTarget).toDouble()
@@ -1384,25 +1400,43 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             this.basalaimi = when {
                 tirbasalhAP != null && tirbasalhAP >= 5 -> (basalaimi * 2.0).toFloat()
                 lastHourTIRAbove != null && lastHourTIRAbove >= 2 -> (basalaimi * 1.8).toFloat()
-                timenow < sixAMHour -> (basalaimi * 1.4).toFloat()
-                timenow > sixAMHour -> (basalaimi * 1.6).toFloat()
+                // Ajustement en fonction de honeymoon et de l'heure
+                timenow < sixAMHour -> {
+                    val multiplier = if (honeymoon) 1.2 else 1.4
+                    (basalaimi * multiplier).toFloat()
+                }
+                timenow > sixAMHour -> {
+                    val multiplier = if (honeymoon) 1.4 else 1.6
+                    (basalaimi * multiplier).toFloat()
+                }
                 tirbasal3B <= 5 && tirbasal3IR in 70.0..80.0 -> (basalaimi * 1.1).toFloat()
                 tirbasal3B <= 5 && tirbasal3IR <= 70 -> (basalaimi * 1.3).toFloat()
                 tirbasal3B > 5 && tirbasal3A!! < 5 -> (basalaimi * 0.85).toFloat()
-                else -> basalaimi  // Default case to handle any condition not explicitly matched
+                else -> basalaimi  // Cas par défaut pour gérer toute condition non explicitement couverte
             }
         }
 
+        this.basalaimi = if (honeymoon && basalaimi > profile_current_basal * 2) (profile_current_basal.toFloat() * 2) else basalaimi
 
-        this.variableSensitivity = if (bg < 100) {
-            profile.sens.toFloat()
+        this.variableSensitivity = if (honeymoon) {
+            if (bg < 150) {
+                profile.sens.toFloat()
+            } else {
+                max(
+                    profile.sens.toFloat() / 2.5f,
+                    sens.toFloat() * calculateGFactor(delta, lastHourTIRabove120, bg.toFloat()).toFloat()
+                )
+            }
         } else {
-            max(
-                profile.sens.toFloat() / 4.0f,
-                sens.toFloat() * calculateGFactor(delta, lastHourTIRabove120, bg.toFloat()).toFloat()
-            )
+            if (bg < 100) {
+                profile.sens.toFloat()
+            } else {
+                max(
+                    profile.sens.toFloat() / 4.0f,
+                    sens.toFloat() * calculateGFactor(delta, lastHourTIRabove120, bg.toFloat()).toFloat()
+                )
+            }
         }
-
 
         if (recentSteps5Minutes > 100 && recentSteps10Minutes > 200 && bg < 130 && delta < 10 || recentSteps180Minutes > 1500 && bg < 130 && delta < 10) {
             this.variableSensitivity *= 1.5f * calculateGFactor(delta, lastHourTIRabove120, bg.toFloat()).toFloat()
@@ -1410,7 +1444,15 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (recentSteps30Minutes > 500 && recentSteps5Minutes >= 0 && recentSteps5Minutes < 100 && bg < 130 && delta < 10) {
             this.variableSensitivity *= 1.3f * calculateGFactor(delta, lastHourTIRabove120, bg.toFloat()).toFloat()
         }
-        if (variableSensitivity < 2) this.variableSensitivity = profile.sens.toFloat()
+        if (honeymoon) {
+            if (variableSensitivity < 20) {
+                this.variableSensitivity = profile.sens.toFloat()
+            }
+        } else {
+            if (variableSensitivity < 2) {
+                this.variableSensitivity = profile.sens.toFloat()
+            }
+        }
         if (variableSensitivity > (3 * profile.sens.toFloat())) this.variableSensitivity = profile.sens.toFloat() * 3
 
         sens = variableSensitivity.toDouble()
@@ -1515,7 +1557,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         // Appliquer les ajustements en fonction de l'heure de la journée
         smbToGive = when {
-            bg > 160 && delta > 4 && iob < 0.7 && honeymoon && smbToGive == 0.0f && LocalTime.now().run { (hour in 23..23 || hour in 0..6) } -> 0.15f
+            bg > 160 && delta > 4 && iob < 0.7 && honeymoon && smbToGive == 0.0f && LocalTime.now().run { (hour in 23..23 || hour in 0..10) } -> 0.15f
             bg > 120 && delta > 8 && iob < 1.0 && !honeymoon && smbToGive < 0.1f                                                             -> profile_current_basal.toFloat()
             highCarbTime                                                                                                                     -> smbToGive * highcarbfactor.toFloat()
             mealTime                                                                                                                         -> smbToGive * mealfactor.toFloat()
@@ -1527,7 +1569,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             hourOfDay in 1..11                                                                                                         -> smbToGive * adjustedMorningFactor.toFloat()
             hourOfDay in 12..18                                                                                                        -> smbToGive * adjustedAfternoonFactor.toFloat()
             hourOfDay in 19..23                                                                                                        -> smbToGive * adjustedEveningFactor.toFloat()
-            bg > 120 && delta > 7                                                                                                            -> smbToGive * hyperfactor.toFloat()
+            bg > 120 && delta > 7 && !honeymoon                                                                                              -> smbToGive * hyperfactor.toFloat()
+            bg > 180 && delta > 5 && iob < 1.2 && honeymoon                                                                                  -> smbToGive * hyperfactor.toFloat()
             else -> smbToGive
         }
         rT.reason.append("adjustedMorningFactor $adjustedMorningFactor")
@@ -1596,7 +1639,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition(mealData)
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 20 september 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 22 september 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
@@ -1825,7 +1868,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             val (localconditionResult, _) = isCriticalSafetyCondition(mealData)
 
             rate = when {
-                iob < 0.6 && bg in 100.0..120.0 && delta in 0.0..6.0 && !sportTime                                                -> profile_current_basal * 2
+                !honeymoon && iob < 0.6 && bg in 100.0..120.0 && delta in 0.0..6.0 && !sportTime                                  -> profile_current_basal * 2
+                honeymoon && iob < 0.4 && bg in 90.0..100.0 && delta in 0.0..5.0 && !sportTime                                    -> profile_current_basal
+                iob < 0.8 && bg in 120.0..130.0 && delta in 0.0..6.0 && !sportTime                                                -> profile_current_basal * 4
                 bg < 80 && delta < 0                                                                                                          -> 0.0
                 bg < 80 && delta >= 0 && iob > 0.0                                                                                            -> profile_current_basal * 0.5
                 bg > 180 && delta in -6.0..0.0                                                                                          -> profile_current_basal
@@ -1850,10 +1895,13 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 localconditionResult && delta > 1 && bg > 90                                                                                  -> profile_current_basal * delta
                 bg > 100 && !conditionResult && eventualBG > 100 && delta in 0.0 .. 4.0 && !sportTime                                   -> profile_current_basal * delta
                 // New Conditions
-                mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg > 80 && delta >= 0                             -> profile_current_basal * 0.5
-                mealData.slopeFromMaxDeviation in 0.0..0.2 && mealData.slopeFromMinDeviation in 0.0..0.2 && bg in 80.0..100.0 && delta > 0 -> profile_current_basal * 1.5
-                mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg in 80.0..100.0 && delta > 0              -> profile_current_basal * 0.8
-                else -> 0.0
+                honeymoon && mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg > 110 && delta >= 0                          -> profile_current_basal * 0.5
+                honeymoon && mealData.slopeFromMaxDeviation in 0.0..0.2 && mealData.slopeFromMinDeviation in 0.0..0.2 && bg in 120.0..150.0 && delta > 0 -> profile_current_basal * 1.5
+                honeymoon && mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg in 100.0..120.0 && delta > 0                 -> profile_current_basal * 0.8
+                !honeymoon && mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg > 80 && delta >= 0                          -> profile_current_basal * 0.5
+                !honeymoon && mealData.slopeFromMaxDeviation in 0.0..0.2 && mealData.slopeFromMinDeviation in 0.0..0.2 && bg in 80.0..100.0 && delta > 0 -> profile_current_basal * 1.5
+                !honeymoon && mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg in 80.0..100.0 && delta > 0                 -> profile_current_basal * 0.8
+                    else -> 0.0
             }
             rate.let {
                 rT.rate = it

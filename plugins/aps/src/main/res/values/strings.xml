@@ -212,8 +212,8 @@
     <string name="key_DynISFAdjusthyper">key_DynISFAdjusthyper</string>
     <string name="key_DynISF_Adjust">key_DynISF_Adjust</string>
     <string name="oaps_aimi_hyper_factor_summary"><![CDATA[Reactivity factor when bg > 120]]></string>
-    <string name="oaps_aimi_hyper_factor_title"><![CDATA[Reactivity factor BG > 120]]></string>
-    <string name="DynISFAdjusthyper_summary"><![CDATA[Increasing this value will increase the velocity to send smb when bg > 140]]></string>
+    <string name="oaps_aimi_hyper_factor_title"><![CDATA[Reactivity factor BG > 120, for Child BG > 180]]></string>
+    <string name="DynISFAdjusthyper_summary"><![CDATA[Increasing this value will increase the velocity to send smb when bg > 120]]></string>
     <string name="DynISFAdjusthyper_title"><![CDATA[Dynisf Adjustment factor % BG > 120]]></string>
     <string name="key_enable_basal">key_enable_basal</string>
     <string name="prebolus_meal_mode_summary">If you set a note in action page, with the work meal, you will receive one time this value like a pre-bolus.</string>
@@ -279,7 +279,7 @@
     <string name="oaps_aimi_sleep_interval_summary">Interval between SMB for the sleep mode.</string>
     <string name="oaps_aimi_sleep_interval_title">SMB interval Sleep Mode</string>
     <string name="OApsAIMI_Enable_pregnancy">Enable Pregnancy mode</string>
-    <string name="OApsAIMI_Enable_honeymoon">Enable honeymoon mode</string>
+    <string name="OApsAIMI_Enable_honeymoon">Enable child mode for a response better suited to lower insulin needs compared to those of an adult</string>
     <string name="oaps_aimi_HIGHBG_interval_summary">High BG SMB Interval</string>
     <string name="oaps_aimi_HIGHBG_interval_title">High BG SMB Interval</string>
     <string name="openapsaimi_highBG_maxsmb_summary">Max SMB value when bg is greater than 120.</string>
