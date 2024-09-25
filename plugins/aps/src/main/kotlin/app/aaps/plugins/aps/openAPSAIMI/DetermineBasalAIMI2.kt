@@ -721,29 +721,41 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         // Combinez les facteurs pour obtenir un ajustement global
         return deltaFactor * bgFactor * tirFactor
     }
+    private fun interpolateFactor(value: Float, start1: Float, end1: Float, start2: Float, end2: Float): Float {
+        return start2 + (value - start1) * (end2 - start2) / (end1 - start1)
+    }
 
     private fun adjustFactorsBasedOnBgAndHypo(
         morningFactor: Float,
         afternoonFactor: Float,
         eveningFactor: Float
-    ): Triple<Double, Double, Double> {
-        val adjustedDelta = if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
-            delta * 18
-        } else {
-            delta
-        }
+    ): Triple<Float, Float, Float> {
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
         val hypoAdjustment = if (bg < 120 || (iob > 3 * maxSMB)) 0.8f else 1.0f
-        var factorAdjustment = if (bg < 100) 0.2f else 0.3f
-        if (honeymoon) factorAdjustment = if (bg<120) 0.1f else 0.2f
-        val bgAdjustment = 1.0f + (ln(abs(adjustedDelta.toDouble()) + 1) - 1) * factorAdjustment
-        val scalingFactor = 1.0f - (bg - targetBg).toFloat() / (120 - targetBg) * 0.5f
+
+        // Interpolation pour factorAdjustment, avec une intensité plus forte au-dessus de 180
+        var factorAdjustment = when {
+            bg < 180 -> interpolateFactor(bg.toFloat(), 70f, 180f, 0.1f, 0.3f)  // Pour les valeurs entre 70 et 180 mg/dL
+            else -> interpolateFactor(bg.toFloat(), 180f, 250f, 0.3f, 0.5f)      // Intensité plus forte au-dessus de 180 mg/dL
+        }
+        if (honeymoon) factorAdjustment = when {
+            bg < 180 -> interpolateFactor(bg.toFloat(), 70f, 180f, 0.05f, 0.2f)
+            else -> interpolateFactor(bg.toFloat(), 180f, 250f, 0.2f, 0.3f)      // Valeurs plus basses pour la phase de honeymoon
+        }
+
+        // Interpolation pour bgAdjustment
+        val deltaAdjustment = ln(delta + 1).coerceAtLeast(0f) // S'assurer que ln(delta + 1) est positif
+        val bgAdjustment = 1.0f + (deltaAdjustment - 1) * factorAdjustment
+
+        // Interpolation pour scalingFactor
+        val scalingFactor = interpolateFactor(bg.toFloat(), targetBg, 120f, 1.0f, 0.5f)
+
         val maxIncreaseFactor = 1.7f
         val maxDecreaseFactor = 0.7f // Limite la diminution à 30% de la valeur d'origine
 
         val adjustFactor = { factor: Float ->
             val adjustedFactor = factor * bgAdjustment * hypoAdjustment * scalingFactor
-            adjustedFactor.coerceIn((factor * maxDecreaseFactor).toDouble(), (factor * maxIncreaseFactor).toDouble())
+            adjustedFactor.coerceIn((factor * maxDecreaseFactor), (factor * maxIncreaseFactor))
         }
 
         return Triple(
@@ -752,6 +764,33 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             adjustFactor(eveningFactor)
         )
     }
+
+
+    // private fun adjustFactorsBasedOnBgAndHypo(
+    //     morningFactor: Float,
+    //     afternoonFactor: Float,
+    //     eveningFactor: Float
+    // ): Triple<Float, Float, Float> {
+    //     val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
+    //     val hypoAdjustment = if (bg < 120 || (iob > 3 * maxSMB)) 0.8f else 1.0f
+    //     var factorAdjustment = if (bg < 100) 0.2f else 0.3f
+    //     if (honeymoon) factorAdjustment = if (bg<120) 0.1f else 0.2f
+    //     val bgAdjustment = 1.0f + (ln(delta + 1) - 1) * factorAdjustment
+    //     val scalingFactor = 1.0f - (bg - targetBg).toFloat() / (100 - targetBg) * 0.5f
+    //     val maxIncreaseFactor = 1.7f
+    //     val maxDecreaseFactor = 0.7f // Limite la diminution à 30% de la valeur d'origine
+    //
+    //     val adjustFactor = { factor: Float ->
+    //         val adjustedFactor = factor * bgAdjustment * hypoAdjustment * scalingFactor
+    //         adjustedFactor.coerceIn((factor * maxDecreaseFactor), (factor * maxIncreaseFactor))
+    //     }
+    //
+    //     return Triple(
+    //         adjustFactor(morningFactor),
+    //         adjustFactor(afternoonFactor),
+    //         adjustFactor(eveningFactor)
+    //     )
+    // }
     private fun calculateAdjustedDelayFactor(
         bg: Float,
         recentSteps180Minutes: Int,
