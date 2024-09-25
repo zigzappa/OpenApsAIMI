@@ -133,10 +133,19 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     private var highCarbrunTime: Long = 0
     private var snackrunTime: Long = 0
     private var intervalsmb = 5
+    private val MGDL_TO_MMOL = 18.0
 
     private fun Double.toFixed2(): String = DecimalFormat("0.00#").format(round(this, 2))
 
     private fun roundBasal(value: Double): Double = value
+
+    private fun convertGlucoseToCurrentUnit(value: Double): Double {
+        return if (profileFunction.getUnits() == GlucoseUnit.MMOL) {
+            value * MGDL_TO_MMOL
+        } else {
+            value
+        }
+    }
 
     // Rounds value to 'digits' decimal places
     // different for negative numbers fun round(value: Double, digits: Int): Double = BigDecimal(value).setScale(digits, RoundingMode.HALF_EVEN).toDouble()
@@ -255,14 +264,16 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     }
 
     private fun logDataMLToCsv(predictedSMB: Float, smbToGive: Float) {
-
+        val convertedBg = convertGlucoseToCurrentUnit(bg)
+        val convertedelta = convertGlucoseToCurrentUnit(delta.toDouble())
+        val convertedShortAvgDelta = convertGlucoseToCurrentUnit(shortAvgDelta.toDouble())
+        val convertedLongAvgDelta = convertGlucoseToCurrentUnit(longAvgDelta.toDouble())
         val usFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm")
         val dateStr = dateUtil.dateAndTimeString(dateUtil.now()).format(usFormatter)
 
-
         val headerRow = "dateStr, bg, iob, cob, delta, shortAvgDelta, longAvgDelta, tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour, predictedSMB, smbGiven\n"
         val valuesToRecord = "$dateStr," +
-            "$bg,$iob,$cob,$delta,$shortAvgDelta,$longAvgDelta," +
+            "$convertedBg,$iob,$cob,$convertedelta,$convertedShortAvgDelta,$convertedLongAvgDelta," +
             "$tdd7DaysPerHour,$tdd2DaysPerHour,$tddPerHour,$tdd24HrsPerHour," +
             "$predictedSMB,$smbToGive"
 
@@ -277,7 +288,11 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         val usFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm")
         val dateStr = dateUtil.dateAndTimeString(dateUtil.now()).format(usFormatter)
-
+        val convertedBg = convertGlucoseToCurrentUnit(bg)
+        val convertedelta = convertGlucoseToCurrentUnit(delta.toDouble())
+        val convertedTargetBg = convertGlucoseToCurrentUnit(targetBg.toDouble())
+        val convertedShortAvgDelta = convertGlucoseToCurrentUnit(shortAvgDelta.toDouble())
+        val convertedLongAvgDelta = convertGlucoseToCurrentUnit(longAvgDelta.toDouble())
 
         val headerRow = "dateStr,dateLong,hourOfDay,weekend," +
             "bg,targetBg,iob,cob,lastCarbAgeMin,futureCarbs,delta,shortAvgDelta,longAvgDelta," +
@@ -286,7 +301,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             "tags0to60minAgo,tags60to120minAgo,tags120to180minAgo,tags180to240minAgo," +
             "predictedSMB,maxIob,maxSMB,smbGiven\n"
         val valuesToRecord = "$dateStr,$hourOfDay,$weekend," +
-            "$bg,$targetBg,$iob,$cob,$lastCarbAgeMin,$futureCarbs,$delta,$shortAvgDelta,$longAvgDelta," +
+            "$convertedBg,$convertedTargetBg,$iob,$cob,$lastCarbAgeMin,$futureCarbs,$convertedelta,$convertedShortAvgDelta,$convertedLongAvgDelta," +
             "$tdd7DaysPerHour,$tdd2DaysPerHour,$tddPerHour,$tdd24HrsPerHour," +
             "$recentSteps5Minutes,$recentSteps10Minutes,$recentSteps15Minutes,$recentSteps30Minutes,$recentSteps60Minutes,$recentSteps180Minutes," +
             "$tags0to60minAgo,$tags60to120minAgo,$tags120to180minAgo,$tags180to240minAgo," +
@@ -302,7 +317,11 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
     private fun logDataToCsvHB(predictedSMB: Float, smbToGive: Float) {
         val dateStr = dateUtil.dateAndTimeString(dateUtil.now())
-
+        val convertedBg = convertGlucoseToCurrentUnit(bg)
+        val convertedelta = convertGlucoseToCurrentUnit(delta.toDouble())
+        val convertedTargetBg = convertGlucoseToCurrentUnit(targetBg.toDouble())
+        val convertedShortAvgDelta = convertGlucoseToCurrentUnit(shortAvgDelta.toDouble())
+        val convertedLongAvgDelta = convertGlucoseToCurrentUnit(longAvgDelta.toDouble())
         val headerRow = "dateStr,dateLong,hourOfDay,weekend," +
             "bg,targetBg,iob,cob,lastCarbAgeMin,futureCarbs,delta,shortAvgDelta,longAvgDelta," +
             "accelerating_up,deccelerating_up,accelerating_down,deccelerating_down,stable," +
@@ -311,7 +330,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             "tags0to60minAgo,tags60to120minAgo,tags120to180minAgo,tags180to240minAgo," +
             "variableSensitivity,lastbolusage,predictedSMB,maxIob,maxSMB,smbGiven\n"
         val valuesToRecord = "$dateStr,${dateUtil.now()},$hourOfDay,$weekend," +
-            "$bg,$targetBg,$iob,$cob,$lastCarbAgeMin,$futureCarbs,$delta,$shortAvgDelta,$longAvgDelta," +
+            "$convertedBg,$convertedTargetBg,$iob,$cob,$lastCarbAgeMin,$futureCarbs,$convertedelta,$convertedShortAvgDelta,$convertedLongAvgDelta," +
             "$acceleratingUp,$decceleratingUp,$acceleratingDown,$decceleratingDown,$stable," +
             "$tdd7DaysPerHour,$tdd2DaysPerHour,$tddPerHour,$tdd24HrsPerHour," +
             "$recentSteps5Minutes,$recentSteps10Minutes,$recentSteps15Minutes,$recentSteps30Minutes,$recentSteps60Minutes,$recentSteps180Minutes," +
@@ -397,48 +416,52 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     }
     private fun isCriticalSafetyCondition(mealData: MealData): Pair<Boolean, String> {
         val conditionsTrue = mutableListOf<String>()
+        val adjustedDelta = convertGlucoseToCurrentUnit(delta.toDouble())
+        val adjustedshortAvgDelta = convertGlucoseToCurrentUnit(shortAvgDelta.toDouble())
+        val adjustedlongAvgDelta = convertGlucoseToCurrentUnit(longAvgDelta.toDouble())
+        val adjustedBG = convertGlucoseToCurrentUnit(bg)
         val slopedeviation = mealData.slopeFromMaxDeviation <= -1.5 && mealData.slopeFromMinDeviation > 0.3
         if (slopedeviation) conditionsTrue.add("slopedeviation")
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
-        val nosmbHM = iob > 0.7 && honeymoon && delta <= 10.0 && !mealTime && !bfastTime && !lunchTime && !dinnerTime && eventualBG < 130
+        val nosmbHM = iob > 0.7 && honeymoon && adjustedDelta <= 10.0 && !mealTime && !bfastTime && !lunchTime && !dinnerTime && eventualBG < 130
         if (nosmbHM) conditionsTrue.add("nosmbHM")
-        val honeysmb = honeymoon && delta < 0 && bg < 170
+        val honeysmb = honeymoon && adjustedDelta < 0 && adjustedBG < 170
         if (honeysmb) conditionsTrue.add("honeysmb")
-        val negdelta = delta <= 0 && !mealTime && !bfastTime && !lunchTime && !dinnerTime && eventualBG < 140
+        val negdelta = adjustedDelta <= 0 && !mealTime && !bfastTime && !lunchTime && !dinnerTime && eventualBG < 140
         if (negdelta) conditionsTrue.add("negdelta")
-        val nosmb = iob >= 2*maxSMB && bg < 110 && delta < 10 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
+        val nosmb = iob >= 2*maxSMB && adjustedBG < 110 && adjustedDelta < 10 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
         if (nosmb) conditionsTrue.add("nosmb")
         val fasting = fastingTime
         if (fasting) conditionsTrue.add("fasting")
-        val belowMinThreshold = bg < 100 && delta < 10 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
+        val belowMinThreshold = adjustedBG < 100 && adjustedDelta < 10 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
         if (belowMinThreshold) conditionsTrue.add("belowMinThreshold")
-        val isNewCalibration = iscalibration && delta > 8
+        val isNewCalibration = iscalibration && adjustedDelta > 8
         if (isNewCalibration) conditionsTrue.add("isNewCalibration")
-        val belowTargetAndDropping = bg < targetBg && delta < -2 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
+        val belowTargetAndDropping = adjustedBG < targetBg && adjustedDelta < -2 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
         if (belowTargetAndDropping) conditionsTrue.add("belowTargetAndDropping")
-        val belowTargetAndStableButNoCob = bg < targetBg - 15 && shortAvgDelta <= 2 && cob <= 10 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
+        val belowTargetAndStableButNoCob = adjustedBG < targetBg - 15 && adjustedshortAvgDelta <= 2 && cob <= 10 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
         if (belowTargetAndStableButNoCob) conditionsTrue.add("belowTargetAndStableButNoCob")
-        val droppingFast = bg < 150 && delta < -2
+        val droppingFast = adjustedBG < 150 && adjustedDelta < -2
         if (droppingFast) conditionsTrue.add("droppingFast")
-        val droppingFastAtHigh = bg < 220 && delta <= -7
+        val droppingFastAtHigh = adjustedBG < 220 && adjustedDelta <= -7
         if (droppingFastAtHigh) conditionsTrue.add("droppingFastAtHigh")
-        val droppingVeryFast = delta < -11
+        val droppingVeryFast = adjustedDelta < -11
         if (droppingVeryFast) conditionsTrue.add("droppingVeryFast")
-        val prediction = eventualBG < targetBg && bg < 135
+        val prediction = eventualBG < targetBg && adjustedBG < 135
         if (prediction) conditionsTrue.add("prediction")
-        val interval = eventualBG < targetBg && delta > 10 && iob >= maxSMB/2 && lastsmbtime < 10
+        val interval = eventualBG < targetBg && adjustedDelta > 10 && iob >= maxSMB/2 && lastsmbtime < 10
         if (interval) conditionsTrue.add("interval")
-        val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 12
+        val targetinterval = targetBg >= 120 && adjustedDelta > 0 && iob >= maxSMB/2 && lastsmbtime < 12
         if (targetinterval) conditionsTrue.add("targetinterval")
-        val stablebg = delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 120 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
+        val stablebg = adjustedDelta >-3 && adjustedDelta<3 && adjustedshortAvgDelta >-3 && adjustedshortAvgDelta <3 && adjustedlongAvgDelta>-3 && adjustedlongAvgDelta<3 && bg < 120 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
         if (stablebg) conditionsTrue.add("stablebg")
-        val acceleratingDown = delta < -2 && delta - longAvgDelta < -2 && lastsmbtime < 15
+        val acceleratingDown = adjustedDelta < -2 && adjustedDelta - adjustedlongAvgDelta < -2 && lastsmbtime < 15
         if (acceleratingDown) conditionsTrue.add("acceleratingDown")
-        val decceleratingdown = delta < 0 && (delta > shortAvgDelta || delta > longAvgDelta) && lastsmbtime < 15
+        val decceleratingdown = adjustedDelta < 0 && (adjustedDelta > adjustedshortAvgDelta || adjustedDelta > adjustedlongAvgDelta) && lastsmbtime < 15
         if (decceleratingdown) conditionsTrue.add("decceleratingdown")
-        val nosmbhoneymoon = honeymoon && iob > maxIob / 2 && delta < 0
+        val nosmbhoneymoon = honeymoon && iob > maxIob / 2 && adjustedDelta < 0
         if (nosmbhoneymoon) conditionsTrue.add("nosmbhoneymoon")
-        val bg90 = bg < 90
+        val bg90 = adjustedBG < 90
         if (bg90) conditionsTrue.add("bg90")
         val result = belowTargetAndDropping || belowTargetAndStableButNoCob || nosmbHM || slopedeviation || honeysmb ||
             droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval || bg90 || negdelta ||
@@ -772,6 +795,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         averageBeatsPerMinute10: Float,
         insulinDivisor: Float
     ): Float {
+        val adjustedBg = convertGlucoseToCurrentUnit(bg.toDouble())
         // Calculer l'effet initial de l'insuline
         var insulinEffect = iob * variableSensitivity / insulinDivisor
 
@@ -792,7 +816,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         // Appliquer le facteur de retard ajusté à l'effet de l'insuline
         insulinEffect *= adjustedDelayFactor
-        if (bg > normalBgThreshold) {
+        if (adjustedBg > normalBgThreshold) {
             insulinEffect *= 1.2f
         }
 
@@ -814,6 +838,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         recentSteps5min: Int,
         recentSteps10min: Int
     ): Int {
+
         // Calcul de l'impact de l'insuline
         val insulinEffect = calculateInsulinEffect(
             bg, iob, variableSensitivity, cob, normalBgThreshold, recentSteps180Min,
@@ -857,10 +882,11 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             dinnerTime -> Triple(2.5f, 1.0f, 70f) // Repas normal
             else -> Triple(2.5f, 1.0f, 70f) // Valeur par défaut si aucun type de repas spécifié
         }
+        val adjustedBg = convertGlucoseToCurrentUnit(bg.toDouble())
         val absorptionTimeInMinutes = averageCarbAbsorptionTime * 60
 
         val insulinEffect = calculateInsulinEffect(
-            bg, iob, variableSensitivity, cob, normalBgThreshold, recentSteps180Minutes,
+            adjustedBg.toFloat(), iob, variableSensitivity, cob, normalBgThreshold, recentSteps180Minutes,
             averageBeatsPerMinute.toFloat(), averageBeatsPerMinute10.toFloat(),profile.insulinDivisor.toFloat()
         )
 
@@ -870,7 +896,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             0f
         }
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
-        var futureBg = bg - insulinEffect + carbEffect
+        var futureBg = adjustedBg.toFloat() - insulinEffect + carbEffect
         if (!honeymoon && futureBg < 39f) {
             futureBg = 39f
         }else if(honeymoon && futureBg < 50f){
@@ -973,11 +999,12 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         return adjustedBasalRate
     }
     private fun determineNoteBasedOnBg(bg: Double): String {
+        val adjustedBg = convertGlucoseToCurrentUnit(bg)
         return when {
-            bg > 170 -> "more aggressive"
-            bg in 90.0..100.0 -> "less aggressive"
-            bg in 80.0..89.9 -> "too aggressive" // Vous pouvez ajuster ces valeurs selon votre logique
-            bg < 80 -> "low treatment"
+            adjustedBg > 170 -> "more aggressive"
+            adjustedBg in 90.0..100.0 -> "less aggressive"
+            adjustedBg in 80.0..89.9 -> "too aggressive" // Vous pouvez ajuster ces valeurs selon votre logique
+            adjustedBg < 80 -> "low treatment"
             else -> "normal" // Vous pouvez définir un autre message par défaut pour les cas non couverts
         }
     }
@@ -1034,7 +1061,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             consoleError = consoleError
         )
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
-        this.bg = glucose_status.glucose
+        this.bg = when (profileFunction.getUnits()) {
+            GlucoseUnit.MMOL -> glucose_status.glucose * 18
+            else             -> glucose_status.glucose
+        }
         val getlastBolusSMB = persistenceLayer.getNewestBolusOfType(BS.Type.SMB)
         val lastBolusSMBTime = getlastBolusSMB?.timestamp ?: 0L
         val lastBolusSMBMinutes = lastBolusSMBTime / 60000
@@ -1106,8 +1136,15 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             GlucoseUnit.MMOL -> glucose_status.delta.toFloat() * 18
             else -> glucose_status.delta.toFloat()
         }
-        this.shortAvgDelta = glucose_status.shortAvgDelta.toFloat()
-        this.longAvgDelta = glucose_status.longAvgDelta.toFloat()
+        this.shortAvgDelta = when (profileFunction.getUnits()) {
+            GlucoseUnit.MMOL -> glucose_status.shortAvgDelta.toFloat() * 18
+            else -> glucose_status.delta.toFloat()
+        }
+        this.longAvgDelta = when (profileFunction.getUnits()) {
+            GlucoseUnit.MMOL -> glucose_status.longAvgDelta.toFloat() * 18
+            else -> glucose_status.delta.toFloat()
+        }
+
         val therapy = Therapy(persistenceLayer).also {
             it.updateStatesBasedOnTherapyEvents()
         }
