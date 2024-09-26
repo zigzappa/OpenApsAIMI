@@ -743,12 +743,15 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             else -> interpolateFactor(bg.toFloat(), 180f, 250f, 0.2f, 0.3f)      // Valeurs plus basses pour la phase de honeymoon
         }
 
+        // Vérification de delta pour éviter les NaN
+        val safeDelta = if (delta <= 0) 0.0001f else delta  // Empêche delta d'être 0 ou négatif
+
         // Interpolation pour bgAdjustment
-        val deltaAdjustment = ln(delta + 1).coerceAtLeast(0f) // S'assurer que ln(delta + 1) est positif
+        val deltaAdjustment = ln(safeDelta + 1).coerceAtLeast(0f) // S'assurer que ln(safeDelta + 1) est positif
         val bgAdjustment = 1.0f + (deltaAdjustment - 1) * factorAdjustment
 
         // Interpolation pour scalingFactor
-        val scalingFactor = interpolateFactor(bg.toFloat(), targetBg, 120f, 1.0f, 0.5f)
+        val scalingFactor = interpolateFactor(bg.toFloat(), targetBg, 120f, 1.0f, 0.5f).coerceAtLeast(0.1f) // Empêche le scalingFactor d'être trop faible
 
         val maxIncreaseFactor = 1.7f
         val maxDecreaseFactor = 0.7f // Limite la diminution à 30% de la valeur d'origine
@@ -758,12 +761,14 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             adjustedFactor.coerceIn((factor * maxDecreaseFactor), (factor * maxIncreaseFactor))
         }
 
+        // Retourne les valeurs en s'assurant qu'elles ne sont pas NaN
         return Triple(
-            adjustFactor(morningFactor),
-            adjustFactor(afternoonFactor),
-            adjustFactor(eveningFactor)
+            adjustFactor(morningFactor).takeIf { !it.isNaN() } ?: morningFactor,
+            adjustFactor(afternoonFactor).takeIf { !it.isNaN() } ?: afternoonFactor,
+            adjustFactor(eveningFactor).takeIf { !it.isNaN() } ?: eveningFactor
         )
     }
+
 
 
     // private fun adjustFactorsBasedOnBgAndHypo(
@@ -1788,7 +1793,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition(mealData)
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 25 september 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 26 september 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
