@@ -1793,7 +1793,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition(mealData)
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 26 september 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 27 september 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
@@ -1806,7 +1806,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             appendLine("lowcarb: {lowCarbTime}")
             appendLine("highcarb: {highCarbTime}")
             appendLine("meal: {mealTime}")
-            appendLine("lunch: {bfastTime}")
+            appendLine("Breakfast: {bfastTime}")
             appendLine("lunch: {lunchTime}")
             appendLine("dinner: {dinnerTime}")
             appendLine("fastingtime: {fastingTime}")
