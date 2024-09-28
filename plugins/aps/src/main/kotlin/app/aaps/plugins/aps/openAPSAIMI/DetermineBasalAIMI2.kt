@@ -1105,10 +1105,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             consoleError = consoleError
         )
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
-        this.bg = when (profileFunction.getUnits()) {
-            GlucoseUnit.MMOL -> glucose_status.glucose * 18
-            else             -> glucose_status.glucose
-        }
+        this.bg = glucose_status.glucose
         val getlastBolusSMB = persistenceLayer.getNewestBolusOfType(BS.Type.SMB)
         val lastBolusSMBTime = getlastBolusSMB?.timestamp ?: 0L
         val lastBolusSMBMinutes = lastBolusSMBTime / 60000
@@ -1176,19 +1173,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         this.tags60to120minAgo = parseNotes(60, 120)
         this.tags120to180minAgo = parseNotes(120, 180)
         this.tags180to240minAgo = parseNotes(180, 240)
-        this.delta = when (profileFunction.getUnits()) {
-            GlucoseUnit.MMOL -> glucose_status.delta.toFloat() * 18
-            else -> glucose_status.delta.toFloat()
-        }
-        this.shortAvgDelta = when (profileFunction.getUnits()) {
-            GlucoseUnit.MMOL -> glucose_status.shortAvgDelta.toFloat() * 18
-            else -> glucose_status.delta.toFloat()
-        }
-        this.longAvgDelta = when (profileFunction.getUnits()) {
-            GlucoseUnit.MMOL -> glucose_status.longAvgDelta.toFloat() * 18
-            else -> glucose_status.delta.toFloat()
-        }
-
+        this.delta = glucose_status.delta.toFloat()
+        this.shortAvgDelta = glucose_status.delta.toFloat()
+        this.longAvgDelta = glucose_status.delta.toFloat()
         val therapy = Therapy(persistenceLayer).also {
             it.updateStatesBasedOnTherapyEvents()
         }
@@ -1793,7 +1780,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition(mealData)
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 27 september 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 28 september 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
