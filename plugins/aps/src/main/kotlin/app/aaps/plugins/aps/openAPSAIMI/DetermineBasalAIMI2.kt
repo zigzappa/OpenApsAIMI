@@ -809,7 +809,72 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             baseFactor.toFloat()
         }
     }
+    fun calculateMinutesAboveThreshold(
+        bg: Double,           // Glycémie actuelle (mg/dL)
+        slope: Double,        // Pente de la glycémie (mg/dL par minute)
+        thresholdBG: Double   // Seuil de glycémie (mg/dL)
+    ): Int {
+        val bgDifference = bg - thresholdBG
 
+        // Vérifier si la glycémie est en baisse
+        if (slope >= 0) {
+            // La glycémie est stable ou en hausse, retournez une valeur élevée
+            return Int.MAX_VALUE // ou un grand nombre, par exemple 999
+        }
+
+        // Estimer le temps jusqu'au seuil
+        val minutesAboveThreshold = bgDifference / -slope
+
+        // Vérifier que le temps est positif et raisonnable
+        return if (minutesAboveThreshold.isFinite() && minutesAboveThreshold > 0) {
+            minutesAboveThreshold.roundToInt()
+        } else {
+            // Retourner une valeur maximale par défaut si le calcul n'est pas valide
+            Int.MAX_VALUE
+        }
+    }
+
+
+    fun estimateRequiredCarbs(
+        bg: Double, // Glycémie actuelle
+        targetBG: Double, // Objectif de glycémie
+        slope: Double, // Vitesse de variation de la glycémie (mg/dL par minute)
+        iob: Double, // Insulin On Board - quantité d'insuline encore active
+        csf: Double, // Facteur de sensibilité aux glucides (mg/dL par gramme de glucides)
+        isf: Double, // Facteur de sensibilité à l'insuline (mg/dL par unité d'insuline)
+        cob: Double // Carbs On Board - glucides en cours d'absorption
+    ): Int {
+        // 1. Calculer la projection de la glycémie future basée sur la pente actuelle et le temps (30 minutes)
+        val timeAhead = 20.0 // Projection sur 30 minutes
+        val projectedDrop = slope * timeAhead // Estimation de la chute future de la glycémie
+
+        // 2. Estimer l'effet de l'insuline active restante (IOB) sur la glycémie
+        val insulinEffect = iob * isf // L'effet de l'insuline résiduelle
+
+        // 3. Effet total estimé : baisse de la glycémie + effet de l'insuline
+        val totalPredictedDrop = projectedDrop + insulinEffect
+
+        // 4. Calculer la glycémie future estimée sans intervention
+        val futureBG = bg - totalPredictedDrop
+
+        // 5. Si la glycémie projetée est inférieure à la cible, estimer les glucides nécessaires
+        if (futureBG < targetBG) {
+            val bgDifference = targetBG - futureBG
+
+            // 6. Si des glucides sont en cours d'absorption (COB), les prendre en compte
+            val netCarbImpact = max(0.0, bgDifference - (cob * csf)) // Ajuster avec COB
+
+            // 7. Calculer les glucides nécessaires pour combler la différence de glycémie
+            val carbsReq = round(netCarbImpact / csf).toInt()
+
+            // Debug info
+            consoleError.add("Future BG: $futureBG, Projected Drop: $projectedDrop, Insulin Effect: $insulinEffect, COB Impact: ${cob * csf}, Carbs Required: $carbsReq")
+
+            return carbsReq
+        }
+
+        return 0 // Aucun glucide nécessaire si la glycémie future est au-dessus de la cible
+    }
 
     private fun calculateInsulinEffect(
         bg: Float,
@@ -1884,7 +1949,15 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         //fin predictions
         ////////////////////////////////////////////
-
+        //estimation des glucides nécessaires si risque hypo
+        val thresholdBG: Double = 70.0
+        val carbsRequired = estimateRequiredCarbs(bg, targetBg.toDouble(), slopeFromDeviations, iob.toDouble(), csf,sens, cob.toDouble())
+        val minutesAboveThreshold = calculateMinutesAboveThreshold(bg, slopeFromDeviations, thresholdBG)
+        if (carbsRequired >= profile.carbsReqThreshold && minutesAboveThreshold <= 45) {
+            rT.carbsReq = carbsRequired
+            rT.carbsReqWithin = minutesAboveThreshold
+            rT.reason.append("$carbsRequired add\'l carbs req w/in ${minutesAboveThreshold}m; ")
+        }
         var rate = when {
             snackTime && snackrunTime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 4.0, "AI Force basal because snackTime $snackrunTime.", currenttemp, rT)
             mealTime && mealruntime in 0..30 && delta < 15 -> calculateRate(basal, profile_current_basal, 10.0, "AI Force basal because mealTime $mealruntime.", currenttemp, rT)
@@ -1923,7 +1996,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition(mealData)
         val logTemplate = buildString {
             appendLine("The ai model predicted SMB of {predictedSMB}u and after safety requirements and rounding to .05, requested {smbToGive}u to the pump")
-            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 30 september 2024")
+            appendLine("Version du plugin OpenApsAIMI-V3-DBA2, 01 october 2024")
             appendLine("adjustedFactors: {adjustedFactors}")
             appendLine()
             appendLine("modelcal: {modelcal}")
