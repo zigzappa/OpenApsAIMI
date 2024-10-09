@@ -2373,7 +2373,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         // }
         //
         // rT.reason.append(logTemplate)
-        val columnWidth = 8 // Largeur ajustée pour un écran étroit
+        val columnWidth = 12 // Largeur ajustée pour un écran étroit
 
         val logTemplate = buildString {
             appendLine("╔════════════════════════════════════╗")
@@ -2392,8 +2392,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             appendLine("╔════════════════════════════════════╗")
             appendLine("║           SMB Prediction           ║")
             appendLine("╠════════════════════════════════════╣")
-            appendLine(String.format("║ %-${columnWidth}s │ %s u", "AI Prediction", String.format("%.2f", predictedSMB)))
-            appendLine(String.format("║ %-${columnWidth}s │ %s u", "Requested SMB", String.format("%.2f", smbToGive)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s u", "AI Pred.", String.format("%.2f", predictedSMB)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s u", "Req. SMB", String.format("%.2f", smbToGive)))
             appendLine("╚════════════════════════════════════╝")
             appendLine()
 
@@ -2405,12 +2405,12 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             appendLine()
 
             appendLine("╔════════════════════════════════════╗")
-            appendLine("║       Limits and Conditions        ║")
+            appendLine("║       Limits & Conditions          ║")
             appendLine("╠════════════════════════════════════╣")
             appendLine(String.format("║ %-${columnWidth}s │ %s u", "Max IOB", String.format("%.1f", maxIob)))
             appendLine(String.format("║ %-${columnWidth}s │ %s u", "Max SMB", String.format("%.1f", maxSMB)))
-            appendLine(String.format("║ %-${columnWidth}s │ %s", "Safety Condition", conditionResult))
-            appendLine(String.format("║ %-${columnWidth}s │ %s", "Conditions Met", conditionsTrue))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Safety", conditionResult))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Met", conditionsTrue))
             appendLine("╚════════════════════════════════════╝")
             appendLine()
 
@@ -2422,28 +2422,26 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             appendLine(String.format("║ %-${columnWidth}s │ %s mg/dL", "Prediction", String.format("%.1f", predictedBg)))
             appendLine(String.format("║ %-${columnWidth}s │ %s mg/dL", "Eventual BG", String.format("%.1f", eventualBG)))
             appendLine(String.format("║ %-${columnWidth}s │ %s", "Delta", String.format("%.1f", delta)))
-            appendLine(String.format("║ %-${columnWidth}s │ %s", "Short Avg Delta", String.format("%.1f", shortAvgDelta)))
-            appendLine(String.format("║ %-${columnWidth}s │ %s", "Long Avg Delta", String.format("%.1f", longAvgDelta)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Short Δ", String.format("%.1f", shortAvgDelta)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Long Δ", String.format("%.1f", longAvgDelta)))
             appendLine("╚════════════════════════════════════╝")
             appendLine()
 
             appendLine("╔════════════════════════════════════╗")
             appendLine("║          Step Data                 ║")
             appendLine("╠════════════════════════════════════╣")
-            appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (5 min)", recentSteps5Minutes))
-            appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (10 min)", recentSteps10Minutes))
-            appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (15 min)", recentSteps15Minutes))
-            appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (30 min)", recentSteps30Minutes))
-            appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (60 min)", recentSteps60Minutes))
-            appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (180 min)", recentSteps180Minutes))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (5m)", recentSteps5Minutes))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (30m)", recentSteps30Minutes))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (60m)", recentSteps60Minutes))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (180m)", recentSteps180Minutes))
             appendLine("╚════════════════════════════════════╝")
             appendLine()
 
             appendLine("╔════════════════════════════════════╗")
             appendLine("║        Heart Rate Data             ║")
             appendLine("╠════════════════════════════════════╣")
-            appendLine(String.format("║ %-${columnWidth}s │ %s bpm", "Heart Rate (5 min)", String.format("%.1f", averageBeatsPerMinute)))
-            appendLine(String.format("║ %-${columnWidth}s │ %s bpm", "Heart Rate (60 min)", String.format("%.1f", averageBeatsPerMinute60)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s bpm", "HR (5m)", String.format("%.1f", averageBeatsPerMinute)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s bpm", "HR (60m)", String.format("%.1f", averageBeatsPerMinute60)))
             appendLine("╚════════════════════════════════════╝")
             appendLine()
 
@@ -2451,12 +2449,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             appendLine("║            Miscellaneous           ║")
             appendLine("╠════════════════════════════════════╣")
             appendLine(String.format("║ %-${columnWidth}s │ %s min", "Last SMB", lastsmbtime))
-            appendLine(String.format("║ %-${columnWidth}s │ %s", "Current Hour", hourOfDay))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Hour", hourOfDay))
             appendLine(String.format("║ %-${columnWidth}s │ %s", "Weekend", weekend))
-            appendLine(String.format("║ %-${columnWidth}s │ %s", "tags0to60minAgo", tags0to60minAgo))
-            appendLine(String.format("║ %-${columnWidth}s │ %s", "tags60to120minAgo", tags60to120minAgo))
-            appendLine(String.format("║ %-${columnWidth}s │ %s", "tags120to180minAgo", tags120to180minAgo))
-            appendLine(String.format("║ %-${columnWidth}s │ %s", "tags180to240minAgo", tags180to240minAgo))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "tags0-60m", tags0to60minAgo))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "tags60-120m", tags60to120minAgo))
             appendLine("╚════════════════════════════════════╝")
         }
 
