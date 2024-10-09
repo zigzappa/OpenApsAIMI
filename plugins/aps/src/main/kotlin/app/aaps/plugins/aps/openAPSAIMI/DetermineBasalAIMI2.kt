@@ -625,7 +625,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 }
 
                 if (inputs.isEmpty() || targets.isEmpty()) {
-                    return (predictedSMB: Float)
+                    return (predictedSMB)
                 }
                 val epochsPerIteration = 10000
                 val totalEpochs = 30000.0
@@ -1159,7 +1159,6 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val diff = abs(now - lastBolusSMBTime)
         this.lastsmbtime = (diff / (60 * 1000)).toInt()
         this.maxIob = preferences.get(DoubleKey.ApsSmbMaxIob)
-
 // Tarciso Dynamic Max IOB
         var DinMaxIob = ((bg / 100.0) * (bg / 55.0) + (delta / 2.0)).toFloat()
 
@@ -1740,7 +1739,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 morningfactor.toFloat(), afternoonfactor.toFloat(), eveningfactor.toFloat()
             )
 
-        val (adjustedMorningFactor.toFloat(), adjustedAfternoonFactor.toFloat(), adjustedEveningFactor.toFloat()) = adjustedFactors
+        val (adjustedMorningFactor, adjustedAfternoonFactor, adjustedEveningFactor) = adjustedFactors
 
         // Appliquer les ajustements en fonction de l'heure de la journée
         smbToGive = when {
@@ -1993,183 +1992,475 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             }, Target: ${convertBG(target_bg)}}"
         )
 
-        val (conditionResult, conditionsTrue) = isCriticalSafetyCondition(mealData)
+         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition(mealData)
+        // val logTemplate = buildString {
+        //     appendLine("AIMI predictedSMB {predictedSMB}u, requested {smbToGive}u to the pump")
+        //     appendLine("OpenApsAIMI-V3-DBA2, 09Oct24")
+        //     appendLine("adjFactors: {adjustedFactors}")
+        //     appendLine()
+        //     appendLine()
+        //     appendLine()
+        //     appendLine("Max IOB: {maxIob}")
+        //     appendLine("Max SMB: {maxSMB}")
+        //     appendLine("sleep: {sleepTime}")
+        //     appendLine("sport: {sportTime}")
+        //     appendLine("snack: {snackTime}")
+        //     appendLine("lowcarb: {lowCarbTime}")
+        //     appendLine("highcarb: {highCarbTime}")
+        //     appendLine("meal: {mealTime}")
+        //     appendLine("Breakfast: {bfastTime}")
+        //     appendLine("lunch: {lunchTime}")
+        //     appendLine("dinner: {dinnerTime}")
+        //     appendLine("fastingtime: {fastingTime}")
+        //     appendLine("intervalsmb: {intervalsmb}")
+        //     appendLine("mealruntime: {mealruntime}")
+        //     appendLine("bfastruntime: {bfastruntime}")
+        //     appendLine("lunchruntime: {lunchruntime}")
+        //     appendLine("dinnerruntime: {dinnerruntime}")
+        //     appendLine("snackrunTime: {snackrunTime}")
+        //     appendLine("highCarbrunTime: {highCarbrunTime}")
+        //     appendLine()
+        //     appendLine("insulinEffect: {(insulinEffect, 0.00f)}")
+        //     appendLine("circadianSmb: {(circadianSmb, 0.00f)}")
+        //     appendLine("circadianSensitivity: {circadianSensitivity}")
+        //     appendLine("bg: {bg}")
+        //     appendLine("targetBG: {targetBg}")
+        //     appendLine("futureBg: {(predictedBg, 0.0f)}")
+        //     appendLine("eventuelBG: {eventualBG}")
+        //     appendLine()
+        //     appendLine("delta: {delta}")
+        //     appendLine("short avg delta: {shortAvgDelta}")
+        //     appendLine("long avg delta: {longAvgDelta}")
+        //     appendLine()
+        //     appendLine("accelerating_up: {acceleratingUp}")
+        //     appendLine("deccelerating_up: {decceleratingUp}")
+        //     appendLine("accelerating_down: {acceleratingDown}")
+        //     appendLine("deccelerating_down: {decceleratingDown}")
+        //     appendLine("stable: {stable}")
+        //     appendLine()
+        //     appendLine("IOB: {iob}")
+        //     appendLine("tdd 7d/h: {tdd7DaysPerHour}")
+        //     appendLine("tdd 2d/h: {tdd2DaysPerHour}")
+        //     appendLine("tdd daily/h: {tddPerHour}")
+        //     appendLine("tdd 24h/h: {tdd24HrsPerHour}")
+        //     appendLine()
+        //     appendLine("enablebasal: {enablebasal}")
+        //     appendLine("basalaimi: {(basalaimi, 0.0f)}")
+        //     appendLine()
+        //     appendLine("ISF: {variableSensitivity}")
+        //     appendLine()
+        //     appendLine("Hour of day: {hourOfDay}")
+        //     appendLine("Weekend: {weekend}")
+        //     appendLine("Steps 5min: {recentSteps5Minutes}")
+        //     appendLine("Steps 10min: {recentSteps10Minutes}")
+        //     appendLine("Steps 15min: {recentSteps15Minutes}")
+        //     appendLine("Steps 30min: {recentSteps30Minutes}")
+        //     appendLine("Steps 60min: {recentSteps60Minutes}")
+        //     appendLine("Steps 180min: {recentSteps180Minutes}")
+        //     appendLine()
+        //     appendLine("Heart Beat 5min: {averageBeatsPerMinute}")
+        //     appendLine("Heart Beat 10min: {averageBeatsPerMinute10}")
+        //     appendLine("Heart Beat 60min: {averageBeatsPerMinute60}")
+        //     appendLine("Heart Beat 180min: {averageBeatsPerMinute180}")
+        //     appendLine()
+        //     appendLine("COB: {cob}g Future: {futureCarbs}g")
+        //     appendLine("COB Age Min: {lastCarbAgeMin}")
+        //     appendLine()
+        //     appendLine("tags0to60minAgo: {tags0to60minAgo}")
+        //     appendLine("tags60to120minAgo: {tags60to120minAgo}")
+        //     appendLine("tags180to240minAgo: {tags180to240minAgo}")
+        //     appendLine()
+        //     appendLine("currentTIRLow: {(currentTIRLow, 0.0f)}")
+        //     appendLine("currentTIR: {(currentTIRRange, 0.0f)}")
+        //     appendLine("currentTIRAbove: {(currentTIRAbove, 0.0f)}")
+        //     appendLine("lastHourTIRLow: {(lastHourTIRLow, 0.0f)}")
+        //     appendLine("lastHourTIRLow100: {(lastHourTIRLow100, 0.0f}")
+        //     appendLine("lastHourTIRabove120: {(lastHourTIRabove120, 0.0f)}")
+        //     appendLine("lastHourTIRabove170: {(lastHourTIRabove170, 0.0f)}")
+        //     appendLine("isCriticalSafetyCondition: {conditionResult}, True Conditions: {conditionsTrue}")
+        //     appendLine()
+        //     appendLine("lastBolusSMBMinutes: {lastBolusSMBMinutes}")
+        //     appendLine()
+        //     appendLine("lastsmbtime: {lastsmbtime}")
+        //     appendLine()
+        //     appendLine("lastCarbAgeMin: {lastCarbAgeMin}")
+        // }
+        //
+        // val valueMap = mapOf(
+        //         "modelcal" to modelcal,
+        //         "predictedSMB" to predictedSMB,
+        //         "smbToGive" to smbToGive,
+        //         "adjustedFactors" to adjustedFactors,
+        //         "maxIob" to maxIob,
+        //         "maxSMB" to maxSMB,
+        //         "sleepTime" to sleepTime,
+        //         "sportTime" to sportTime,
+        //         "snackTime" to snackTime,
+        //         "lowCarbTime" to lowCarbTime,
+        //         "highCarbTime" to highCarbTime,
+        //         "mealTime" to mealTime,
+        //         "bfastTime" to bfastTime,
+        //         "lunchTime" to lunchTime,
+        //         "dinnerTime" to dinnerTime,
+        //         "fastingTime" to fastingTime,
+        //         "intervalsmb" to intervalsmb,
+        //         "mealruntime" to mealruntime,
+        //         "bfastruntime" to bfastruntime,
+        //         "lunchruntime" to lunchruntime,
+        //         "dinnerruntime" to dinnerruntime,
+        //         "snackrunTime" to snackrunTime,
+        //         "highCarbrunTime" to highCarbrunTime,
+        //         "insulinEffect" to insulinEffect,
+        //         "circadianSmb" to circadianSmb,
+        //         "circadianSensitivity" to circadianSensitivity,
+        //         "bg" to bg,
+        //         "targetBg" to targetBg,
+        //         "predictedBg" to predictedBg,
+        //         "eventualBG" to eventualBG,
+        //         "delta" to delta,
+        //         "shortAvgDelta" to shortAvgDelta,
+        //         "longAvgDelta" to longAvgDelta,
+        //         "acceleratingUp" to acceleratingUp,
+        //         "decceleratingUp" to decceleratingUp,
+        //         "acceleratingDown" to acceleratingDown,
+        //         "decceleratingDown" to decceleratingDown,
+        //         "stable" to stable,
+        //         "iob" to iob,
+        //         "tdd7DaysPerHour" to roundToPoint05(tdd7DaysPerHour),
+        //         "tdd2DaysPerHour" to roundToPoint05(tdd2DaysPerHour),
+        //         "tddPerHour" to roundToPoint05(tddPerHour),
+        //         "tdd24HrsPerHour" to roundToPoint05(tdd24HrsPerHour),
+        //         "enablebasal" to enablebasal,
+        //         "basalaimi" to basalaimi,
+        //         "variableSensitivity" to variableSensitivity,
+        //         "hourOfDay" to hourOfDay,
+        //         "weekend" to weekend,
+        //         "recentSteps5Minutes" to recentSteps5Minutes,
+        //         "recentSteps10Minutes" to recentSteps10Minutes,
+        //         "recentSteps15Minutes" to recentSteps15Minutes,
+        //         "recentSteps30Minutes" to recentSteps30Minutes,
+        //         "recentSteps60Minutes" to recentSteps60Minutes,
+        //         "recentSteps180Minutes" to recentSteps180Minutes,
+        //         "averageBeatsPerMinute" to averageBeatsPerMinute,
+        //         "averageBeatsPerMinute10" to averageBeatsPerMinute10,
+        //         "averageBeatsPerMinute60" to averageBeatsPerMinute60,
+        //         "averageBeatsPerMinute180" to averageBeatsPerMinute180,
+        //         "cob" to cob,
+        //         "futureCarbs" to futureCarbs,
+        //         "lastCarbAgeMin" to lastCarbAgeMin,
+        //         "tags0to60minAgo" to tags0to60minAgo,
+        //         "tags60to120minAgo" to tags60to120minAgo,
+        //         "tags120to180minAgo" to tags120to180minAgo,
+        //         "tags180to240minAgo" to tags180to240minAgo,
+        //         "currentTIRLow" to currentTIRLow,
+        //         "currentTIRRange" to currentTIRRange,
+        //         "currentTIRAbove" to currentTIRAbove,
+        //         "lastHourTIRLow" to lastHourTIRLow,
+        //         "lastHourTIRLow100" to lastHourTIRLow100,
+        //         "lastHourTIRabove120" to lastHourTIRabove120,
+        //         "lastHourTIRabove170" to lastHourTIRabove170,
+        //         "conditionResult" to conditionResult,
+        //         "conditionsTrue" to conditionsTrue,
+        //         "lastBolusSMBMinutes" to lastBolusSMBMinutes,
+        //         "lastsmbtime" to lastsmbtime,
+        //         "lastCarbAgeMin" to lastCarbAgeMin
+        //     )
+        // val filledLog = valueMap.entries.fold(logTemplate) { acc, entry ->
+        //     acc.replace("{${entry.key}}", entry.value.toString())
+        // }
+        // rT.reason.append(filledLog)
+        // val logTemplate = buildString {
+        //     appendLine("===== OpenApsAIMI Settings - 06 Octobre 2024 =====")
+        //     appendLine()
+        //
+        //     appendLine("**Demande :**")
+        //     appendLine("- **Raison :** COB: $cob, Dev: $deviation, BGI: $bgi, ISF: $variableSensitivity, CR: $ci, Target: $targetBg")
+        //     appendLine()
+        //
+        //     appendLine("**Prévision SMB :**")
+        //     appendLine("- Prédiction de l'IA : $predictedSMB u")
+        //     appendLine("- SMB demandée : $smbToGive u (après arrondi)")
+        //     appendLine()
+        //
+        //     appendLine("**Facteurs Ajustés :**")
+        //     appendLine("- Facteurs : $adjustedFactors")
+        //     appendLine()
+        //
+        //     appendLine("===== Limites et Conditions =====")
+        //     appendLine("- **Max IOB :** $maxIob u")
+        //     appendLine("- **Max SMB :** $maxSMB u")
+        //     appendLine("- **Condition de sécurité critique :** $conditionResult")
+        //     appendLine("  - **Conditions vérifiées :** $conditionsTrue")
+        //     appendLine()
+        //
+        //     appendLine("===== Données Glycémiques =====")
+        //     appendLine("- **Glycémie actuelle :** $bg mg/dL")
+        //     appendLine("- **Glycémie cible :** $targetBg mg/dL")
+        //     appendLine("- **Prévision :** $predictedBg mg/dL")
+        //     appendLine("- **Eventuel BG :** $eventualBG mg/dL")
+        //     appendLine("- **Delta :** $delta")
+        //     appendLine("- **Delta Moyenne courte : $shortAvgDelta")
+        //     appendLine("- **Moyenne longue : $longAvgDelta")
+        //     appendLine()
+        //
+        //     appendLine("===== Modes =====")
+        //     appendLine("- **Sommeil :** $sleepTime")
+        //     appendLine("- **Sport :** $sportTime")
+        //     appendLine("- **Snack :** $snackTime")
+        //     appendLine("- **Snack Time :** $snackrunTime min")
+        //     appendLine("- **Breakfast :** $bfastTime")
+        //     appendLine("- **Breakfast Time :** $bfastruntime min")
+        //     appendLine("- **Lunch :** $lunchTime")
+        //     appendLine("- **Lunch Time :** $lunchruntime min")
+        //     appendLine("- **Dinner :** $dinnerTime")
+        //     appendLine("- **Dinner Time :** $dinnerruntime min")
+        //     appendLine("- **High Carbs :** $highCarbTime")
+        //     appendLine("- **High Carbs Time :** $highCarbrunTime min")
+        //     appendLine()
+        //
+        //     appendLine("===== Données de Pas =====")
+        //     appendLine("- **Pas (5 min) :** $recentSteps5Minutes")
+        //     appendLine("- **Pas (10 min) :** $recentSteps10Minutes")
+        //     appendLine("- **Pas (15 min) :** $recentSteps15Minutes")
+        //     appendLine("- **Pas (30 min) :** $recentSteps30Minutes")
+        //     appendLine("- **Pas (60 min) :** $recentSteps60Minutes")
+        //     appendLine("- **Pas (180 min) :** $recentSteps180Minutes")
+        //     appendLine()
+        //
+        //     appendLine("===== Données de Fréquence Cardiaque =====")
+        //     appendLine("- **Fréquence cardiaque (5 min) :** $averageBeatsPerMinute")
+        //     appendLine("- **Fréquence cardiaque (60 min) :** $averageBeatsPerMinute60")
+        //     appendLine()
+        //
+        //     appendLine("===== Informations sur l'Insuline =====")
+        //     appendLine("- **IOB :** $iob u")
+        //     appendLine("- **Effet de l'insuline :** $insulinEffect u")
+        //     appendLine("- **Basal AIMI :** $basalaimi")
+        //     appendLine("- **Sensibilité :** $variableSensitivity")
+        //     appendLine()
+        //
+        //     appendLine("===== Données sur les Glucides =====")
+        //     appendLine("- **COB :** $cob g")
+        //     appendLine("- **COB Âge :** $lastCarbAgeMin min")
+        //     appendLine("- **Carbohydrates Futurs :** $futureCarbs g")
+        //     appendLine()
+        //
+        //     appendLine("===== Time In Range (TIR) =====")
+        //     appendLine("- **TIR Bas :** $currentTIRLow%")
+        //     appendLine("- **TIR dans la plage :** $currentTIRRange%")
+        //     appendLine("- **TIR élevé :** $currentTIRAbove%")
+        //     appendLine("- **Dernière Heure TIR Bas :** $lastHourTIRLow%")
+        //     appendLine("- **Dernière Heure TIR > 120 :** $lastHourTIRabove120%")
+        //     appendLine()
+        //
+        //     appendLine("===== Divers =====")
+        //     appendLine("- **Dernier SMB :** $lastsmbtime min")
+        //     appendLine("- **Heure actuelle :** $hourOfDay")
+        //     appendLine("- **Week-end :** $weekend")
+        //     appendLine("- **tags0to60minAgo :** $tags0to60minAgo")
+        //     appendLine("- **tags60to120minAgo :** $tags60to120minAgo")
+        //     appendLine("- **tags120to180minAgo :** $tags120to180minAgo")
+        //     appendLine("- **tags180to240minAgo :** $tags180to240minAgo")
+        //     appendLine()
+        // }
+        //
+        // rT.reason.append(logTemplate)
+        // val logTemplate = buildString {
+        //     appendLine("===== OpenApsAIMI Settings - 06 Octobre 2024 =====")
+        //     appendLine()
+        //
+        //     appendLine("Demande")
+        //     appendLine("-------------------------------------------------")
+        //     appendLine(String.format("%-30s : %s", "Raison", "COB: $cob, Dev: $deviation, BGI: $bgi, ISF: $variableSensitivity, CR: $ci, Target: $targetBg"))
+        //     appendLine()
+        //
+        //     appendLine("Prévision SMB")
+        //     appendLine("-------------------------------------------------")
+        //     appendLine(String.format("%-30s : %s u", "Prédiction de l'IA", String.format("%.2f", predictedSMB)))
+        //     appendLine(String.format("%-30s : %s u", "SMB demandée", String.format("%.2f", smbToGive)))
+        //     appendLine()
+        //
+        //     appendLine("Facteurs Ajustés")
+        //     appendLine("-------------------------------------------------")
+        //     appendLine(String.format("%-30s : %s", "Facteurs", adjustedFactors))
+        //     appendLine()
+        //
+        //     appendLine("Limites et Conditions")
+        //     appendLine("-------------------------------------------------")
+        //     appendLine(String.format("%-30s : %s u", "Max IOB", String.format("%.1f", maxIob)))
+        //     appendLine(String.format("%-30s : %s u", "Max SMB", String.format("%.1f", maxSMB)))
+        //     appendLine(String.format("%-30s : %s", "Condition de sécurité critique", conditionResult))
+        //     appendLine(String.format("%-30s : %s", "Conditions vérifiées", conditionsTrue))
+        //     appendLine()
+        //
+        //     appendLine("Données Glycémiques")
+        //     appendLine("-------------------------------------------------")
+        //     appendLine(String.format("%-30s : %s mg/dL", "Glycémie actuelle", String.format("%.1f", bg)))
+        //     appendLine(String.format("%-30s : %s mg/dL", "Glycémie cible", String.format("%.1f", targetBg)))
+        //     appendLine(String.format("%-30s : %s mg/dL", "Prévision", String.format("%.1f", predictedBg)))
+        //     appendLine(String.format("%-30s : %s mg/dL", "Eventuel BG", String.format("%.1f", eventualBG)))
+        //     appendLine(String.format("%-30s : %s", "Delta", String.format("%.1f", delta)))
+        //     appendLine(String.format("%-30s : %s", "Delta Moyenne courte", String.format("%.1f", shortAvgDelta)))
+        //     appendLine(String.format("%-30s : %s", "Moyenne longue", String.format("%.1f", longAvgDelta)))
+        //     appendLine()
+        //
+        //     appendLine("Modes")
+        //     appendLine("-------------------------------------------------")
+        //     appendLine(String.format("%-30s : %s", "Sommeil", sleepTime))
+        //     appendLine(String.format("%-30s : %s", "Sport", sportTime))
+        //     appendLine(String.format("%-30s : %s", "Snack", snackTime))
+        //     appendLine(String.format("%-30s : %s min", "Snack Time", snackrunTime))
+        //     appendLine(String.format("%-30s : %s", "Breakfast", bfastTime))
+        //     appendLine(String.format("%-30s : %s min", "Breakfast Time", bfastruntime))
+        //     appendLine(String.format("%-30s : %s", "Lunch", lunchTime))
+        //     appendLine(String.format("%-30s : %s min", "Lunch Time", lunchruntime))
+        //     appendLine(String.format("%-30s : %s", "Dinner", dinnerTime))
+        //     appendLine(String.format("%-30s : %s min", "Dinner Time", dinnerruntime))
+        //     appendLine(String.format("%-30s : %s", "High Carbs", highCarbTime))
+        //     appendLine(String.format("%-30s : %s min", "High Carbs Time", highCarbrunTime))
+        //     appendLine()
+        //
+        //     appendLine("Données de Pas")
+        //     appendLine("-------------------------------------------------")
+        //     appendLine(String.format("%-30s : %s", "Pas (5 min)", recentSteps5Minutes))
+        //     appendLine(String.format("%-30s : %s", "Pas (10 min)", recentSteps10Minutes))
+        //     appendLine(String.format("%-30s : %s", "Pas (15 min)", recentSteps15Minutes))
+        //     appendLine(String.format("%-30s : %s", "Pas (30 min)", recentSteps30Minutes))
+        //     appendLine(String.format("%-30s : %s", "Pas (60 min)", recentSteps60Minutes))
+        //     appendLine(String.format("%-30s : %s", "Pas (180 min)", recentSteps180Minutes))
+        //     appendLine()
+        //
+        //     appendLine("Données de Fréquence Cardiaque")
+        //     appendLine("-------------------------------------------------")
+        //     appendLine(String.format("%-30s : %s bpm", "Fréquence cardiaque (5 min)", String.format("%.1f", averageBeatsPerMinute)))
+        //     appendLine(String.format("%-30s : %s bpm", "Fréquence cardiaque (60 min)", String.format("%.1f", averageBeatsPerMinute60)))
+        //     appendLine()
+        //
+        //     appendLine("Informations sur l'Insuline")
+        //     appendLine("-------------------------------------------------")
+        //     appendLine(String.format("%-30s : %s u", "IOB", String.format("%.3f", iob)))
+        //     appendLine(String.format("%-30s : %s u", "Effet de l'insuline", String.format("%.3f", insulinEffect)))
+        //     appendLine(String.format("%-30s : %s", "Basal AIMI", String.format("%.3f", basalaimi)))
+        //     appendLine(String.format("%-30s : %s", "Sensibilité", variableSensitivity))
+        //     appendLine()
+        //
+        //     appendLine("Données sur les Glucides")
+        //     appendLine("-------------------------------------------------")
+        //     appendLine(String.format("%-30s : %s g", "COB", String.format("%.1f", cob)))
+        //     appendLine(String.format("%-30s : %s min", "COB Âge", lastCarbAgeMin))
+        //     appendLine(String.format("%-30s : %s g", "Carbohydrates Futurs", String.format("%.1f", futureCarbs)))
+        //     appendLine()
+        //
+        //     appendLine("Time In Range (TIR)")
+        //     appendLine("-------------------------------------------------")
+        //     appendLine(String.format("%-30s : %s%%", "TIR Bas", String.format("%.1f", currentTIRLow)))
+        //     appendLine(String.format("%-30s : %s%%", "TIR dans la plage", String.format("%.1f", currentTIRRange)))
+        //     appendLine(String.format("%-30s : %s%%", "TIR élevé", String.format("%.1f", currentTIRAbove)))
+        //     appendLine(String.format("%-30s : %s%%", "Dernière Heure TIR Bas", String.format("%.1f", lastHourTIRLow)))
+        //     appendLine(String.format("%-30s : %s%%", "Dernière Heure TIR > 120", String.format("%.1f", lastHourTIRabove120)))
+        //     appendLine()
+        //
+        //     appendLine("Divers")
+        //     appendLine("-------------------------------------------------")
+        //     appendLine(String.format("%-30s : %s min", "Dernier SMB", lastsmbtime))
+        //     appendLine(String.format("%-30s : %s", "Heure actuelle", hourOfDay))
+        //     appendLine(String.format("%-30s : %s", "Week-end", weekend))
+        //     appendLine(String.format("%-30s : %s", "tags0to60minAgo", tags0to60minAgo))
+        //     appendLine(String.format("%-30s : %s", "tags60to120minAgo", tags60to120minAgo))
+        //     appendLine(String.format("%-30s : %s", "tags120to180minAgo", tags120to180minAgo))
+        //     appendLine(String.format("%-30s : %s", "tags180to240minAgo", tags180to240minAgo))
+        //     appendLine()
+        // }
+        //
+        // rT.reason.append(logTemplate)
+        val columnWidth = 8 // Largeur ajustée pour un écran étroit
+
         val logTemplate = buildString {
-            appendLine("AIMI predictedSMB {predictedSMB}u, requested {smbToGive}u to the pump")
-            appendLine("OpenApsAIMI-V3-DBA2, 06Oct24")
-            appendLine("adjFactors: {adjustedFactors}")
+            appendLine("╔════════════════════════════════════╗")
+            appendLine("║          OpenApsAIMI Settings      ║")
+            appendLine("║           06 October 2024          ║")
+            appendLine("╚════════════════════════════════════╝")
             appendLine()
+
+            appendLine("╔════════════════════════════════════╗")
+            appendLine("║             Request                ║")
+            appendLine("╠════════════════════════════════════╣")
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Reason", "COB: $cob, Dev: $deviation, BGI: $bgi, ISF: $variableSensitivity, CR: $ci, Target: $targetBg"))
+            appendLine("╚════════════════════════════════════╝")
             appendLine()
+
+            appendLine("╔════════════════════════════════════╗")
+            appendLine("║           SMB Prediction           ║")
+            appendLine("╠════════════════════════════════════╣")
+            appendLine(String.format("║ %-${columnWidth}s │ %s u", "AI Prediction", String.format("%.2f", predictedSMB)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s u", "Requested SMB", String.format("%.2f", smbToGive)))
+            appendLine("╚════════════════════════════════════╝")
             appendLine()
-            appendLine("Max IOB: {maxIob}")
-            appendLine("Max SMB: {maxSMB}")
-            appendLine("sleep: {sleepTime}")
-            appendLine("sport: {sportTime}")
-            appendLine("snack: {snackTime}")
-            appendLine("lowcarb: {lowCarbTime}")
-            appendLine("highcarb: {highCarbTime}")
-            appendLine("meal: {mealTime}")
-            appendLine("Breakfast: {bfastTime}")
-            appendLine("lunch: {lunchTime}")
-            appendLine("dinner: {dinnerTime}")
-            appendLine("fastingtime: {fastingTime}")
-            appendLine("intervalsmb: {intervalsmb}")
-            appendLine("mealruntime: {mealruntime}")
-            appendLine("bfastruntime: {bfastruntime}")
-            appendLine("lunchruntime: {lunchruntime}")
-            appendLine("dinnerruntime: {dinnerruntime}")
-            appendLine("snackrunTime: {snackrunTime}")
-            appendLine("highCarbrunTime: {highCarbrunTime}")
+
+            appendLine("╔════════════════════════════════════╗")
+            appendLine("║           Adjusted Factors         ║")
+            appendLine("╠════════════════════════════════════╣")
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Factors", adjustedFactors))
+            appendLine("╚════════════════════════════════════╝")
             appendLine()
-            appendLine("insulinEffect: {(insulinEffect, 0.00f)}")
-            appendLine("circadianSmb: {(circadianSmb, 0.00f)}")
-            appendLine("circadianSensitivity: {circadianSensitivity}")
-            appendLine("bg: {bg}")
-            appendLine("targetBG: {targetBg}")
-            appendLine("futureBg: {(predictedBg, 0.0f)}")
-            appendLine("eventuelBG: {eventualBG}")
+
+            appendLine("╔════════════════════════════════════╗")
+            appendLine("║       Limits and Conditions        ║")
+            appendLine("╠════════════════════════════════════╣")
+            appendLine(String.format("║ %-${columnWidth}s │ %s u", "Max IOB", String.format("%.1f", maxIob)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s u", "Max SMB", String.format("%.1f", maxSMB)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Safety Condition", conditionResult))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Conditions Met", conditionsTrue))
+            appendLine("╚════════════════════════════════════╝")
             appendLine()
-            appendLine("delta: {delta}")
-            appendLine("short avg delta: {shortAvgDelta}")
-            appendLine("long avg delta: {longAvgDelta}")
+
+            appendLine("╔════════════════════════════════════╗")
+            appendLine("║         Glucose Data               ║")
+            appendLine("╠════════════════════════════════════╣")
+            appendLine(String.format("║ %-${columnWidth}s │ %s mg/dL", "Current BG", String.format("%.1f", bg)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s mg/dL", "Target BG", String.format("%.1f", targetBg)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s mg/dL", "Prediction", String.format("%.1f", predictedBg)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s mg/dL", "Eventual BG", String.format("%.1f", eventualBG)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Delta", String.format("%.1f", delta)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Short Avg Delta", String.format("%.1f", shortAvgDelta)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Long Avg Delta", String.format("%.1f", longAvgDelta)))
+            appendLine("╚════════════════════════════════════╝")
             appendLine()
-            appendLine("accelerating_up: {acceleratingUp}")
-            appendLine("deccelerating_up: {decceleratingUp}")
-            appendLine("accelerating_down: {acceleratingDown}")
-            appendLine("deccelerating_down: {decceleratingDown}")
-            appendLine("stable: {stable}")
+
+            appendLine("╔════════════════════════════════════╗")
+            appendLine("║          Step Data                 ║")
+            appendLine("╠════════════════════════════════════╣")
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (5 min)", recentSteps5Minutes))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (10 min)", recentSteps10Minutes))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (15 min)", recentSteps15Minutes))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (30 min)", recentSteps30Minutes))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (60 min)", recentSteps60Minutes))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (180 min)", recentSteps180Minutes))
+            appendLine("╚════════════════════════════════════╝")
             appendLine()
-            appendLine("IOB: {iob}")
-            appendLine("tdd 7d/h: {tdd7DaysPerHour}")
-            appendLine("tdd 2d/h: {tdd2DaysPerHour}")
-            appendLine("tdd daily/h: {tddPerHour}")
-            appendLine("tdd 24h/h: {tdd24HrsPerHour}")
+
+            appendLine("╔════════════════════════════════════╗")
+            appendLine("║        Heart Rate Data             ║")
+            appendLine("╠════════════════════════════════════╣")
+            appendLine(String.format("║ %-${columnWidth}s │ %s bpm", "Heart Rate (5 min)", String.format("%.1f", averageBeatsPerMinute)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s bpm", "Heart Rate (60 min)", String.format("%.1f", averageBeatsPerMinute60)))
+            appendLine("╚════════════════════════════════════╝")
             appendLine()
-            appendLine("enablebasal: {enablebasal}")
-            appendLine("basalaimi: {(basalaimi, 0.0f)}")
-            appendLine()
-            appendLine("ISF: {variableSensitivity}")
-            appendLine()
-            appendLine("Hour of day: {hourOfDay}")
-            appendLine("Weekend: {weekend}")
-            appendLine("Steps 5min: {recentSteps5Minutes}")
-            appendLine("Steps 10min: {recentSteps10Minutes}")
-            appendLine("Steps 15min: {recentSteps15Minutes}")
-            appendLine("Steps 30min: {recentSteps30Minutes}")
-            appendLine("Steps 60min: {recentSteps60Minutes}")
-            appendLine("Steps 180min: {recentSteps180Minutes}")
-            appendLine()
-            appendLine("Heart Beat 5min: {averageBeatsPerMinute}")
-            appendLine("Heart Beat 10min: {averageBeatsPerMinute10}")
-            appendLine("Heart Beat 60min: {averageBeatsPerMinute60}")
-            appendLine("Heart Beat 180min: {averageBeatsPerMinute180}")
-            appendLine()
-            appendLine("COB: {cob}g Future: {futureCarbs}g")
-            appendLine("COB Age Min: {lastCarbAgeMin}")
-            appendLine()
-            appendLine("tags0to60minAgo: {tags0to60minAgo}")
-            appendLine("tags60to120minAgo: {tags60to120minAgo}")
-            appendLine("tags180to240minAgo: {tags180to240minAgo}")
-            appendLine()
-            appendLine("currentTIRLow: {(currentTIRLow, 0.0f)}")
-            appendLine("currentTIR: {(currentTIRRange, 0.0f)}")
-            appendLine("currentTIRAbove: {(currentTIRAbove, 0.0f)}")
-            appendLine("lastHourTIRLow: {(lastHourTIRLow, 0.0f)}")
-            appendLine("lastHourTIRLow100: {(lastHourTIRLow100, 0.0f}")
-            appendLine("lastHourTIRabove120: {(lastHourTIRabove120, 0.0f)}")
-            appendLine("lastHourTIRabove170: {(lastHourTIRabove170, 0.0f)}")
-            appendLine("isCriticalSafetyCondition: {conditionResult}, True Conditions: {conditionsTrue}")
-            appendLine()
-            appendLine("lastBolusSMBMinutes: {lastBolusSMBMinutes}")
-            appendLine()
-            appendLine("lastsmbtime: {lastsmbtime}")
-            appendLine()
-            appendLine("lastCarbAgeMin: {lastCarbAgeMin}")
+
+            appendLine("╔════════════════════════════════════╗")
+            appendLine("║            Miscellaneous           ║")
+            appendLine("╠════════════════════════════════════╣")
+            appendLine(String.format("║ %-${columnWidth}s │ %s min", "Last SMB", lastsmbtime))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Current Hour", hourOfDay))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Weekend", weekend))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "tags0to60minAgo", tags0to60minAgo))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "tags60to120minAgo", tags60to120minAgo))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "tags120to180minAgo", tags120to180minAgo))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "tags180to240minAgo", tags180to240minAgo))
+            appendLine("╚════════════════════════════════════╝")
         }
 
-        val valueMap = mapOf(
-                "modelcal" to modelcal,
-                "predictedSMB" to predictedSMB,
-                "smbToGive" to smbToGive,
-                "adjustedFactors" to adjustedFactors,
-                "maxIob" to maxIob,
-                "maxSMB" to maxSMB,
-                "sleepTime" to sleepTime,
-                "sportTime" to sportTime,
-                "snackTime" to snackTime,
-                "lowCarbTime" to lowCarbTime,
-                "highCarbTime" to highCarbTime,
-                "mealTime" to mealTime,
-                "bfastTime" to bfastTime,
-                "lunchTime" to lunchTime,
-                "dinnerTime" to dinnerTime,
-                "fastingTime" to fastingTime,
-                "intervalsmb" to intervalsmb,
-                "mealruntime" to mealruntime,
-                "bfastruntime" to bfastruntime,
-                "lunchruntime" to lunchruntime,
-                "dinnerruntime" to dinnerruntime,
-                "snackrunTime" to snackrunTime,
-                "highCarbrunTime" to highCarbrunTime,
-                "insulinEffect" to insulinEffect,
-                "circadianSmb" to circadianSmb,
-                "circadianSensitivity" to circadianSensitivity,
-                "bg" to bg,
-                "targetBg" to targetBg,
-                "predictedBg" to predictedBg,
-                "eventualBG" to eventualBG,
-                "delta" to delta,
-                "shortAvgDelta" to shortAvgDelta,
-                "longAvgDelta" to longAvgDelta,
-                "acceleratingUp" to acceleratingUp,
-                "decceleratingUp" to decceleratingUp,
-                "acceleratingDown" to acceleratingDown,
-                "decceleratingDown" to decceleratingDown,
-                "stable" to stable,
-                "iob" to iob,
-                "tdd7DaysPerHour" to roundToPoint05(tdd7DaysPerHour),
-                "tdd2DaysPerHour" to roundToPoint05(tdd2DaysPerHour),
-                "tddPerHour" to roundToPoint05(tddPerHour),
-                "tdd24HrsPerHour" to roundToPoint05(tdd24HrsPerHour),
-                "enablebasal" to enablebasal,
-                "basalaimi" to basalaimi,
-                "variableSensitivity" to variableSensitivity,
-                "hourOfDay" to hourOfDay,
-                "weekend" to weekend,
-                "recentSteps5Minutes" to recentSteps5Minutes,
-                "recentSteps10Minutes" to recentSteps10Minutes,
-                "recentSteps15Minutes" to recentSteps15Minutes,
-                "recentSteps30Minutes" to recentSteps30Minutes,
-                "recentSteps60Minutes" to recentSteps60Minutes,
-                "recentSteps180Minutes" to recentSteps180Minutes,
-                "averageBeatsPerMinute" to averageBeatsPerMinute,
-                "averageBeatsPerMinute10" to averageBeatsPerMinute10,
-                "averageBeatsPerMinute60" to averageBeatsPerMinute60,
-                "averageBeatsPerMinute180" to averageBeatsPerMinute180,
-                "cob" to cob,
-                "futureCarbs" to futureCarbs,
-                "lastCarbAgeMin" to lastCarbAgeMin,
-                "tags0to60minAgo" to tags0to60minAgo,
-                "tags60to120minAgo" to tags60to120minAgo,
-                "tags120to180minAgo" to tags120to180minAgo,
-                "tags180to240minAgo" to tags180to240minAgo,
-                "currentTIRLow" to currentTIRLow,
-                "currentTIRRange" to currentTIRRange,
-                "currentTIRAbove" to currentTIRAbove,
-                "lastHourTIRLow" to lastHourTIRLow,
-                "lastHourTIRLow100" to lastHourTIRLow100,
-                "lastHourTIRabove120" to lastHourTIRabove120,
-                "lastHourTIRabove170" to lastHourTIRabove170,
-                "conditionResult" to conditionResult,
-                "conditionsTrue" to conditionsTrue,
-                "lastBolusSMBMinutes" to lastBolusSMBMinutes,
-                "lastsmbtime" to lastsmbtime,
-                "lastCarbAgeMin" to lastCarbAgeMin
-            )
-        val filledLog = valueMap.entries.fold(logTemplate) { acc, entry ->
-            acc.replace("{${entry.key}}", entry.value.toString())
-        }
-        rT.reason.append(filledLog)
+        rT.reason.append(logTemplate)
 
         //rT.reason.append(logAIMI)
         // eventual BG is at/above target
