@@ -25,10 +25,15 @@ import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.Preferences
 import app.aaps.plugins.aps.openAPSAIMI.AimiNeuralNetwork.Companion.refineSMB
 import org.tensorflow.lite.Interpreter
+import java.io.BufferedReader
+import java.io.BufferedWriter
 import java.io.File
+import java.io.FileReader
+import java.io.FileWriter
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
@@ -283,47 +288,62 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         file.appendText(valuesToRecord + "\n")
     }
-    private fun removeDataByDate(dateToRemove: String) {
-        val originalFile = File("AAPS/oapsaimiML2_records.csv")
+    private fun createFilteredAndSortedCopy(dateToRemove: String) {
+        val originalFile = File(path, "AAPS/oapsaimiML2_records.csv")
+        val outputFile = File(path, "AAPS/test.csv")
+
         if (!originalFile.exists()) {
-            println("Le fichier n'existe pas.")
+            println("Le fichier original n'existe pas.")
             return
         }
 
-        // Créer un fichier temporaire pour écrire les données filtrées
-        val tempFile = File("AAPS/oapsaimiML2_records_temp.csv")
+        // Lire le fichier original ligne par ligne
+        val lines = originalFile.readLines()
+        val header = lines.first()
+        val dataLines = lines.drop(1)
 
-        originalFile.bufferedReader().use { reader ->
-            tempFile.bufferedWriter().use { writer ->
-                val dateParts = dateToRemove.split("/")
-                if (dateParts.size == 3) {
-                    // Créer les deux formats possibles
-                    val dateFormatted1 = "${dateParts[0]}/${dateParts[1]}/${dateParts[2]}"  // dd/MM/yyyy
-                    val dateFormatted2 = "${dateParts[1]}/${dateParts[0]}/${dateParts[2].takeLast(2)}"  // MM/dd/yy
+        // Liste des lignes valides après filtrage
+        val validLines = mutableListOf<String>()
 
-                    // Lire et filtrer les lignes du fichier original
-                    reader.lineSequence().forEach { line ->
-                        val lineDatePart = line.split(",")[0]
-                        if (!(lineDatePart.startsWith(dateFormatted1) || lineDatePart.startsWith(dateFormatted2))) {
-                            writer.write(line)
-                            writer.newLine()
-                        }
-                    }
+        // Filtrer les lignes qui ne correspondent pas à la date à supprimer
+        dataLines.forEach { line ->
+            val lineParts = line.split(",")
+            if (lineParts.isNotEmpty()) {
+                val dateStr = lineParts[0].trim()
+                // Vérifier si la date commence par la date à supprimer
+                if (!dateStr.startsWith(dateToRemove)) {
+                    validLines.add(line)
                 } else {
-                    println("Le format de la date est incorrect.")
-                    return
+                    println("Ligne supprimée : $line")
                 }
             }
         }
 
-        // Remplacer le fichier original par le fichier temporaire
-        if (originalFile.delete()) {
-            tempFile.renameTo(originalFile)
-            println("Les données pour la date $dateToRemove ont été supprimées.")
+        // Trier les lignes par ordre croissant de date (en utilisant les dates en texte)
+        validLines.sortBy { it.split(",")[0] }
+
+        // Écrire dans le nouveau fichier
+        if (!outputFile.exists()) {
+            outputFile.createNewFile()
+        }
+        outputFile.writeText(header + "\n")
+        validLines.forEach { line ->
+            outputFile.appendText(line + "\n")
+        }
+
+        // Renommer les fichiers
+        val oldFile = File(path, "AAPS/oapsaimiML2old_records.csv")
+        if (originalFile.renameTo(oldFile)) {
+            if (outputFile.renameTo(originalFile)) {
+                println("Le fichier original a été renommé en 'oapsaimiML2old_records.csv', et le fichier temporaire 'test.csv' est maintenant 'oapsaimiML2_records.csv'.")
+            } else {
+                println("Erreur lors du renommage du fichier temporaire 'test.csv' en 'oapsaimiML2_records.csv'.")
+            }
         } else {
-            println("Erreur lors de la suppression du fichier original.")
+            println("Erreur lors du renommage du fichier original en 'oapsaimiML2old_records.csv'.")
         }
     }
+
     private fun logDataToCsv(predictedSMB: Float, smbToGive: Float) {
 
         val usFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm")
@@ -1295,7 +1315,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val deleteTime = therapy.deleteTime
         if (deleteTime) {
             //removeLastNLines(100)
-            removeDataByDate(deleteEventDate.toString())
+            createFilteredAndSortedCopy(deleteEventDate.toString())
         }
         this.sleepTime = therapy.sleepTime
         this.snackTime = therapy.snackTime
@@ -2072,7 +2092,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val logTemplate = buildString {
             appendLine("╔══════════════════════════════╗")
             appendLine("║    OpenApsAIMI Settings      ║")
-            appendLine("║     06 October 2024          ║")
+            appendLine("║     10 October 2024          ║")
             appendLine("╚══════════════════════════════╝")
             appendLine()
 
@@ -2150,7 +2170,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             appendLine("╚══════════════════════════════╝")
 
             appendLine("╔══════════════════════════════╗")
-            appendLine("║            Mode              ║")
+            appendLine("║            Modes             ║")
             appendLine("╠══════════════════════════════╣")
             appendLine(String.format("║ %-${columnWidth}s │ %s", "Delete Time", if (deleteTime) "Active" else "Inactive"))
             appendLine(String.format("║ %-${columnWidth}s │ %s", "date", deleteEventDate))

@@ -42,7 +42,7 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
             calibrationTime = isCalibrationEvent(System.currentTimeMillis()).blockingGet()
 
             // Mettre à jour deleteTime en vérifiant la présence d'un événement "delete"
-            deleteTime = findActiveDeleteEvents(System.currentTimeMillis()).blockingGet()
+            deleteTime = findActivedeleteEvents(System.currentTimeMillis()).blockingGet()
             // Extraire la date d'un éventuel événement "delete"
             deleteEventDate = persistenceLayer.getTherapyEventDataFromTime(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(1), true)
                 .map { events ->
@@ -108,19 +108,19 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
                     }
             }
     }
-    private fun findActiveDeleteEvents(timestamp: Long): Single<Boolean> {
-        val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // Les dernières 24 heures
-        val deletePattern = Pattern.compile("delete (\\d{2}/\\d{2}/\\d{4})", Pattern.CASE_INSENSITIVE)
-
-        return persistenceLayer.getTherapyEventDataFromTime(fromTime, true)
-            .map { events ->
-                events.filter { it.type == TE.Type.NOTE }
-                    .any { event ->
-                        val matcher = deletePattern.matcher(event.note ?: "")
-                        matcher.find() // Renvoie true si une correspondance est trouvée
-                    }
-            }
-    }
+    // private fun findActiveDeleteEvents(timestamp: Long): Single<Boolean> {
+    //     val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // Les dernières 24 heures
+    //     val deletePattern = Pattern.compile("delete (\\d{2}/\\d{2}/\\d{4})", Pattern.CASE_INSENSITIVE)
+    //
+    //     return persistenceLayer.getTherapyEventDataFromTime(fromTime, true)
+    //         .map { events ->
+    //             events.filter { it.type == TE.Type.NOTE }
+    //                 .any { event ->
+    //                     val matcher = deletePattern.matcher(event.note ?: "")
+    //                     matcher.find() // Renvoie true si une correspondance est trouvée
+    //                 }
+    //         }
+    // }
 
     private fun extractDateFromDeleteEvent(note: String?): String? {
         val deletePattern = Pattern.compile("delete (\\d{2}/\\d{2}/\\d{4})", Pattern.CASE_INSENSITIVE)
