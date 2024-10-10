@@ -6,6 +6,8 @@ import app.aaps.core.interfaces.db.PersistenceLayer
 import io.reactivex.rxjava3.core.Single
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
+import java.util.regex.Pattern
+
 class Therapy (private val persistenceLayer: PersistenceLayer){
 
     var sleepTime = false
@@ -19,7 +21,9 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
     var dinnerTime = false
     var fastingTime = false
     var stopTime = false
-    var calibartionTime = false
+    var calibrationTime = false
+    var deleteEventDate: String? = null
+    var deleteTime = false
 
     @SuppressLint("CheckResult")
     fun updateStatesBasedOnTherapyEvents() {
@@ -35,7 +39,17 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
             lunchTime = findActiveLunchEvents(System.currentTimeMillis()).blockingGet()
             dinnerTime = findActiveDinnerEvents(System.currentTimeMillis()).blockingGet()
             fastingTime = findActiveFastingEvents(System.currentTimeMillis()).blockingGet()
-            calibartionTime = isCalibrationEvent(System.currentTimeMillis()).blockingGet()
+            calibrationTime = isCalibrationEvent(System.currentTimeMillis()).blockingGet()
+
+            // Mettre à jour deleteTime en vérifiant la présence d'un événement "delete"
+            deleteTime = findActiveDeleteEvents(System.currentTimeMillis()).blockingGet()
+            // Extraire la date d'un éventuel événement "delete"
+            deleteEventDate = persistenceLayer.getTherapyEventDataFromTime(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(1), true)
+                .map { events ->
+                    val note = events.find { it.type == TE.Type.NOTE && it.note?.contains("delete", ignoreCase = true) == true }?.note
+                    extractDateFromDeleteEvent(note).toString() // Extraire la date de l'événement "delete"
+                }
+                .blockingGet()
         } else {
             resetAllStates()
             clearActiveEvent("sleep")
@@ -48,6 +62,7 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
             clearActiveEvent("lunch")
             clearActiveEvent("dinner")
             clearActiveEvent("fasting")
+            clearActiveEvent("delete")
         }
     }
     private fun clearActiveEvent(noteKeyword: String) {
@@ -68,6 +83,7 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
         lunchTime = false;
         dinnerTime = false;
         fastingTime = false;
+        deleteTime = false;
     }
     private fun findActiveSleepEvents(timestamp: Long): Single<Boolean> {
         val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
@@ -92,8 +108,29 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
                     }
             }
     }
+    private fun findActiveDeleteEvents(timestamp: Long): Single<Boolean> {
+        val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // Les dernières 24 heures
+        val deletePattern = Pattern.compile("delete (\\d{2}/\\d{2}/\\d{4})", Pattern.CASE_INSENSITIVE)
 
+        return persistenceLayer.getTherapyEventDataFromTime(fromTime, true)
+            .map { events ->
+                events.filter { it.type == TE.Type.NOTE }
+                    .any { event ->
+                        val matcher = deletePattern.matcher(event.note ?: "")
+                        matcher.find() // Renvoie true si une correspondance est trouvée
+                    }
+            }
+    }
 
+    private fun extractDateFromDeleteEvent(note: String?): String? {
+        val deletePattern = Pattern.compile("delete (\\d{2}/\\d{2}/\\d{4})", Pattern.CASE_INSENSITIVE)
+        val matcher = deletePattern.matcher(note ?: "")
+        return if (matcher.find()) {
+            matcher.group(1) // Retourne la date sous forme de chaîne "dd/mm/aaaa"
+        } else {
+            null
+        }
+    }
     private fun findActiveSportEvents(timestamp: Long): Single<Boolean> {
         val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
         // Utiliser la méthode getTherapyEventDataFromTime avec le timestamp et l'ordre de tri
@@ -172,6 +209,17 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
                 events.filter { it.type == TE.Type.NOTE }
                     .any { event ->
                         event.note?.contains("lunch", ignoreCase = true) == true &&
+                            System.currentTimeMillis() <= (event.timestamp + event.duration)
+                    }
+            }
+    }
+    private fun findActivedeleteEvents(timestamp: Long): Single<Boolean> {
+        val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // les dernières 24 heures
+        return persistenceLayer.getTherapyEventDataFromTime(fromTime, true)
+            .map { events ->
+                events.filter { it.type == TE.Type.NOTE }
+                    .any { event ->
+                        event.note?.contains("delete", ignoreCase = true) == true &&
                             System.currentTimeMillis() <= (event.timestamp + event.duration)
                     }
             }
