@@ -83,5 +83,6 @@ enum class IntKey(
     OApsAIMIBFinterval("key_oaps_aimi_BF_interval", 3, 1, 20, defaultedBySM = true),
     OApsAIMISleepinterval("key_oaps_aimi_sleep_interval", 3, 1, 20, defaultedBySM = true),
     OApsAIMIHighCarbAdjISFFact("key_oaps_aimi_highcarbAdjFact",50,1,500),
-    OApsAIMISnackAdjISFFact("key_oaps_aimi_snackAdjFact",50,1,500)
+    OApsAIMISnackAdjISFFact("key_oaps_aimi_snackAdjFact",50,1,500),
+    OApsAIMIlogsize("key_oaps_aimi_logsize",10,1,20)
 }
