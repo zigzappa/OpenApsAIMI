@@ -2092,7 +2092,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val logTemplate = buildString {
             appendLine("╔══════════════════════════════╗")
             appendLine("║    OpenApsAIMI Settings      ║")
-            appendLine("║     11 October 2024          ║")
+            appendLine("║     10 October 2024          ║")
             appendLine("╚══════════════════════════════╝")
             appendLine()
 
@@ -2171,6 +2171,25 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             appendLine()
 
             appendLine("╔══════════════════════════════╗")
+            appendLine("║            Modes             ║")
+            appendLine("╠══════════════════════════════╣")
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Delete Time", if (deleteTime) "Active" else "Inactive"))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Date", deleteEventDate))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Sleep", if (sleepTime) "Active" else "Inactive"))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Sport", if (sportTime) "Active" else "Inactive"))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Snack", if (snackTime) "Active" else "Inactive"))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Low Carb", if (lowCarbTime) "Active" else "Inactive"))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "High Carb", if (highCarbTime) "Active" else "Inactive"))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Meal", if (mealTime) "Active" else "Inactive"))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Breakfast", if (bfastTime) "Active" else "Inactive"))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Lunch", if (lunchTime) "Active" else "Inactive"))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Dinner", if (dinnerTime) "Active" else "Inactive"))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Fasting", if (fastingTime) "Active" else "Inactive"))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Calibration", if (iscalibration) "Active" else "Inactive"))
+            appendLine("╚══════════════════════════════╝")
+            appendLine()
+
+            appendLine("╔══════════════════════════════╗")
             appendLine("║        Miscellaneous         ║")
             appendLine("╠══════════════════════════════╣")
             appendLine(String.format("║ %-${columnWidth}s │ %s min", "Last SMB", lastsmbtime))
@@ -2183,7 +2202,6 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         rT.reason.append(logTemplate)
 
-        //rT.reason.append(logAIMI)
         // eventual BG is at/above target
         // if iob is over max, just cancel any temps
         if (eventualBG >= max_bg) {
