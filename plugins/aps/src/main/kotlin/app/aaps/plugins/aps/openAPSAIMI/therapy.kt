@@ -108,19 +108,6 @@ class Therapy (private val persistenceLayer: PersistenceLayer){
                     }
             }
     }
-    // private fun findActiveDeleteEvents(timestamp: Long): Single<Boolean> {
-    //     val fromTime = timestamp - TimeUnit.DAYS.toMillis(1) // Les dernières 24 heures
-    //     val deletePattern = Pattern.compile("delete (\\d{2}/\\d{2}/\\d{4})", Pattern.CASE_INSENSITIVE)
-    //
-    //     return persistenceLayer.getTherapyEventDataFromTime(fromTime, true)
-    //         .map { events ->
-    //             events.filter { it.type == TE.Type.NOTE }
-    //                 .any { event ->
-    //                     val matcher = deletePattern.matcher(event.note ?: "")
-    //                     matcher.find() // Renvoie true si une correspondance est trouvée
-    //                 }
-    //         }
-    // }
 
     private fun extractDateFromDeleteEvent(note: String?): String? {
         val deletePattern = Pattern.compile("delete (\\d{2}/\\d{2}/\\d{4})", Pattern.CASE_INSENSITIVE)
