@@ -407,6 +407,29 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             println("Erreur lors du renommage du fichier original en '$backupFileName'.")
         }
     }
+    private fun automateDeletionIfBadDay(tir1DAYIR: Int) {
+        // Vérifier si le TIR est inférieur à 80
+        if (tir1DAYIR < 85) {
+            // Vérifier si l'heure actuelle est entre 00:05 et 00:10
+            val currentTime = LocalTime.now()
+            val start = LocalTime.of(0, 5)
+            val end = LocalTime.of(0, 10)
+
+            if (currentTime.isAfter(start) && currentTime.isBefore(end)) {
+                // Calculer la date de la veille au format dd/MM/yyyy
+                val yesterday = LocalDate.now().minusDays(1)
+                val dateToRemove = yesterday.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+
+                // Appeler la méthode de suppression
+                createFilteredAndSortedCopy(dateToRemove)
+                println("Les données pour la date $dateToRemove ont été supprimées car TIR1DAIIR est inférieur à 80.")
+            } else {
+                println("La suppression ne peut être exécutée qu'entre 00:05 et 00:10.")
+            }
+        } else {
+            println("Aucune suppression nécessaire : tir1DAYIR est supérieur ou égal à 85.")
+        }
+    }
 
     private fun logDataToCsv(predictedSMB: Float, smbToGive: Float) {
 
@@ -1305,6 +1328,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         this.maxSMBHB = preferences.get(DoubleKey.OApsAIMIHighBGMaxSMB)
         this.maxSMB = if (bg > 120) maxSMBHB else maxSMB
         this.tir1DAYabove = tirCalculator.averageTIR(tirCalculator.calculate(1, 65.0, 180.0))?.abovePct()!!
+        val tir1DAYIR = tirCalculator.averageTIR(tirCalculator.calculate(1, 65.0, 180.0))?.inRangePct()!!
         this.currentTIRLow = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.belowPct()!!
         this.currentTIRRange = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.inRangePct()!!
         this.currentTIRAbove = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.abovePct()!!
@@ -1319,6 +1343,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val tirbasalhAP = tirCalculator.averageTIR(tirCalculator.calculateHour(65.0, 100.0))?.abovePct()
         this.enablebasal = preferences.get(BooleanKey.OApsAIMIEnableBasal)
         //this.now = System.currentTimeMillis()
+        automateDeletionIfBadDay(tir1DAYIR.toInt())
         val calendarInstance = Calendar.getInstance()
         this.hourOfDay = calendarInstance[Calendar.HOUR_OF_DAY]
         val dayOfWeek = calendarInstance[Calendar.DAY_OF_WEEK]
