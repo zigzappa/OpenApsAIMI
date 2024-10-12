@@ -32,12 +32,14 @@ import java.io.FileReader
 import java.io.FileWriter
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
+import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -288,9 +290,65 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         file.appendText(valuesToRecord + "\n")
     }
+    // private fun createFilteredAndSortedCopy(dateToRemove: String) {
+    //     val originalFile = File(path, "AAPS/oapsaimiML2_records.csv")
+    //     val outputFile = File(path, "AAPS/test.csv")
+    //
+    //     if (!originalFile.exists()) {
+    //         println("Le fichier original n'existe pas.")
+    //         return
+    //     }
+    //
+    //     // Lire le fichier original ligne par ligne
+    //     val lines = originalFile.readLines()
+    //     val header = lines.first()
+    //     val dataLines = lines.drop(1)
+    //
+    //     // Liste des lignes valides après filtrage
+    //     val validLines = mutableListOf<String>()
+    //
+    //     // Filtrer les lignes qui ne correspondent pas à la date à supprimer
+    //     dataLines.forEach { line ->
+    //         val lineParts = line.split(",")
+    //         if (lineParts.isNotEmpty()) {
+    //             val dateStr = lineParts[0].trim()
+    //             // Vérifier si la date commence par la date à supprimer
+    //             if (!dateStr.startsWith(dateToRemove)) {
+    //                 validLines.add(line)
+    //             } else {
+    //                 println("Ligne supprimée : $line")
+    //             }
+    //         }
+    //     }
+    //
+    //     // Trier les lignes par ordre croissant de date (en utilisant les dates en texte)
+    //     validLines.sortBy { it.split(",")[0] }
+    //
+    //     // Écrire dans le nouveau fichier
+    //     if (!outputFile.exists()) {
+    //         outputFile.createNewFile()
+    //     }
+    //     outputFile.writeText(header + "\n")
+    //     validLines.forEach { line ->
+    //         outputFile.appendText(line + "\n")
+    //     }
+    //
+    //     // Renommer les fichiers
+    //     val oldFile = File(path, "AAPS/oapsaimiML2old_records.csv")
+    //     if (originalFile.renameTo(oldFile)) {
+    //         if (outputFile.renameTo(originalFile)) {
+    //             println("Le fichier original a été renommé en 'oapsaimiML2old_records.csv', et le fichier temporaire 'test.csv' est maintenant 'oapsaimiML2_records.csv'.")
+    //         } else {
+    //             println("Erreur lors du renommage du fichier temporaire 'test.csv' en 'oapsaimiML2_records.csv'.")
+    //         }
+    //     } else {
+    //         println("Erreur lors du renommage du fichier original en 'oapsaimiML2old_records.csv'.")
+    //     }
+    // }
+
     private fun createFilteredAndSortedCopy(dateToRemove: String) {
         val originalFile = File(path, "AAPS/oapsaimiML2_records.csv")
-        val outputFile = File(path, "AAPS/test.csv")
+        val tempFile = File(path, "AAPS/test.csv")
 
         if (!originalFile.exists()) {
             println("Le fichier original n'existe pas.")
@@ -322,25 +380,31 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         // Trier les lignes par ordre croissant de date (en utilisant les dates en texte)
         validLines.sortBy { it.split(",")[0] }
 
-        // Écrire dans le nouveau fichier
-        if (!outputFile.exists()) {
-            outputFile.createNewFile()
+        // Écrire dans le fichier temporaire (test.csv)
+        if (!tempFile.exists()) {
+            tempFile.createNewFile()
         }
-        outputFile.writeText(header + "\n")
+        tempFile.writeText(header + "\n")
         validLines.forEach { line ->
-            outputFile.appendText(line + "\n")
+            tempFile.appendText(line + "\n")
         }
 
-        // Renommer les fichiers
-        val oldFile = File(path, "AAPS/oapsaimiML2old_records.csv")
-        if (originalFile.renameTo(oldFile)) {
-            if (outputFile.renameTo(originalFile)) {
-                println("Le fichier original a été renommé en 'oapsaimiML2old_records.csv', et le fichier temporaire 'test.csv' est maintenant 'oapsaimiML2_records.csv'.")
+        // Obtenir la date et l'heure actuelles pour renommer le fichier original
+        val dateFormat = SimpleDateFormat("yyyyMMdd_HHmm")
+        val currentDateTime = dateFormat.format(Date())
+        val backupFileName = "oapsaimiML2_records_$currentDateTime.csv"
+        val backupFile = File(path, "AAPS/$backupFileName")
+
+        // Renommer l'ancien fichier avec la date et l'heure
+        if (originalFile.renameTo(backupFile)) {
+            // Renommer le fichier temporaire 'test.csv' en 'oapsaimiML2_records.csv'
+            if (tempFile.renameTo(originalFile)) {
+                println("Le fichier original a été sauvegardé sous '$backupFileName', et 'test.csv' a été renommé en 'oapsaimiML2_records.csv'.")
             } else {
                 println("Erreur lors du renommage du fichier temporaire 'test.csv' en 'oapsaimiML2_records.csv'.")
             }
         } else {
-            println("Erreur lors du renommage du fichier original en 'oapsaimiML2old_records.csv'.")
+            println("Erreur lors du renommage du fichier original en '$backupFileName'.")
         }
     }
 
@@ -815,33 +879,6 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         )
     }
 
-
-
-    // private fun adjustFactorsBasedOnBgAndHypo(
-    //     morningFactor: Float,
-    //     afternoonFactor: Float,
-    //     eveningFactor: Float
-    // ): Triple<Float, Float, Float> {
-    //     val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
-    //     val hypoAdjustment = if (bg < 120 || (iob > 3 * maxSMB)) 0.8f else 1.0f
-    //     var factorAdjustment = if (bg < 100) 0.2f else 0.3f
-    //     if (honeymoon) factorAdjustment = if (bg<120) 0.1f else 0.2f
-    //     val bgAdjustment = 1.0f + (ln(delta + 1) - 1) * factorAdjustment
-    //     val scalingFactor = 1.0f - (bg - targetBg).toFloat() / (100 - targetBg) * 0.5f
-    //     val maxIncreaseFactor = 1.7f
-    //     val maxDecreaseFactor = 0.7f // Limite la diminution à 30% de la valeur d'origine
-    //
-    //     val adjustFactor = { factor: Float ->
-    //         val adjustedFactor = factor * bgAdjustment * hypoAdjustment * scalingFactor
-    //         adjustedFactor.coerceIn((factor * maxDecreaseFactor), (factor * maxIncreaseFactor))
-    //     }
-    //
-    //     return Triple(
-    //         adjustFactor(morningFactor),
-    //         adjustFactor(afternoonFactor),
-    //         adjustFactor(eveningFactor)
-    //     )
-    // }
     private fun calculateAdjustedDelayFactor(
         bg: Float,
         recentSteps180Minutes: Int,
@@ -2087,127 +2124,13 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
          val (conditionResult, conditionsTrue) = isCriticalSafetyCondition(mealData)
 
-        // val columnWidth = preferences.get(IntKey.OApsAIMIlogsize) // Largeur ajustée pour un écran étroit
-        //
-        // val logTemplate = buildString {
-        //     appendLine("╔══════════════════════════════╗")
-        //     appendLine("║    OpenApsAIMI Settings      ║")
-        //     appendLine("║     10 October 2024          ║")
-        //     appendLine("╚══════════════════════════════╝")
-        //     appendLine()
-        //
-        //     appendLine("╔══════════════════════════════╗")
-        //     appendLine("║           Request            ║")
-        //     appendLine("╠══════════════════════════════╣")
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Reason", "COB: $cob, Dev: $deviation, BGI: $bgi, ISF: $variableSensitivity, CR: $ci, Target: $targetBg"))
-        //     appendLine("╚══════════════════════════════╝")
-        //     appendLine()
-        //
-        //     appendLine("╔══════════════════════════════╗")
-        //     appendLine("║         SMB Prediction       ║")
-        //     appendLine("╠══════════════════════════════╣")
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s u", "AI Pred.", String.format("%.2f", predictedSMB)))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s u", "Req. SMB", String.format("%.2f", smbToGive)))
-        //     appendLine("╚══════════════════════════════╝")
-        //     appendLine()
-        //
-        //     appendLine("╔══════════════════════════════╗")
-        //     appendLine("║        Adjusted Factors      ║")
-        //     appendLine("╠══════════════════════════════╣")
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Factors", adjustedFactors))
-        //     appendLine("╚══════════════════════════════╝")
-        //     appendLine()
-        //
-        //     appendLine("╔══════════════════════════════╗")
-        //     appendLine("║     Limits & Conditions      ║")
-        //     appendLine("╠══════════════════════════════╣")
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s u", "Max IOB", String.format("%.1f", maxIob)))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s u", "Max SMB", String.format("%.1f", maxSMB)))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Safety", conditionResult))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Met", conditionsTrue))
-        //     appendLine("╚══════════════════════════════╝")
-        //     appendLine()
-        //
-        //     appendLine("╔══════════════════════════════╗")
-        //     appendLine("║      Glucose Data            ║")
-        //     appendLine("╠══════════════════════════════╣")
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s mg/dL", "Current BG", String.format("%.1f", bg)))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s mg/dL", "Target BG", String.format("%.1f", targetBg)))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s mg/dL", "Prediction", String.format("%.1f", predictedBg)))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s mg/dL", "Eventual BG", String.format("%.1f", eventualBG)))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Delta", String.format("%.1f", delta)))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Short Δ", String.format("%.1f", shortAvgDelta)))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Long Δ", String.format("%.1f", longAvgDelta)))
-        //     appendLine("╚══════════════════════════════╝")
-        //     appendLine()
-        //
-        //     appendLine("╔══════════════════════════════╗")
-        //     appendLine("║          TIR Data            ║")
-        //     appendLine("╠══════════════════════════════╣")
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s%%", "TIR Low", String.format("%.1f", currentTIRLow)))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s%%", "TIR In Range", String.format("%.1f", currentTIRRange)))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s%%", "TIR High", String.format("%.1f", currentTIRAbove)))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s%%", "Last Hr TIR Low", String.format("%.1f", lastHourTIRLow)))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s%%", "Last Hr TIR >120", String.format("%.1f", lastHourTIRabove120)))
-        //     appendLine("╚══════════════════════════════╝")
-        //     appendLine()
-        //
-        //     appendLine("╔══════════════════════════════╗")
-        //     appendLine("║          Step Data           ║")
-        //     appendLine("╠══════════════════════════════╣")
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (5m)", recentSteps5Minutes))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (30m)", recentSteps30Minutes))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (60m)", recentSteps60Minutes))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Steps (180m)", recentSteps180Minutes))
-        //     appendLine("╚══════════════════════════════╝")
-        //     appendLine()
-        //
-        //     appendLine("╔══════════════════════════════╗")
-        //     appendLine("║        Heart Rate Data       ║")
-        //     appendLine("╠══════════════════════════════╣")
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s bpm", "HR (5m)", String.format("%.1f", averageBeatsPerMinute)))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s bpm", "HR (60m)", String.format("%.1f", averageBeatsPerMinute60)))
-        //     appendLine("╚══════════════════════════════╝")
-        //     appendLine()
-        //
-        //     appendLine("╔══════════════════════════════╗")
-        //     appendLine("║            Modes             ║")
-        //     appendLine("╠══════════════════════════════╣")
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Delete Time", if (deleteTime) "Active" else "Inactive"))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Date", deleteEventDate))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Sleep", if (sleepTime) "Active" else "Inactive"))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Sport", if (sportTime) "Active" else "Inactive"))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Snack", if (snackTime) "Active" else "Inactive"))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Low Carb", if (lowCarbTime) "Active" else "Inactive"))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "High Carb", if (highCarbTime) "Active" else "Inactive"))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Meal", if (mealTime) "Active" else "Inactive"))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Breakfast", if (bfastTime) "Active" else "Inactive"))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Lunch", if (lunchTime) "Active" else "Inactive"))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Dinner", if (dinnerTime) "Active" else "Inactive"))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Fasting", if (fastingTime) "Active" else "Inactive"))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Calibration", if (iscalibration) "Active" else "Inactive"))
-        //     appendLine("╚══════════════════════════════╝")
-        //     appendLine()
-        //
-        //     appendLine("╔══════════════════════════════╗")
-        //     appendLine("║        Miscellaneous         ║")
-        //     appendLine("╠══════════════════════════════╣")
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s min", "Last SMB", lastsmbtime))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Hour", hourOfDay))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "Weekend", weekend))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "tags0-60m", tags0to60minAgo))
-        //     appendLine(String.format("║ %-${columnWidth}s │ %s", "tags60-120m", tags60to120minAgo))
-        //     appendLine("╚══════════════════════════════╝")
-        // }
-        //
-        // rT.reason.append(logTemplate)
         val screenWidth = preferences.get(IntKey.OApsAIMIlogsize)// Largeur d'écran par défaut en caractères si non spécifié
         val columnWidth = (screenWidth / 2) - 2 // Calcul de la largeur des colonnes en fonction de la largeur de l'écran
 
         val logTemplate = buildString {
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "10 October 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "12 October 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
