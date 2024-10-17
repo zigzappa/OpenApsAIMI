@@ -887,7 +887,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val scalingFactor = interpolateFactor(bg.toFloat(), targetBg, 120f, 1.0f, 0.5f).coerceAtLeast(0.1f) // Empêche le scalingFactor d'être trop faible
 
         val maxIncreaseFactor = 1.7f
-        val maxDecreaseFactor = 0.7f // Limite la diminution à 30% de la valeur d'origine
+        val maxDecreaseFactor = 0.5f // Limite la diminution à 30% de la valeur d'origine
 
         val adjustFactor = { factor: Float ->
             val adjustedFactor = factor * bgAdjustment * hypoAdjustment * scalingFactor
@@ -1301,7 +1301,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         this.bg = glucose_status.glucose
         val getlastBolusSMB = persistenceLayer.getNewestBolusOfType(BS.Type.SMB)
         val lastBolusSMBTime = getlastBolusSMB?.timestamp ?: 0L
-        val lastBolusSMBMinutes = lastBolusSMBTime / 60000
+        //val lastBolusSMBMinutes = lastBolusSMBTime / 60000
         this.lastBolusSMBUnit = getlastBolusSMB?.amount?.toFloat() ?: 0.0F
         val diff = abs(now - lastBolusSMBTime)
         this.lastsmbtime = (diff / (60 * 1000)).toInt()
@@ -2155,7 +2155,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val logTemplate = buildString {
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "12 October 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "17 October 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
@@ -2378,47 +2378,6 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 return setTempBasal(rate, 30, profile, rT, currenttemp)
             }
 
-            // rate = when {
-            //     !honeymoon && iob < 0.6 && bg in 90.0..120.0 && delta in 0.0..6.0 && !sportTime                                  -> profile_current_basal * 2
-            //     honeymoon && iob < 0.4 && bg in 90.0..100.0 && delta in 0.0..5.0 && !sportTime                                    -> profile_current_basal
-            //     iob < 0.8 && bg in 120.0..130.0 && delta in 0.0..6.0 && !sportTime                                                -> profile_current_basal * 4
-            //     bg < 80 && delta < 0                                                                                                          -> 0.0
-            //     bg < 80 && delta >= 0 && iob > 0.0                                                                                            -> profile_current_basal * 0.5
-            //     bg > 180 && delta in -6.0..0.0                                                                                          -> profile_current_basal
-            //     eventualBG < 65 && !snackTime && !mealTime && !lunchTime && !dinnerTime && !highCarbTime && !bfastTime  -> 0.0
-            //     eventualBG > 180 && !snackTime && !mealTime && !lunchTime && !dinnerTime && !highCarbTime && !bfastTime && !sportTime  ->calculateBasalRate(basal, profile_current_basal, 5.0)
-            //     snackTime && snackrunTime in 0..30                                                                                      -> calculateBasalRate(basal, profile_current_basal, 4.0)
-            //     mealTime && mealruntime in 0..30                                                                                        -> calculateBasalRate(basal, profile_current_basal, 10.0)
-            //     bfastTime && bfastruntime in 0..30                                                                                      -> calculateBasalRate(basal, profile_current_basal, 10.0)
-            //     bfastTime && bfastruntime in 30..60 && delta > 0                                                                        -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
-            //     lunchTime && lunchruntime in 0..30                                                                                      -> calculateBasalRate(basal, profile_current_basal, 10.0)
-            //     lunchTime && lunchruntime in 30..60 && delta > 0                                                                        -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
-            //     dinnerTime && dinnerruntime in 0..30                                                                                    -> calculateBasalRate(basal, profile_current_basal, 10.0)
-            //     dinnerTime && dinnerruntime in 30..60 && delta > 0                                                                      -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
-            //     highCarbTime && highCarbrunTime in 0..60                                                                                -> calculateBasalRate(basal, profile_current_basal, 10.0)
-            //     bg > 180 && !honeymoon && delta > 0                                                                                           -> calculateBasalRate(basal, profile_current_basal, 10.0)
-            //     recentSteps180Minutes > 2500 && averageBeatsPerMinute180 > averageBeatsPerMinute && bg > 140 && delta > 0 && !sportTime       -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
-            //     honeymoon && bg in 140.0..169.0 && delta > 0                                                                            -> profile_current_basal
-            //     honeymoon && bg > 170 && delta > 0                                                                                            -> calculateBasalRate(basal, profile_current_basal, delta.toDouble())
-            //     honeymoon && delta > 2 && bg in 90.0..119.0                                                                             -> profile_current_basal
-            //     honeymoon && delta > 0 && bg > 110 && eventualBG > 120 && bg < 160                                                            -> profile_current_basal * delta
-            //     pregnancyEnable && delta > 0 && bg > 110 && !honeymoon                                                                        -> calculateBasalRate(basal, profile_current_basal, 10.0)
-            //     localconditionResult && delta > 1 && bg > 90                                                                                  -> profile_current_basal * delta
-            //     bg > 100 && !conditionResult && eventualBG > 100 && delta in 0.0 .. 4.0 && !sportTime                                   -> profile_current_basal * delta
-            //     // New Conditions
-            //     honeymoon && mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg > 110 && delta >= 0                          -> profile_current_basal * 0.5
-            //     honeymoon && mealData.slopeFromMaxDeviation in 0.0..0.2 && mealData.slopeFromMinDeviation in 0.0..0.2 && bg in 120.0..150.0 && delta > 0 -> profile_current_basal * 1.5
-            //     honeymoon && mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg in 100.0..120.0 && delta > 0                 -> profile_current_basal * 0.8
-            //     !honeymoon && mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg > 80 && delta >= 0                          -> profile_current_basal * 0.5
-            //     !honeymoon && mealData.slopeFromMaxDeviation in 0.0..0.2 && mealData.slopeFromMinDeviation in 0.0..0.2 && bg in 80.0..100.0 && delta > 0 -> profile_current_basal * 1.5
-            //     !honeymoon && mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg in 80.0..100.0 && delta > 0                 -> profile_current_basal * 0.8
-            //         else -> 0.0
-            // }
-            // rate.let {
-            //     rT.rate = it
-            //     rT.reason.append("${currenttemp.duration}m@${(currenttemp.rate).toFixed2()} AI Force basal because of specific condition: ${round(rate, 2)}U/hr. ")
-            //     return setTempBasal(rate, 30, profile, rT, currenttemp)
-            // }
         }
     }
 }
