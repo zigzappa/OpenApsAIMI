@@ -2348,7 +2348,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             rate = when {
                 // Cas d'hypoglycémie : le taux basal est nul si la glycémie est inférieure à 80.
                 bg < 80 -> 0.0
-
+                !enablebasal && !mealTime && !lunchTime && !dinnerTime && !highCarbTime && !bfastTime && !snackTime -> 0.0
                 // Conditions avec un ajustement basé sur le facteur d'interpolation
                 !honeymoon && iob < 0.6 && bg in 90.0..120.0 && delta in 0.0..6.0 && !sportTime                                       -> profile_current_basal * basalAdjustmentFactor
                 honeymoon && iob < 0.4 && bg in 90.0..100.0 && delta in 0.0..5.0 && !sportTime                                        -> profile_current_basal
