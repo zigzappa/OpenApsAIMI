@@ -619,7 +619,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         return sport || sport1 || sport2 || sport3 || sport4 || sport5
 
     }
-    private fun applySpecificAdjustments(mealData: MealData,smbToGive: Float): Float {
+    private fun applySpecificAdjustments(mealData: MealData, smbToGive: Float): Float {
         var result = smbToGive
         val intervalSMBsnack = preferences.get(IntKey.OApsAIMISnackinterval)
         val intervalSMBmeal = preferences.get(IntKey.OApsAIMImealinterval)
@@ -632,7 +632,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
         val belowTargetAndDropping = bg < targetBg
         val night = preferences.get(BooleanKey.OApsAIMInight)
-
+        val currentHour = LocalTime.now().hour
 
         when {
             shouldApplyIntervalAdjustment(intervalSMBsnack, intervalSMBmeal, intervalSMBbfast, intervalSMBlunch, intervalSMBdinner, intervalSMBsleep, intervalSMBhc, intervalSMBhighBG) -> {
@@ -655,10 +655,12 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (shouldApplyStepAdjustment()) result = 0.0f
         if (belowTargetAndDropping) result /= 2
         if (honeymoon && bg < 170 && delta < 5) result /= 2
-        if (night && LocalTime.now().run { (hour in 23..23 || hour in 0..11) } && delta < 10 && iob < maxSMB) result /= 2
+        if (night && currentHour in 23..23 && delta < 10 && iob < maxSMB) result /= 2
+        if (currentHour in 0..5 && delta < 10 && iob < maxSMB) result /= 2 // Ajout d'une réduction pendant la période de minuit à 5h du matin
 
         return result
     }
+
 
     private fun shouldApplyIntervalAdjustment(intervalSMBhighBG: Int, intervalSMBsnack: Int, intervalSMBmeal: Int,intervalSMBbfast: Int, intervalSMBlunch: Int, intervalSMBdinner: Int, intervalSMBsleep: Int, intervalSMBhc: Int): Boolean {
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
@@ -908,30 +910,39 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         averageBeatsPerMinute: Float,
         averageBeatsPerMinute10: Float
     ): Float {
-        if (bg.isNaN() || averageBeatsPerMinute.isNaN() || averageBeatsPerMinute10.isNaN() || averageBeatsPerMinute10 == 0f) {
-            return 1f
-        }
-
-        val stepActivityThreshold = 1500
-        val heartRateIncreaseThreshold = 1.2
-        val insulinSensitivityDecreaseThreshold = 1.5 * normalBgThreshold
-
-        val increasedPhysicalActivity = recentSteps180Minutes > stepActivityThreshold
-        val heartRateChange = averageBeatsPerMinute / averageBeatsPerMinute10
-        val increasedHeartRateActivity = heartRateChange >= heartRateIncreaseThreshold
-
-        val baseFactor = when {
-            bg <= normalBgThreshold -> 1f
-            bg <= insulinSensitivityDecreaseThreshold -> 1f - ((bg - normalBgThreshold) / (insulinSensitivityDecreaseThreshold - normalBgThreshold))
-            else -> 0.5f
-        }
-
-        return if (increasedPhysicalActivity || increasedHeartRateActivity) {
-            (baseFactor.toFloat() * 0.8f).coerceAtLeast(0.5f)
+        val currentHour = LocalTime.now().hour
+        var delayFactor = if (bg.isNaN() || averageBeatsPerMinute.isNaN() || averageBeatsPerMinute10.isNaN() || averageBeatsPerMinute10 == 0f) {
+            1f
         } else {
-            baseFactor.toFloat()
+            val stepActivityThreshold = 1500
+            val heartRateIncreaseThreshold = 1.2
+            val insulinSensitivityDecreaseThreshold = 1.5 * normalBgThreshold
+
+            val increasedPhysicalActivity = recentSteps180Minutes > stepActivityThreshold
+            val heartRateChange = averageBeatsPerMinute / averageBeatsPerMinute10
+            val increasedHeartRateActivity = heartRateChange >= heartRateIncreaseThreshold
+
+            val baseFactor = when {
+                bg <= normalBgThreshold -> 1f
+                bg <= insulinSensitivityDecreaseThreshold -> 1f - ((bg - normalBgThreshold) / (insulinSensitivityDecreaseThreshold - normalBgThreshold))
+                else -> 0.5f
+            }
+
+            if (increasedPhysicalActivity || increasedHeartRateActivity) {
+                (baseFactor.toFloat() * 0.8f).coerceAtLeast(0.5f)
+            } else {
+                baseFactor.toFloat()
+            }
         }
+        // Augmenter le délai si l'heure est le soir (18h à 23h) ou diminuer le besoin entre 00h à 5h
+        if (currentHour in 18..23) {
+            delayFactor *= 1.2f
+        } else if (currentHour in 0..5) {
+            delayFactor *= 0.8f
+        }
+        return delayFactor
     }
+
     fun calculateMinutesAboveThreshold(
         bg: Double,           // Glycémie actuelle (mg/dL)
         slope: Double,        // Pente de la glycémie (mg/dL par minute)
@@ -1033,6 +1044,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (bg > normalBgThreshold) {
             insulinEffect *= 1.2f
         }
+        val currentHour = LocalTime.now().hour
+        if (currentHour in 0..5) {
+            insulinEffect *= 0.8f
+        }
 
         return insulinEffect
     }
@@ -1092,16 +1107,23 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             highcarbTime -> Triple(3.5f, 0.75f, 100f) // Repas riche en glucides
             snackTime -> Triple(1.5f, 1.25f, 15f) // Snack
             mealTime -> Triple(2.5f, 1.0f, 55f) // Repas normal
-            bfastTime -> Triple(3.5f, 1.0f, 55f) // breakfast
-            lunchTime -> Triple(2.5f, 1.0f, 70f) // Repas normal
-            dinnerTime -> Triple(2.5f, 1.0f, 70f) // Repas normal
+            bfastTime -> Triple(3.5f, 1.0f, 55f) // Petit-déjeuner
+            lunchTime -> Triple(2.5f, 1.0f, 70f) // Déjeuner
+            dinnerTime -> Triple(2.5f, 1.0f, 70f) // Dîner
             else -> Triple(2.5f, 1.0f, 70f) // Valeur par défaut si aucun type de repas spécifié
         }
-        val absorptionTimeInMinutes = averageCarbAbsorptionTime * 60
+
+        // Augmenter l'absorption s'il fait nuit (le soir l'insuline agit souvent plus lentement)
+        val currentHour = LocalTime.now().hour
+        val absorptionTimeInMinutes = when {
+            currentHour in 18..23 -> averageCarbAbsorptionTime * 90
+            currentHour in 0..5 -> averageCarbAbsorptionTime * 50 // Diminuer l'absorption entre minuit et 5h du matin
+            else -> averageCarbAbsorptionTime * 60
+        }
 
         val insulinEffect = calculateInsulinEffect(
             bg, iob, variableSensitivity, cob, normalBgThreshold, recentSteps180Minutes,
-            averageBeatsPerMinute.toFloat(), averageBeatsPerMinute10.toFloat(),profile.insulinDivisor.toFloat()
+            averageBeatsPerMinute.toFloat(), averageBeatsPerMinute10.toFloat(), profile.insulinDivisor.toFloat()
         )
 
         val carbEffect = if (absorptionTimeInMinutes != 0f && ci > 0f) {
@@ -1113,12 +1135,13 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         var futureBg = bg - insulinEffect + carbEffect
         if (!honeymoon && futureBg < 39f) {
             futureBg = 39f
-        }else if(honeymoon && futureBg < 50f){
+        } else if (honeymoon && futureBg < 50f) {
             futureBg = 50f
         }
 
         return futureBg
     }
+
     private fun interpolate(xdata: Double): Double {
         // Définir les points de référence pour l'interpolation, à partir de 80 mg/dL
         val polyX = arrayOf(80.0, 90.0, 100.0, 110.0, 150.0, 180.0, 200.0, 220.0, 240.0, 260.0, 280.0, 300.0)
@@ -2155,7 +2178,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val logTemplate = buildString {
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "17 October 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "18 October 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
