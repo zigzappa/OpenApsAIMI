@@ -586,8 +586,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (interval) conditionsTrue.add("interval")
         val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 12
         if (targetinterval) conditionsTrue.add("targetinterval")
-        val stablebg = delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 120 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
-        if (stablebg) conditionsTrue.add("stablebg")
+        //val stablebg = delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 120 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
+        //if (stablebg) conditionsTrue.add("stablebg")
         val acceleratingDown = delta < -2 && delta - longAvgDelta < -2 && lastsmbtime < 15
         if (acceleratingDown) conditionsTrue.add("acceleratingDown")
         val decceleratingdown = delta < 0 && (delta > shortAvgDelta || delta > longAvgDelta) && lastsmbtime < 15
@@ -598,7 +598,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (bg90) conditionsTrue.add("bg90")
         val result = belowTargetAndDropping || belowTargetAndStableButNoCob || nosmbHM || slopedeviation || honeysmb ||
             droppingFast || droppingFastAtHigh || droppingVeryFast || prediction || interval || targetinterval || bg90 || negdelta ||
-            fasting || nosmb || isNewCalibration || stablebg || belowMinThreshold || acceleratingDown || decceleratingdown || nosmbhoneymoon
+            fasting || nosmb || isNewCalibration || belowMinThreshold || acceleratingDown || decceleratingdown || nosmbhoneymoon
 
         val conditionsTrueString = if (conditionsTrue.isNotEmpty()) {
             conditionsTrue.joinToString(", ")
@@ -639,15 +639,15 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 result = 0.0f
             }
             shouldApplySafetyAdjustment() -> {
-                result /= 2
+                result *= 0.75f
                 this.intervalsmb = 10
             }
             shouldApplyTimeAdjustment() -> {
                 result = 0.0f
                 this.intervalsmb = 10
             }
-            mealData.slopeFromMaxDeviation in -0.5..0.1 && mealData.slopeFromMinDeviation in 0.1..0.4 && bg > 100 -> {
-                result /= 3
+            mealData.slopeFromMaxDeviation in -0.5..0.1 && mealData.slopeFromMinDeviation in 0.1..0.4 && bg in 100.0..140.0 -> {
+                result /= 2
                 this.intervalsmb = 10
             }
         }
@@ -655,8 +655,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (shouldApplyStepAdjustment()) result = 0.0f
         if (belowTargetAndDropping) result /= 2
         if (honeymoon && bg < 170 && delta < 5) result /= 2
-        if (night && currentHour in 23..23 && delta < 10 && iob < maxSMB) result /= 2
-        if (currentHour in 0..5 && delta < 10 && iob < maxSMB) result /= 2 // Ajout d'une réduction pendant la période de minuit à 5h du matin
+        if (night && currentHour in 23..23 && delta < 10 && iob < maxSMB) result *= 0.8f
+        if (currentHour in 0..5 && delta < 10 && iob < maxSMB) result *= 0.8f // Ajout d'une réduction pendant la période de minuit à 5h du matin
 
         return result
     }
@@ -686,6 +686,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         // Assurez-vous que smbToGive n'est pas négatif
         if (result < 0.0f) {
             result = 0.0f
+        }
+        if (iob < 0 && bg > 100 && delta >= 0 && result == 0.0f) {
+            result = 0.1f
         }
         return result
     }
@@ -803,41 +806,118 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                     }
                 }
 
+                // do {
+                //     totalDifference = 0.0f
+                //
+                //     for (enhancedInput in inputs) {
+                //         val predictedrefineSMB = finalRefinedSMB// Prédiction du modèle TFLite
+                //         val refinedSMB = neuralNetwork?.let { refineSMB(predictedrefineSMB, it, enhancedInput) }
+                //         if (delta > 10 && bg > 120) {
+                //             isAggressiveResponseNeeded = true
+                //         }
+                //         val difference = abs(predictedrefineSMB - refinedSMB!!)
+                //         totalDifference += difference
+                //         if (difference in 0.0..2.5) {
+                //             finalRefinedSMB = if (refinedSMB > 0.0f) refinedSMB else 0.0f
+                //             differenceWithinRange = true
+                //             break
+                //         }
+                //     }
+                //     // if (isAggressiveResponseNeeded && (finalRefinedSMB <= 0.5)) {
+                //     //     finalRefinedSMB = maxSMB.toFloat() / 2
+                //     // }
+                //     if (isAggressiveResponseNeeded) {
+                //         finalRefinedSMB = min(maxSMB.toFloat() * (delta / 20), maxSMB.toFloat() / 2)
+                //     }
+                //     if (finalRefinedSMB > 0.5 && bg < 150 && delta < 8) {
+                //         finalRefinedSMB /= 2
+                //     }
+                //
+                //     iterationCount++
+                //     if (differenceWithinRange || iterationCount >= maxIterations) {
+                //         break
+                //     }
+                // } while (true)
+                // if (differenceWithinRange || iterationCount >= maxIterations) {
+                //     globalConvergenceReached = true
+                // }
+                //
+                //
+                // globalIterationCount++
                 do {
                     totalDifference = 0.0f
 
+                    // Calculer la différence dynamique basée sur les itérations précédentes et les caractéristiques de la glycémie
+                    val dynamicDifferenceThreshold = calculateDynamicThreshold(iterationCount, delta, shortAvgDelta, longAvgDelta)
+
                     for (enhancedInput in inputs) {
-                        val predictedrefineSMB = finalRefinedSMB// Prédiction du modèle TFLite
+                        val predictedrefineSMB = finalRefinedSMB // Prédiction du modèle TFLite
                         val refinedSMB = neuralNetwork?.let { refineSMB(predictedrefineSMB, it, enhancedInput) }
-                        if (delta > 10 && bg > 100) {
+                        if (delta > 10 && bg > 120) {
                             isAggressiveResponseNeeded = true
                         }
                         val difference = abs(predictedrefineSMB - refinedSMB!!)
                         totalDifference += difference
-                        if (difference in 0.0..2.5) {
+                        val increasedToleranceFactor = if (iterationCount > maxIterations / 2) 1.5f else 1.0f
+                        val adaptiveThreshold = dynamicDifferenceThreshold * increasedToleranceFactor
+                        if (difference <= adaptiveThreshold) {
                             finalRefinedSMB = if (refinedSMB > 0.0f) refinedSMB else 0.0f
                             differenceWithinRange = true
                             break
                         }
                     }
-                    if (isAggressiveResponseNeeded && (finalRefinedSMB <= 0.5)) {
-                        finalRefinedSMB = maxSMB.toFloat() / 2
+                    // Ajuster la valeur SMB de manière plus progressive
+                    if (isAggressiveResponseNeeded) {
+                        // Calculer une valeur provisoire du SMB basé sur delta
+                        val provisionalSMB = maxSMB.toFloat() * (delta / 30)
+                        // Utiliser la valeur minimale entre le SMB maximum permis et la valeur calculée, mais toujours au moins égale à finalRefinedSMB
+                        finalRefinedSMB = max(finalRefinedSMB, min(provisionalSMB, maxSMB.toFloat() / 1.5f))
                     }
+
+
+                    if (finalRefinedSMB > 0.5 && bg < 120 && delta < 8) {
+                        finalRefinedSMB /= 2
+                    }
+
                     iterationCount++
                     if (differenceWithinRange || iterationCount >= maxIterations) {
                         break
                     }
                 } while (true)
+
                 if (differenceWithinRange || iterationCount >= maxIterations) {
                     globalConvergenceReached = true
                 }
-
+                if (globalConvergenceReached) {
+                    break
+                }
 
                 globalIterationCount++
+
             }
+        }
+        if (!globalConvergenceReached) {
+            finalRefinedSMB = (predictedSMB * 0.4f) + (finalRefinedSMB * 0.6f)
         }
         return if (globalConvergenceReached) finalRefinedSMB else predictedSMB
     }
+    private fun calculateDynamicThreshold(iterationCount: Int, delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Float {
+        val baseThreshold = 2.5f
+
+        // Réduire la valeur seuil au fur et à mesure que les itérations augmentent, favorisant une convergence plus fine
+        val iterationFactor = 1.0f / (1 + iterationCount / 100)
+
+        // Ajuster en fonction des tendances de la glycémie
+        val trendFactor = when {
+            delta > 10 || shortAvgDelta > 5 || longAvgDelta > 5 -> 0.5f // Rendre la convergence plus stricte
+            delta < 5 && shortAvgDelta < 3 && longAvgDelta < 3 -> 1.5f  // Convergence plus tolérante si les montées sont douces
+            else -> 1.0f
+        }
+
+        // Calculer le seuil dynamique final
+        return baseThreshold * iterationFactor * trendFactor
+    }
+
     private fun calculateGFactor(delta: Float, lastHourTIRabove120: Double, bg: Float): Double {
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
 
@@ -2178,7 +2258,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val logTemplate = buildString {
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "18 October 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "20 October 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
