@@ -1,20 +1,26 @@
 package app.aaps.plugins.aps.openAPSAIMI
 
+import kotlin.math.exp
 import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.sqrt
+import kotlin.math.tanh
 import kotlin.random.Random
 
 class AimiNeuralNetwork(
     private val inputSize: Int,
     private val hiddenSize: Int,
     private val outputSize: Int,
-    private var learningRate: Double = 0.01,
+    private val config: TrainingConfig = TrainingConfig(),
     private val regularizationLambda: Double = 0.01,
     private val dropoutRate: Double = 0.5
 ) {
 
-    private var weightsInputHidden = Array(inputSize) { DoubleArray(hiddenSize) { Random.nextDouble(-sqrt(6.0 / (inputSize + hiddenSize)), sqrt(6.0 / (inputSize + hiddenSize))) } }
+    //private var weightsInputHidden = Array(inputSize) { DoubleArray(hiddenSize) { Random.nextDouble(-sqrt(6.0 / (inputSize + hiddenSize)), sqrt(6.0 / (inputSize + hiddenSize))) } }
+    private var weightsInputHidden = Array(inputSize) {
+        DoubleArray(hiddenSize) { Random.nextDouble(-sqrt(2.0 / inputSize), sqrt(2.0 / inputSize)) }
+    }
+    private var bestLoss: Double = Double.MAX_VALUE
     private var biasHidden = DoubleArray(hiddenSize) { 0.01 }
     private var weightsHiddenOutput = Array(hiddenSize) { DoubleArray(outputSize) { Random.nextDouble(-sqrt(6.0 / (hiddenSize + outputSize)), sqrt(6.0 / (hiddenSize + outputSize))) } }
     private var biasOutput = DoubleArray(outputSize) { 0.01 }
@@ -24,12 +30,22 @@ class AimiNeuralNetwork(
 
     companion object {
 
-        fun refineSMB(smb: Float, neuralNetwork: AimiNeuralNetwork, input: FloatArray): Float {
-            val prediction = neuralNetwork.predict(input)[0]
+        fun refineSMB(smb: Float, neuralNetwork: AimiNeuralNetwork, input: DoubleArray?): Float {
+            val floatInput = input?.map { it.toFloat() }?.toFloatArray() ?: return smb
+            val prediction = neuralNetwork.predict(floatInput)[0]
             return smb + prediction.toFloat()
         }
 
     }
+    private fun activation(x: Double, type: String = "ReLU"): Double {
+        return when (type) {
+            "Sigmoid" -> 1.0 / (1.0 + exp(-x))
+            "Tanh" -> tanh(x)
+            "LeakyReLU" -> if (x > 0) x else 0.01 * x
+            else -> max(0.0, x) // ReLU par défaut
+        }
+    }
+
 
     private fun applyDropout(layer: DoubleArray): DoubleArray {
         return layer.map { if (Random.nextDouble() > dropoutRate) it else 0.0 }.toDoubleArray()
@@ -73,6 +89,16 @@ class AimiNeuralNetwork(
             }
         }
     }
+    private fun applyDropout(layer: DoubleArray, dropoutRate: Double = 0.5): DoubleArray {
+        return layer.map { if (Random.nextDouble() > dropoutRate) it else 0.0 }.toDoubleArray()
+    }
+    private fun batchNormalization(layer: DoubleArray): DoubleArray {
+        val mean = layer.average()
+        val variance = layer.map { (it - mean).pow(2.0) }.average()
+        return layer.map { (it - mean) / sqrt(variance + 1e-8) }.toDoubleArray()
+    }
+
+
 
     private fun forwardPass(input: FloatArray): Pair<DoubleArray, DoubleArray> {
         val hidden = DoubleArray(hiddenSize) { i ->
@@ -80,9 +106,14 @@ class AimiNeuralNetwork(
             for (j in input.indices) {
                 sum += input[j] * weightsInputHidden[j][i]
             }
-            relu(sum + biasHidden[i])
+            //relu(sum + biasHidden[i])
+            sum + biasHidden[i]
         }
-        val hiddenWithDropout = applyDropout(hidden)
+        val activatedHidden = hidden.map { activation(it, "LeakyReLU") }.toDoubleArray()
+        val normalizedHidden = batchNormalization(activatedHidden)
+        val hiddenWithDropout = applyDropout(normalizedHidden)
+
+        //val hiddenWithDropout = applyDropout(hidden)
 
         val hidden2 = DoubleArray(hiddenSize) { i ->
             var sum = 0.0
@@ -135,7 +166,6 @@ class AimiNeuralNetwork(
         batchSize: Float = 32.0f,
         patience: Int = 10
     ) {
-        var bestLoss = Double.MAX_VALUE
         var epochsWithoutImprovement = 0
         val preparedInputs = createNewFeature(inputs)
         val normalizedInputs = zScoreNormalization(preparedInputs)
@@ -164,7 +194,7 @@ class AimiNeuralNetwork(
 
                 val validationLoss = validate(normalizedValidationInputs, validationTargets)
                 println("Epoch $epoch, Training Loss: $averageLoss, Validation Loss: $validationLoss")
-
+                adjustLearningRate(epoch, validationLoss)
                 if (validationLoss < bestLoss) {
                     bestLoss = validationLoss
                     epochsWithoutImprovement = 0
@@ -176,7 +206,7 @@ class AimiNeuralNetwork(
                     }
                 }
 
-                learningRate *= 0.95 // Réduction dynamique du taux d'apprentissage
+                config.learningRate *= 0.95 // Réduction dynamique du taux d'apprentissage
                 t++
             } catch (e: Exception) {
                 lastTrainingException = e
@@ -201,7 +231,7 @@ class AimiNeuralNetwork(
 
     private fun updateWeightsAndBiasesForOutputLayer(hidden: DoubleArray, gradLossOutput: DoubleArray, mOutput: Array<DoubleArray>, vOutput: Array<DoubleArray>) {
         val gradHiddenOutput = calculateGradHiddenOutput(hidden, gradLossOutput)
-        adam(weightsHiddenOutput, gradHiddenOutput, mOutput, vOutput, 1, learningRate)
+        adam(weightsHiddenOutput, gradHiddenOutput, mOutput, vOutput, 1, config.learningRate)
         updateBiases(biasOutput, gradLossOutput)
     }
 
@@ -214,7 +244,7 @@ class AimiNeuralNetwork(
 
     private fun updateWeightsAndBiasesForHiddenLayer(input: FloatArray, hidden: DoubleArray, gradLossHidden: DoubleArray, m: Array<DoubleArray>, v: Array<DoubleArray>) {
         val gradInputHidden = calculateGradInputHidden(input, hidden, gradLossHidden)
-        adam(weightsInputHidden, gradInputHidden, m, v, 1, learningRate)
+        adam(weightsInputHidden, gradInputHidden, m, v, 1, config.learningRate)
         updateBiasesForHiddenLayer(hidden, gradLossHidden)
     }
 
@@ -237,14 +267,14 @@ class AimiNeuralNetwork(
 
     private fun updateBiases(biases: DoubleArray, gradLoss: DoubleArray) {
         for (i in biases.indices) {
-            biases[i] -= learningRate * gradLoss[i]
+            biases[i] -= config.learningRate * gradLoss[i]
         }
     }
 
     private fun updateBiasesForHiddenLayer(hidden: DoubleArray, gradLossHidden: DoubleArray) {
         for (j in hidden.indices) {
             val gradRelu = if (hidden[j] > 0) 1.0 else 0.001
-            biasHidden[j] -= learningRate * gradLossHidden[j] * gradRelu
+            biasHidden[j] -= config.learningRate * gradLossHidden[j] * gradRelu
         }
     }
 
@@ -304,8 +334,8 @@ class AimiNeuralNetwork(
                         val (gradInputHidden, gradHiddenOutput) = backpropagationWithAdam(input, gradOutputs)
 
                         // Update weights with Adam optimizer for both layers
-                        updateWeightsAdam(weightsInputHidden, gradInputHidden, m, v, ++t, learningRate)
-                        updateWeightsAdam(weightsHiddenOutput, gradHiddenOutput, mOutput, vOutput, t, learningRate)
+                        updateWeightsAdam(weightsInputHidden, gradInputHidden, m, v, ++t)
+                        updateWeightsAdam(weightsHiddenOutput, gradHiddenOutput, mOutput, vOutput, t)
 
                         totalLoss += mseLoss(output, target) + l2Regularization()
                     }
@@ -328,7 +358,7 @@ class AimiNeuralNetwork(
                     }
                 }
 
-                learningRate *= 0.95  // Dynamically reduce the learning rate
+                config.learningRate *= 0.95  // Dynamically reduce the learning rate
             } catch (e: Exception) {
                 lastTrainingException = e
                 println("Exception during training at epoch $epoch: ${e.message}")
@@ -336,11 +366,22 @@ class AimiNeuralNetwork(
             }
         }
     }
+    private fun adjustLearningRate(epoch: Int, validationLoss: Double) {
+        if (validationLoss > bestLoss) {
+            config.learningRate *= 0.9 // Réduis si la validation n’améliore pas
+        }
+    }
 
-        private fun updateWeightsAdam(weights: Array<DoubleArray>, grads: Array<DoubleArray>, m: Array<DoubleArray>, v: Array<DoubleArray>, t: Int, learningRate: Double) {
-            val beta1 = 0.9
-            val beta2 = 0.999
-            val epsilon = 1e-8
+        private fun updateWeightsAdam(
+            weights: Array<DoubleArray>,
+            grads: Array<DoubleArray>,
+            m: Array<DoubleArray>,
+            v: Array<DoubleArray>, t: Int)
+        {
+            val beta1 = config.beta1
+            val beta2 = config.beta2
+            val epsilon = config.epsilon
+            val weightDecay = config.weightDecay
 
             for (i in weights.indices) {
                 for (j in weights[i].indices) {
@@ -350,7 +391,8 @@ class AimiNeuralNetwork(
                     val mHat = m[i][j] / (1 - beta1.pow(t.toDouble()))
                     val vHat = v[i][j] / (1 - beta2.pow(t.toDouble()))
 
-                    weights[i][j] -= learningRate * mHat / (sqrt(vHat) + epsilon)
+                    //weights[i][j] -= config.learningRate * mHat / (sqrt(vHat) + epsilon)
+                    weights[i][j] -= config.learningRate * mHat / (sqrt(vHat) + epsilon) + weightDecay * weights[i][j]
                 }
             }
         }
@@ -383,7 +425,6 @@ class AimiNeuralNetwork(
             // Return both sets of gradients
             return Pair(gradInputHidden, gradHiddenOutput)
         }
-
 
     private fun validate(inputs: List<FloatArray>, targets: List<DoubleArray>): Double {
             var totalLoss = 0.0
