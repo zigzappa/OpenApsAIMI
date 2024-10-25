@@ -2357,8 +2357,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (iob_data.iob > max_iob) {
             rT.reason.append("IOB ${round(iob_data.iob, 2)} > max_iob $max_iob")
             if (delta < 0) {
-                rT.reason.append(", skipping basal change because BG is dropping (delta $delta). ")
-                return rT
+                rT.reason.append(", BG is dropping (delta $delta), setting basal to 0. ")
+                return setTempBasal(0.0, 30, profile, rT, currenttemp) // Basal à 0 pendant 30 minutes
             }
             return if (currenttemp.duration > 15 && (roundBasal(basal) == roundBasal(currenttemp.rate))) {
                 rT.reason.append(", temp ${currenttemp.rate} ~ req ${round(basal, 2).withoutZeros()}U/hr. ")
