@@ -2234,7 +2234,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val logTemplate = buildString {
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "22 October 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "25 October 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
@@ -2356,6 +2356,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         if (iob_data.iob > max_iob) {
             rT.reason.append("IOB ${round(iob_data.iob, 2)} > max_iob $max_iob")
+            if (delta < 0) {
+                rT.reason.append(", skipping basal change because BG is dropping (delta $delta). ")
+                return rT
+            }
             return if (currenttemp.duration > 15 && (roundBasal(basal) == roundBasal(currenttemp.rate))) {
                 rT.reason.append(", temp ${currenttemp.rate} ~ req ${round(basal, 2).withoutZeros()}U/hr. ")
                 rT
