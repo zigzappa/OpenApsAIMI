@@ -2234,7 +2234,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val logTemplate = buildString {
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "25 October 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "27 October 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
@@ -2415,7 +2415,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 iob < 0.8 && bg in 120.0..130.0 && delta in 0.0..6.0 && !sportTime                                                    -> profile_current_basal * basalAdjustmentFactor
                 bg > 180 && delta in -6.0..0.0                                                                                        -> profile_current_basal * basalAdjustmentFactor
                 eventualBG < 65 && !snackTime && !mealTime && !lunchTime && !dinnerTime && !highCarbTime && !bfastTime                -> 0.0
-                eventualBG > 180 && !snackTime && !mealTime && !lunchTime && !dinnerTime && !highCarbTime && !bfastTime && !sportTime -> calculateBasalRate(basal, profile_current_basal, basalAdjustmentFactor)
+                eventualBG > 180 && !snackTime && !mealTime && !lunchTime && !dinnerTime && !highCarbTime && !bfastTime && !sportTime && delta > 3 -> calculateBasalRate(basal, profile_current_basal, basalAdjustmentFactor)
 
                 // Conditions spécifiques basées sur les temps de repas
                 snackTime && snackrunTime in 0..30                 -> calculateBasalRate(basal, profile_current_basal, 4.0)
