@@ -402,7 +402,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     }
     private fun automateDeletionIfBadDay(tir1DAYIR: Int) {
         // Vérifier si le TIR est inférieur à 80
-        if (tir1DAYIR < 85) {
+        if (tir1DAYIR < 75) {
             // Vérifier si l'heure actuelle est entre 00:05 et 00:10
             val currentTime = LocalTime.now()
             val start = LocalTime.of(0, 5)
@@ -2234,7 +2234,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val logTemplate = buildString {
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "31 October 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "02 november 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
