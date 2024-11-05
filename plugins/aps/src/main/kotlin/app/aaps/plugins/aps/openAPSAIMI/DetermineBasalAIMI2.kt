@@ -37,12 +37,14 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.div
 import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.times
 
 @Singleton
 class DetermineBasalaimiSMB2 @Inject constructor(
@@ -1335,6 +1337,37 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             println("Les $n dernières lignes ont été supprimées.")
         }
     }
+    private fun calculateDynamicPeakTime(
+        currentActivity: Double,
+        futureActivity: Double,
+        sensorLagActivity: Double,
+        historicActivity: Double,
+        profile: OapsProfileAimi
+    ): Double {
+        // Ajuster le peakTime en fonction des valeurs d'activité
+        var dynamicPeakTime = profile.peakTime // Utilise le peakTime par défaut comme base
+
+        // Facteur d'ajustement basé sur l'activité
+        val activityRatio = futureActivity / (currentActivity + 0.0001) // Évite la division par zéro
+
+        // Calculer le peakTime en fonction de l'intensité d'activité
+        dynamicPeakTime *= when {
+            activityRatio > 1.5 -> 0.8 // Augmentation importante : pic plus précoce
+            activityRatio < 0.5 -> 1.2 // Faible augmentation : pic plus tardif
+            else -> 1.0 // Pas de changement significatif
+        }
+
+        // Ajustement basé sur le retard capteur (sensor lag) et historique
+        if (sensorLagActivity > historicActivity) {
+            dynamicPeakTime *= 0.9 // Réduire le peakTime si l'activité capteur est plus forte que l'historique
+        } else if (sensorLagActivity < historicActivity) {
+            dynamicPeakTime *= 1.1 // Augmenter le peakTime si l'activité capteur est plus faible que l'historique
+        }
+
+        // Limiter le peakTime à des valeurs réalistes (par exemple, 20 à 120 minutes)
+        return dynamicPeakTime.coerceIn(20.0, 120.0)
+    }
+
     private fun parseNotes(startMinAgo: Int, endMinAgo: Int): String {
         val olderTimeStamp = now - endMinAgo * 60 * 1000
         val moreRecentTimeStamp = now - startMinAgo * 60 * 1000
@@ -1997,9 +2030,43 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         rT.reason.append("adjustedMorningFactor $adjustedMorningFactor")
         rT.reason.append("adjustedAfternoonFactor $adjustedAfternoonFactor")
         rT.reason.append("adjustedEveningFactor $adjustedEveningFactor")
+        val factors = (adjustedMorningFactor + adjustedAfternoonFactor + adjustedEveningFactor) / 3
+// Calcul de la dose d'insuline requise avec tsuInsReq et integration de smbToGive
 
+        val actCurr = profile.sensorLagActivity //MP Current delta value, due to sensor lag, is more likely to represent situation from about 10 minutes ago - therefore activity from 10 minutes ago is used for activity calculations.
+        val actFuture = profile.futureActivity
+        val td = profile.dia * 60 // Durée d'action de l'insuline en minutes
+        val deltaGross = round((glucose_status.delta + actCurr * sens).coerceIn(0.0, 35.0), 1) //MP 5-minute-delta value if insulin activity was zero; Caps at 35 (assumed glucose absorption limit), and is weakened by negative IA; Currently, negative IA disables the activity controller
+        val actTarget = deltaGross / sens * factors
+        var actMissing = 0.0
+        var deltaScore: Double = 0.5
+        val tp = calculateDynamicPeakTime(
+            currentActivity = profile.currentActivity,
+            futureActivity = profile.futureActivity,
+            sensorLagActivity = profile.sensorLagActivity,
+            historicActivity = profile.historicActivity,
+            profile
+        ) // Calcul dynamique du peakTime
+        if (glucose_status.delta <= 4.0) {
+            //MP Adjust activity target to activityTarget % of current activity if glucose is near constant / delta is low (near-constant activity)
+            actMissing = round((actCurr * smbToGive - Math.max(actFuture, 0.0)) / 5, 4) //MP Use activityTarget% of current activity as target activity in the future; Divide by 5 to get per-minute activity
+            deltaScore = ((bg - target_bg) / 100).coerceIn(0.0, 1.0) //MP redefines deltaScore as it otherwise would be near-zero (low deltas). The higher the bg, the larger deltaScore. If difference between bg and target is 100 --> DeltaScore = 1.0
+        } else {
+            //MP Escalate activity at medium to high delta (activity build-up)
+            actMissing = round((actTarget - Math.max(actFuture, 0.0)) / 5, 4) //MP Calculate required activity to end a rise in t minutes; Divide by 5 to get per-minute activity
+        }
 
-        smbToGive = applySafetyPrecautions(mealData,smbToGive)
+// Calcul de tsuInsReq basé sur le peakTime dynamique
+        val tau = tp * (1 - tp / td) / (1 - 2 * tp / td)
+        val a = 2 * tau / td
+        val S = 1 / (1 - a + (1 + a) * Math.exp((-td / tau)))
+        var AimiInsReq = actMissing / (S / Math.pow(tau, 2.0) * tp * (1 - tp / td) * Math.exp((-tp / tau)))
+
+        AimiInsReq = if (AimiInsReq < smbToGive) AimiInsReq else smbToGive.toDouble()
+
+        val finalInsulinDose = round(AimiInsReq, 2)
+
+        smbToGive = applySafetyPrecautions(mealData,finalInsulinDose.toFloat())
         smbToGive = roundToPoint05(smbToGive)
 
         logDataMLToCsv(predictedSMB, smbToGive)
