@@ -1,5 +1,6 @@
 package app.aaps.plugins.aps.openAPSAIMI
 
+import android.annotation.SuppressLint
 import android.os.Environment
 import app.aaps.core.data.model.BS
 import app.aaps.core.data.model.UE
@@ -9,7 +10,7 @@ import app.aaps.core.interfaces.aps.CurrentTemp
 import app.aaps.core.interfaces.aps.GlucoseStatus
 import app.aaps.core.interfaces.aps.IobTotal
 import app.aaps.core.interfaces.aps.MealData
-import app.aaps.core.interfaces.aps.OapsProfile
+import app.aaps.core.interfaces.aps.OapsProfileAimi
 import app.aaps.core.interfaces.aps.Predictions
 import app.aaps.core.interfaces.aps.RT
 import app.aaps.core.interfaces.db.PersistenceLayer
@@ -184,7 +185,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     private fun convertBG(value: Double): String =
         profileUtil.fromMgdlToStringInUnits(value).replace("-0.0", "0.0")
 
-    private fun enablesmb(profile: OapsProfile, microBolusAllowed: Boolean, mealData: MealData, target_bg: Double): Boolean {
+    private fun enablesmb(profile: OapsProfileAimi, microBolusAllowed: Boolean, mealData: MealData, target_bg: Double): Boolean {
         // disable SMB when a high temptarget is set
         if (!microBolusAllowed) {
             consoleError.add("SMB disabled (!microBolusAllowed)")
@@ -229,10 +230,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         consoleError.add(msg)
     }
 
-    private fun getMaxSafeBasal(profile: OapsProfile): Double =
+    private fun getMaxSafeBasal(profile: OapsProfileAimi): Double =
         min(profile.max_basal, min(profile.max_daily_safety_multiplier * profile.max_daily_basal, profile.current_basal_safety_multiplier * profile.current_basal))
 
-    fun setTempBasal(_rate: Double, duration: Int, profile: OapsProfile, rT: RT, currenttemp: CurrentTemp): RT {
+    fun setTempBasal(_rate: Double, duration: Int, profile: OapsProfileAimi, rT: RT, currenttemp: CurrentTemp): RT {
         val maxSafeBasal = getMaxSafeBasal(profile)
         var rate = _rate
 
@@ -724,7 +725,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         return smbToGive.toFloat()
     }
-    private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, predictedSMB: Float, profile: OapsProfile): Float {
+    private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, predictedSMB: Float, profile: OapsProfileAimi): Float {
         val minutesToConsider = 2500.0
         val linesToConsider = (minutesToConsider / 5).toInt()
         var totalDifference: Float
@@ -1157,7 +1158,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         dinnerTime: Boolean,
         highcarbTime: Boolean,
         snackTime: Boolean,
-        profile: OapsProfile
+        profile: OapsProfileAimi
     ): Float {
         val (averageCarbAbsorptionTime, carbTypeFactor, estimatedCob) = when {
             highcarbTime -> Triple(3.5f, 0.75f, 100f) // Repas riche en glucides
@@ -1363,8 +1364,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         return notes
     }
 
-    fun determine_basal(
-        glucose_status: GlucoseStatus, currenttemp: CurrentTemp, iob_data_array: Array<IobTotal>, profile: OapsProfile, autosens_data: AutosensResult, mealData: MealData,
+    @SuppressLint("NewApi") fun determine_basal(
+        glucose_status: GlucoseStatus, currenttemp: CurrentTemp, iob_data_array: Array<IobTotal>, profile: OapsProfileAimi, autosens_data: AutosensResult, mealData: MealData,
         microBolusAllowed: Boolean, currentTime: Long, flatBGsDetected: Boolean, dynIsfMode: Boolean
     ): RT {
         consoleError.clear()
@@ -2139,7 +2140,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             // set minPredBGs starting when currently-dosed insulin activity will peak
             // look ahead 60m (regardless of insulin type) so as to be less aggressive on slower insulins
             // add 30m to allow for insulin delivery (SMBs or temps)
-            val insulinPeakTime = 45
+            val insulinPeakTime = profile.peakTime
             val insulinPeak5m = (insulinPeakTime / 60.0) * 12.0
             //console.error(insulinPeakTime, insulinPeak5m, profile.insulinPeakTime, profile.curve);
 

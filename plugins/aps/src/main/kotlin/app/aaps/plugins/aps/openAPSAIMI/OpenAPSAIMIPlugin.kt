@@ -21,7 +21,7 @@ import app.aaps.core.interfaces.aps.APS
 import app.aaps.core.interfaces.aps.APSResult
 import app.aaps.core.interfaces.aps.AutosensResult
 import app.aaps.core.interfaces.aps.CurrentTemp
-import app.aaps.core.interfaces.aps.OapsProfile
+import app.aaps.core.interfaces.aps.OapsProfileAimi
 import app.aaps.core.interfaces.bgQualityCheck.BgQualityCheck
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.constraints.Constraint
@@ -76,6 +76,7 @@ import app.aaps.plugins.aps.events.EventResetOpenAPSGui
 import app.aaps.plugins.aps.openAPS.TddStatus
 import dagger.android.HasAndroidInjector
 import org.json.JSONObject
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.floor
@@ -633,8 +634,37 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
 
             val iobArray = iobCobCalculator.calculateIobArrayForSMB(autosensResult, SMBDefaults.exercise_mode, SMBDefaults.half_basal_exercise_target, isTempTarget)
             val mealData = iobCobCalculator.getMealDataWithWaitingForCalculationFinish()
+            var currentActivity = 0.0
+            for (i in -4..0) { //MP: -4 to 0 calculates all the insulin active during the last 5 minutes
+                val iob = iobCobCalculator.calculateFromTreatmentsAndTemps(System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(i.toLong()), profile)
+                currentActivity += iob.activity
+            }
+            var futureActivity = 0.0
+            val activityPredTimePK = TimeUnit.MILLISECONDS.toMinutes(insulin.peak.toLong())
+            for (i in -4..0) { //MP: calculate 5-minute-insulin activity centering around peakTime
+                val iob = iobCobCalculator.calculateFromTreatmentsAndTemps(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(activityPredTimePK - i), profile)
+                futureActivity += iob.activity
+            }
+            val sensorLag = -10L //MP Assume that the glucose value measurement reflect the BG value from 'sensorlag' minutes ago & calculate the insulin activity then
+            var sensorLagActivity = 0.0
+            for (i in -4..0) {
+                val iob = iobCobCalculator.calculateFromTreatmentsAndTemps(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(sensorLag - i), profile)
+                sensorLagActivity += iob.activity
+            }
 
-            val oapsProfile = OapsProfile(
+            val activityHistoric = -20L //MP Activity at the time in minutes from now. Used to calculate activity in the past to use as target activity.
+            var historicActivity = 0.0
+            for (i in -2..2) {
+                val iob = iobCobCalculator.calculateFromTreatmentsAndTemps(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(activityHistoric - i), profile)
+                historicActivity += iob.activity
+            }
+
+            futureActivity = Round.roundTo(futureActivity, 0.0001)
+            sensorLagActivity = Round.roundTo(sensorLagActivity, 0.0001)
+            historicActivity = Round.roundTo(historicActivity, 0.0001)
+            currentActivity = Round.roundTo(currentActivity, 0.0001)
+
+            val oapsProfile = OapsProfileAimi(
                 dia = 0.0, // not used
                 min_5m_carbimpact = 0.0, // not used
                 max_iob = constraintsChecker.getMaxIOBAllowed().also { inputConstraints.copyReasons(it) }.value(),
@@ -677,7 +707,12 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 out_units = if (profileFunction.getUnits() == GlucoseUnit.MMOL) "mmol/L" else "mg/dl",
                 variable_sens = variableSensitivity!!,
                 insulinDivisor = insulinDivisor,
-                TDD = if (tdd == 0.0) preferences.get(DoubleKey.OApsAIMITDD7) else tdd
+                TDD = if (tdd == 0.0) preferences.get(DoubleKey.OApsAIMITDD7) else tdd,
+                peakTime = activityPredTimePK.toDouble(),
+                futureActivity = futureActivity,
+                sensorLagActivity = sensorLagActivity,
+                historicActivity = historicActivity,
+                currentActivity = currentActivity
             )
 
             val microBolusAllowed = constraintsChecker.isSMBModeEnabled(ConstraintObject(tempBasalFallback.not(), aapsLogger)).also { inputConstraints.copyReasons(it) }.value()
@@ -713,7 +748,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 determineBasalResult.iobData = iobArray
                 determineBasalResult.glucoseStatus = glucoseStatus
                 determineBasalResult.currentTemp = currentTemp
-                determineBasalResult.oapsProfile = oapsProfile
+                determineBasalResult.oapsProfileAimi = oapsProfile
                 determineBasalResult.mealData = mealData
                 lastAPSResult = determineBasalResult
                 lastAPSRun = now
