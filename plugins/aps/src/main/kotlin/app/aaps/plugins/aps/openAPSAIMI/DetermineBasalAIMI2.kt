@@ -2033,10 +2033,10 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val factors = (adjustedMorningFactor + adjustedAfternoonFactor + adjustedEveningFactor) / 3
 // Calcul de la dose d'insuline requise avec tsuInsReq et integration de smbToGive
 
-        val actCurr = profile.sensorLagActivity //MP Current delta value, due to sensor lag, is more likely to represent situation from about 10 minutes ago - therefore activity from 10 minutes ago is used for activity calculations.
+        val actCurr = profile.sensorLagActivity
         val actFuture = profile.futureActivity
-        val td = profile.dia * 60 // Durée d'action de l'insuline en minutes
-        val deltaGross = round((glucose_status.delta + actCurr * sens).coerceIn(0.0, 35.0), 1) //MP 5-minute-delta value if insulin activity was zero; Caps at 35 (assumed glucose absorption limit), and is weakened by negative IA; Currently, negative IA disables the activity controller
+        val td = profile.dia * 60
+        val deltaGross = round((glucose_status.delta + actCurr * sens).coerceIn(0.0, 35.0), 1)
         val actTarget = deltaGross / sens * factors
         var actMissing = 0.0
         var deltaScore: Double = 0.5
@@ -2046,17 +2046,16 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             sensorLagActivity = profile.sensorLagActivity,
             historicActivity = profile.historicActivity,
             profile
-        ) // Calcul dynamique du peakTime
+        )
         if (glucose_status.delta <= 4.0) {
-            //MP Adjust activity target to activityTarget % of current activity if glucose is near constant / delta is low (near-constant activity)
-            actMissing = round((actCurr * smbToGive - Math.max(actFuture, 0.0)) / 5, 4) //MP Use activityTarget% of current activity as target activity in the future; Divide by 5 to get per-minute activity
-            deltaScore = ((bg - target_bg) / 100).coerceIn(0.0, 1.0) //MP redefines deltaScore as it otherwise would be near-zero (low deltas). The higher the bg, the larger deltaScore. If difference between bg and target is 100 --> DeltaScore = 1.0
+
+            actMissing = round((actCurr * smbToGive - Math.max(actFuture, 0.0)) / 5, 4)
+            deltaScore = ((bg - target_bg) / 100).coerceIn(0.0, 1.0)
         } else {
-            //MP Escalate activity at medium to high delta (activity build-up)
-            actMissing = round((actTarget - Math.max(actFuture, 0.0)) / 5, 4) //MP Calculate required activity to end a rise in t minutes; Divide by 5 to get per-minute activity
+            actMissing = round((actTarget - Math.max(actFuture, 0.0)) / 5, 4)
         }
 
-// Calcul de tsuInsReq basé sur le peakTime dynamique
+
         val tau = tp * (1 - tp / td) / (1 - 2 * tp / td)
         val a = 2 * tau / td
         val S = 1 / (1 - a + (1 + a) * Math.exp((-td / tau)))
@@ -2207,7 +2206,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             // set minPredBGs starting when currently-dosed insulin activity will peak
             // look ahead 60m (regardless of insulin type) so as to be less aggressive on slower insulins
             // add 30m to allow for insulin delivery (SMBs or temps)
-            val insulinPeakTime = profile.peakTime
+            val insulinPeakTime = tp
             val insulinPeak5m = (insulinPeakTime / 60.0) * 12.0
             //console.error(insulinPeakTime, insulinPeak5m, profile.insulinPeakTime, profile.curve);
 
@@ -2302,7 +2301,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val logTemplate = buildString {
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "02 november 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "05 november 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
