@@ -2030,14 +2030,27 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         rT.reason.append("adjustedMorningFactor $adjustedMorningFactor")
         rT.reason.append("adjustedAfternoonFactor $adjustedAfternoonFactor")
         rT.reason.append("adjustedEveningFactor $adjustedEveningFactor")
-        val factors = (adjustedMorningFactor + adjustedAfternoonFactor + adjustedEveningFactor) / 3
+        val factors = when {
+            lunchTime -> lunchfactor
+            bfastTime -> bfastfactor
+            dinnerTime -> dinnerfactor
+            snackTime -> snackfactor
+            sleepTime -> sleepfactor
+            hourOfDay in 1..11 -> adjustedMorningFactor
+            hourOfDay in 12..18 -> adjustedAfternoonFactor
+            hourOfDay in 19..23 -> adjustedEveningFactor
+            highCarbTime -> highcarbfactor
+            mealTime -> mealfactor
+            bg > 120 && delta > 7 && !honeymoon -> hyperfactor
+            else -> 1.0 // Valeur par défaut si aucun facteur spécifique n'est applicable
+        }
 // Calcul de la dose d'insuline requise avec tsuInsReq et integration de smbToGive
 
         val actCurr = profile.sensorLagActivity
         val actFuture = profile.futureActivity
         val td = profile.dia * 60
         val deltaGross = round((glucose_status.delta + actCurr * sens).coerceIn(0.0, 35.0), 1)
-        val actTarget = deltaGross / sens * factors
+        val actTarget = deltaGross / sens * factors.toFloat()
         var actMissing = 0.0
         var deltaScore: Double = 0.5
         val tp = calculateDynamicPeakTime(
