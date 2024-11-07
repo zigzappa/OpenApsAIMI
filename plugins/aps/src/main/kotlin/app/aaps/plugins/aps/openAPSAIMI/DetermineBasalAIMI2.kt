@@ -59,9 +59,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     private val consoleError = mutableListOf<String>()
     private val consoleLog = mutableListOf<String>()
     private val path = File(Environment.getExternalStorageDirectory().toString())
-    private val modelFile = File(path, "AAPS/ml/model.tflite")
-    private val modelFileUAM = File(path, "AAPS/ml/modelUAM.tflite")
-    private val csvfile = File(path, "AAPS/oapsaimiML2_records.csv")
+    private val modelFile = File(path, "Documents/AAPS/ml/model.tflite")
+    private val modelFileUAM = File(path, "Documents/AAPS/ml/modelUAM.tflite")
+    private val csvfile = File(path, "Documents/AAPS/oapsaimiML2_records.csv")
     private var predictedSMB = 0.0f
     private var variableSensitivity = 0.0f
     private var averageBeatsPerMinute = 0.0
@@ -279,7 +279,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             "$tdd7DaysPerHour,$tdd2DaysPerHour,$tddPerHour,$tdd24HrsPerHour," +
             "$predictedSMB,$smbToGive"
 
-        val file = File(path, "AAPS/oapsaimiML2_records.csv")
+        val file = File(path, "Documents/AAPS/oapsaimiML2_records.csv")
         if (!file.exists()) {
             file.createNewFile()
             file.appendText(headerRow)
@@ -343,8 +343,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     // }
 
     private fun createFilteredAndSortedCopy(dateToRemove: String) {
-        val originalFile = File(path, "AAPS/oapsaimiML2_records.csv")
-        val tempFile = File(path, "AAPS/test.csv")
+        val originalFile = File(path, "Documents/AAPS/oapsaimiML2_records.csv")
+        val tempFile = File(path, "Documents/AAPS/test.csv")
 
         if (!originalFile.exists()) {
             println("Le fichier original n'existe pas.")
@@ -389,7 +389,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val dateFormat = SimpleDateFormat("yyyyMMdd_HHmm")
         val currentDateTime = dateFormat.format(Date())
         val backupFileName = "oapsaimiML2_records_$currentDateTime.csv"
-        val backupFile = File(path, "AAPS/$backupFileName")
+        val backupFile = File(path, "Documents/AAPS/$backupFileName")
 
         // Renommer l'ancien fichier avec la date et l'heure
         if (originalFile.renameTo(backupFile)) {
@@ -445,7 +445,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             "$tags0to60minAgo,$tags60to120minAgo,$tags120to180minAgo,$tags180to240minAgo," +
             "$predictedSMB,$maxIob,$maxSMB,$smbToGive"
 
-        val file = File(path, "AAPS/oapsaimi_records.csv")
+        val file = File(path, "Documents/AAPS/oapsaimi_records.csv")
         if (!file.exists()) {
             file.createNewFile()
             file.appendText(headerRow)
@@ -471,7 +471,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             "$tags0to60minAgo,$tags60to120minAgo,$tags120to180minAgo,$tags180to240minAgo," +
             "$variableSensitivity,$predictedSMB,$maxIob,$maxSMB,$smbToGive"
 
-        val file = File(path, "AAPS/oapsaimiHB_records.csv")
+        val file = File(path, "Documents/AAPS/oapsaimiHB_records.csv")
         if (!file.exists()) {
             file.createNewFile()
             file.appendText(headerRow)
@@ -1314,7 +1314,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             .replace("\\s+", " ")
     }
     private fun removeLastNLines(n: Int) {
-        val file = File("AAPS/oapsaimiML2_records.csv")
+        val file = File("Documents/AAPS/oapsaimiML2_records.csv")
         if (!file.exists()) {
             println("Le fichier n'existe pas.")
             return

@@ -191,7 +191,7 @@ class MainApp : DaggerApplication() {
             // Copie de model.tflite
             val inputStreamModel = assetManager.open("model.tflite")
             aapsLogger.debug("copyModelToInternalStorage - inputStreamModel : $inputStreamModel")
-            val externalFileModel = File(Environment.getExternalStorageDirectory().absolutePath + "/AAPS/ml", "model.tflite")
+            val externalFileModel = File(Environment.getExternalStorageDirectory().absolutePath + "/Documents/AAPS/ml", "model.tflite")
             externalFileModel.parentFile?.mkdirs() // Crée le dossier s'il n'existe pas
             val outputStreamModel = FileOutputStream(externalFileModel)
             inputStreamModel.copyTo(outputStreamModel)
@@ -203,7 +203,7 @@ class MainApp : DaggerApplication() {
             // Copie de modelUAM.tflite
             val inputStreamUAM = assetManager.open("modelUAM.tflite")
             aapsLogger.debug("copyModelToInternalStorage - inputStreamUAM : $inputStreamUAM")
-            val externalFileUAM = File(Environment.getExternalStorageDirectory().absolutePath + "/AAPS/ml", "modelUAM.tflite")
+            val externalFileUAM = File(Environment.getExternalStorageDirectory().absolutePath + "/Documents/AAPS/ml", "modelUAM.tflite")
             externalFileUAM.parentFile?.mkdirs() // Crée le dossier s'il n'existe pas
             val outputStreamUAM = FileOutputStream(externalFileUAM)
             inputStreamUAM.copyTo(outputStreamUAM)
