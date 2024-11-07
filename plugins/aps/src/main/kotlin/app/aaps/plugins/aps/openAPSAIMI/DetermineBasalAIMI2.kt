@@ -2341,6 +2341,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             appendLine(String.format("║ %-${columnWidth}s │ %s u", "Max SMB", String.format("%.1f", maxSMB)))
             appendLine(String.format("║ %-${columnWidth}s │ %s", "Safety", conditionResult))
             appendLine(String.format("║ %-${columnWidth}s │ %s", "Met", conditionsTrue))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "PT", String.format("%.1f", tp)))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
