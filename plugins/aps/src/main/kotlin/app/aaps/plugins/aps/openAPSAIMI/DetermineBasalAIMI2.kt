@@ -1344,16 +1344,11 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         historicActivity: Double,
         profile: OapsProfileAimi
     ): Double {
-        // Ajuster le peakTime en fonction des valeurs d'activité
-        var dynamicPeakTime = profile.peakTime // Utilise le peakTime par défaut comme base
-
-        // Facteur d'ajustement basé sur l'activité
-        val activityRatio = futureActivity / (currentActivity + 0.0001) // Évite la division par zéro
-
-        // Calculer le peakTime en fonction de l'intensité d'activité
+        var dynamicPeakTime = profile.peakTime
+        val activityRatio = futureActivity / (currentActivity + 0.0001)
         dynamicPeakTime *= when {
-            activityRatio > 1.5 -> 0.8 // Augmentation importante : pic plus précoce
-            activityRatio < 0.5 -> 1.2 // Faible augmentation : pic plus tardif
+            activityRatio > 1.5 -> 0.6 // Augmentation importante : pic plus précoce
+            activityRatio < 0.5 -> 1.4 // Faible augmentation : pic plus tardif
             else -> 1.0 // Pas de changement significatif
         }
 
@@ -1365,7 +1360,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
 
         // Limiter le peakTime à des valeurs réalistes (par exemple, 20 à 120 minutes)
-        return dynamicPeakTime.coerceIn(20.0, 120.0)
+        return dynamicPeakTime.coerceIn(20.0, 140.0)
     }
 
     private fun parseNotes(startMinAgo: Int, endMinAgo: Int): String {
@@ -2042,9 +2037,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             highCarbTime -> highcarbfactor
             mealTime -> mealfactor
             bg > 120 && delta > 7 && !honeymoon -> hyperfactor
-            else -> 1.0 // Valeur par défaut si aucun facteur spécifique n'est applicable
+            else -> 1.0
         }
-// Calcul de la dose d'insuline requise avec tsuInsReq et integration de smbToGive
+
 
         val actCurr = profile.sensorLagActivity
         val actFuture = profile.futureActivity
@@ -2100,9 +2095,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             consoleError = consoleError,
             variable_sens = variableSensitivity.toDouble()
         )
-        /////////////////////////////////////////////
-        //predictions
-        // generate predicted future BGs based on IOB, COB, and current absorption rate
+
         val csf = sens / profile.carb_ratio
         consoleError.add("profile.sens: ${profile.sens}, sens: $sens, CSF: $csf")
 
@@ -2314,7 +2307,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val logTemplate = buildString {
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "05 november 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "07 november 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
