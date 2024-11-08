@@ -640,9 +640,9 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 currentActivity += iob.activity
             }
             var futureActivity = 0.0
-            val activityPredTimePK = TimeUnit.MILLISECONDS.toMinutes(insulin.peak.toLong())
+            val activityPredTimePK = insulin.peak
             for (i in -4..0) { //MP: calculate 5-minute-insulin activity centering around peakTime
-                val iob = iobCobCalculator.calculateFromTreatmentsAndTemps(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(activityPredTimePK - i), profile)
+                val iob = iobCobCalculator.calculateFromTreatmentsAndTemps(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(activityPredTimePK.toLong() - i), profile)
                 futureActivity += iob.activity
             }
             val sensorLag = -10L //MP Assume that the glucose value measurement reflect the BG value from 'sensorlag' minutes ago & calculate the insulin activity then

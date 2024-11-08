@@ -139,7 +139,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     private var highCarbrunTime: Long = 0
     private var snackrunTime: Long = 0
     private var intervalsmb = 5
-    private val MGDL_TO_MMOL = 18.0
+    private var peakintermediaire = 0.0
 
     private fun Double.toFixed2(): String = DecimalFormat("0.00#").format(round(this, 2))
 
@@ -1346,22 +1346,40 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     ): Double {
         var dynamicPeakTime = profile.peakTime
         val activityRatio = futureActivity / (currentActivity + 0.0001)
-        dynamicPeakTime *= when {
-            activityRatio > 1.5 -> 0.6 // Augmentation importante : pic plus précoce
-            activityRatio < 0.5 -> 1.4 // Faible augmentation : pic plus tardif
-            else -> 1.0 // Pas de changement significatif
+
+        // Ajustement basé sur l'IOB (currentActivity)
+        if (currentActivity > 0.1) {
+            dynamicPeakTime += currentActivity * 15 // Ajuster le peakTime proportionnellement à l'activité courante
         }
+
+        // Ajustement basé sur le ratio d'activité
+        dynamicPeakTime *= when {
+            activityRatio > 1.5 -> 0.7 + (activityRatio - 1.5) * 0.05
+            activityRatio < 0.5 -> 1.3 + (0.5 - activityRatio) * 0.05
+            else -> 1.0
+        }
+        this.peakintermediaire = dynamicPeakTime
 
         // Ajustement basé sur le retard capteur (sensor lag) et historique
-        if (sensorLagActivity > historicActivity) {
-            dynamicPeakTime *= 0.9 // Réduire le peakTime si l'activité capteur est plus forte que l'historique
-        } else if (sensorLagActivity < historicActivity) {
-            dynamicPeakTime *= 1.1 // Augmenter le peakTime si l'activité capteur est plus faible que l'historique
+        if (dynamicPeakTime > 40) {
+            if (sensorLagActivity > historicActivity) {
+                dynamicPeakTime *= 0.95
+            } else if (sensorLagActivity < historicActivity) {
+                dynamicPeakTime *= 1.1
+            }
         }
 
-        // Limiter le peakTime à des valeurs réalistes (par exemple, 20 à 120 minutes)
+        // Limiter la réduction si l'IOB est non négligeable
+        // if (currentActivity > 1.5 && dynamicPeakTime < 65) {
+        //     dynamicPeakTime = 65.0
+        // }
+
+        // Limiter le peakTime à des valeurs réalistes (par exemple, 40 à 140 minutes)
         return dynamicPeakTime.coerceIn(20.0, 140.0)
     }
+
+
+
 
     private fun parseNotes(startMinAgo: Int, endMinAgo: Int): String {
         val olderTimeStamp = now - endMinAgo * 60 * 1000
@@ -2307,7 +2325,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val logTemplate = buildString {
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "07 november 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "08  november 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
@@ -2341,7 +2359,11 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             appendLine(String.format("║ %-${columnWidth}s │ %s u", "Max SMB", String.format("%.1f", maxSMB)))
             appendLine(String.format("║ %-${columnWidth}s │ %s", "Safety", conditionResult))
             appendLine(String.format("║ %-${columnWidth}s │ %s", "Met", conditionsTrue))
-            appendLine(String.format("║ %-${columnWidth}s │ %s", "PT", String.format("%.1f", tp)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "peakTimeProfile", String.format("%.1f", profile.peakTime)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "currentActivity", String.format("%.1f", profile.currentActivity)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "After IOB Adjustment", String.format("%.1f", peakintermediaire)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Activity Ratio", String.format("%.1f", profile.futureActivity / (profile.currentActivity + 0.0001))))
+            appendLine(String.format("║ %-${columnWidth}s │ %s", "Final Peak Time after coerceIn", String.format("%.1f", tp)))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
