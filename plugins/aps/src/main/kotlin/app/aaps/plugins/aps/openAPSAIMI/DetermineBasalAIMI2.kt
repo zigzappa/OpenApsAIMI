@@ -1349,23 +1349,23 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         // Ajustement basé sur l'IOB (currentActivity)
         if (currentActivity > 0.1) {
-            dynamicPeakTime += currentActivity * 15 // Ajuster le peakTime proportionnellement à l'activité courante
+            dynamicPeakTime += currentActivity * 25 + 10 // Ajuster le peakTime proportionnellement à l'activité courante avec un minimum fixe
         }
-
         // Ajustement basé sur le ratio d'activité
         dynamicPeakTime *= when {
-            activityRatio > 1.5 -> 0.7 + (activityRatio - 1.5) * 0.05
-            activityRatio < 0.5 -> 1.3 + (0.5 - activityRatio) * 0.05
+            activityRatio > 1.5 -> 0.5 + (activityRatio - 1.5) * 0.05
+            activityRatio < 0.5 -> 1.5 + (0.5 - activityRatio) * 0.05
             else -> 1.0
         }
+
         this.peakintermediaire = dynamicPeakTime
 
         // Ajustement basé sur le retard capteur (sensor lag) et historique
         if (dynamicPeakTime > 40) {
             if (sensorLagActivity > historicActivity) {
-                dynamicPeakTime *= 0.95
+                dynamicPeakTime *= 0.85
             } else if (sensorLagActivity < historicActivity) {
-                dynamicPeakTime *= 1.1
+                dynamicPeakTime *= 1.2
             }
         }
 
@@ -1375,7 +1375,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         // }
 
         // Limiter le peakTime à des valeurs réalistes (par exemple, 40 à 140 minutes)
-        return dynamicPeakTime.coerceIn(20.0, 140.0)
+        return dynamicPeakTime.coerceIn(10.0, 160.0)
     }
 
 
@@ -2025,7 +2025,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         // Appliquer les ajustements en fonction de l'heure de la journée
         smbToGive = when {
             bg > 160 && delta > 4 && iob < 0.7 && honeymoon && smbToGive == 0.0f && LocalTime.now().run { (hour in 23..23 || hour in 0..10) } -> 0.15f
-            bg > 120 && delta > 8 && iob < 1.0 && !honeymoon && smbToGive < 0.1f                                                             -> profile_current_basal.toFloat()
+            bg > 120 && delta > 8 && iob < 1.0 && !honeymoon && smbToGive < 0.05f                                                            -> profile_current_basal.toFloat()
             highCarbTime                                                                                                                     -> smbToGive * highcarbfactor.toFloat()
             mealTime                                                                                                                         -> smbToGive * mealfactor.toFloat()
             bfastTime                                                                                                                        -> smbToGive * bfastfactor.toFloat()
@@ -2325,7 +2325,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val logTemplate = buildString {
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "08  november 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "09  november 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 

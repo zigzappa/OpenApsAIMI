@@ -327,55 +327,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         val smoothingFactor = 0.1
         return (sensitivity * (1 - smoothingFactor)) + (interpolatedISF * smoothingFactor)
     }
-    // Interpolation function to adjust ISF based on glucose levels
-    // fun interpolate(xdata: Double): Double {
-    //     // Define ISF behavior based on glucose level ranges
-    //     val polyX = arrayOf(50.0, 60.0, 80.0, 90.0, 100.0, 110.0, 150.0, 180.0, 200.0, 220.0, 240.0, 260.0, 280.0, 300.0)
-    //     val polyY = arrayOf(-0.5, -0.5, -0.3, -0.2, 0.0, 0.0, 0.5, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3)
-    //     val polymax: Int = polyX.size - 1
-    //
-    //     var newVal = 1.0
-    //     var lowVal = polyY[0]
-    //     var topVal = polyY[polymax]
-    //     var lowX = polyX[0]
-    //     var topX = polyX[polymax]
-    //
-    //     if (xdata < polyX[0]) {
-    //         // Extrapolate backwards
-    //         lowX = polyX[0]
-    //         topX = polyX[1]
-    //         lowVal = polyY[0]
-    //         topVal = polyY[1]
-    //     } else if (xdata > polyX[polymax]) {
-    //         // Extrapolate forwards
-    //         lowX = polyX[polymax - 1]
-    //         topX = polyX[polymax]
-    //         lowVal = polyY[polymax - 1]
-    //         topVal = polyY[polymax]
-    //     } else {
-    //         // Interpolate
-    //         for (i in 0 until polymax) {
-    //             if (xdata < polyX[i + 1]) {
-    //                 lowX = polyX[i]
-    //                 topX = polyX[i + 1]
-    //                 lowVal = polyY[i]
-    //                 topVal = polyY[i + 1]
-    //                 break
-    //             }
-    //         }
-    //     }
-    //     newVal = lowVal + (topVal - lowVal) / (topX - lowX) * (xdata - lowX)
-    //     // Limiter la valeur maximale si nécessaire
-    //     newVal = min(newVal, 1.3) // Limitation de l'effet maximum à 1.3
-    //
-    //     // Apply weights for higher or lower glucose ranges if needed
-    //     newVal = if (xdata > 100) {
-    //         newVal * 1.1 // Higher weight for higher glucose levels
-    //     } else {
-    //         newVal * 0.9 // Lower weight for lower glucose levels
-    //     }
-    //     return newVal
-    // }
+
     fun interpolate(xdata: Double): Double {
         // Définir les points de référence pour l'interpolation
         val polyX = arrayOf(50.0, 60.0, 80.0, 90.0, 100.0, 110.0, 150.0, 180.0, 200.0, 220.0, 240.0, 260.0, 280.0, 300.0)
