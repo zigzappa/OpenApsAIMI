@@ -29,7 +29,6 @@ import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.logging.UserEntryLogger
-import app.aaps.core.interfaces.notifications.Notification
 import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.sharedPreferences.SP
@@ -104,7 +103,6 @@ class MainApp : DaggerApplication() {
 
     override fun onCreate() {
         super.onCreate()
-
         aapsLogger.debug("onCreate")
         aapsLogger.debug("onCreate - début")
         copyModelToInternalStorage(this)
@@ -139,9 +137,6 @@ class MainApp : DaggerApplication() {
             // delayed actions to make rh context updated for translations
             handler.postDelayed(
                 {
-                    // check if identification is set
-                    if (config.isDev() && preferences.get(StringKey.MaintenanceIdentification).isBlank())
-                        notificationStore.add(Notification(Notification.IDENTIFICATION_NOT_SET, rh.get().gs(R.string.identification_not_set), Notification.INFO))
                     // log version
                     disposable += persistenceLayer.insertVersionChangeIfChanged(config.VERSION_NAME, BuildConfig.VERSION_CODE, gitRemote, commitHash).subscribe()
                     // log app start
