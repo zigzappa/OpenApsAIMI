@@ -727,6 +727,156 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         return smbToGive.toFloat()
     }
+    // private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, predictedSMB: Float, profile: OapsProfileAimi): Float {
+    //     val minutesToConsider = 2500.0
+    //     val linesToConsider = (minutesToConsider / 5).toInt()
+    //     var totalDifference: Float
+    //     val maxIterations = 10000.0
+    //     var differenceWithinRange = false
+    //     var finalRefinedSMB: Float = calculateSMBFromModel()
+    //     val maxGlobalIterations = 5 // Nombre maximum d'itérations globales
+    //     var globalConvergenceReached = false
+    //     val allLines = csvfile.readLines()
+    //     val linesPerDay = (24 * 60) / 5 // Nombre de lignes correspondant à une journée de données (ici, 288 lignes)
+    //     val totalLines = allLines.size - 1 // Nombre total de lignes dans le fichier (moins l'en-tête)
+    //     val daysOfData = totalLines / linesPerDay // Nombre de jours de données disponibles
+    //     var neuralNetwork: AimiNeuralNetwork? = null
+    //     var lastEnhancedInput: FloatArray? = null
+    //
+    //     (1..maxGlobalIterations).forEach { _ ->
+    //         var globalIterationCount = 0
+    //         var iterationCount = 0
+    //
+    //         while (globalIterationCount < maxGlobalIterations && !globalConvergenceReached) {
+    //
+    //             val headerLine = allLines.first()
+    //             val headers = headerLine.split(",").map { it.trim() }
+    //             val colIndices = listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB").map { headers.indexOf(it) }
+    //             val targetColIndex = headers.indexOf("smbGiven")
+    //
+    //             val lines = if (allLines.size > linesToConsider) allLines.takeLast(linesToConsider + 1) else allLines // +1 pour inclure l'en-tête
+    //
+    //             val inputs = mutableListOf<FloatArray>()
+    //             val targets = mutableListOf<DoubleArray>()
+    //             var isAggressiveResponseNeeded = false
+    //             for (line in lines.drop(1)) { // Ignorer l'en-tête
+    //                 val cols = line.split(",").map { it.trim() }
+    //
+    //                 val input = colIndices.mapNotNull { index -> cols.getOrNull(index)?.toFloatOrNull() }.toFloatArray()
+    //
+    //                 val trendIndicator = calculateTrendIndicator(
+    //                     delta, shortAvgDelta, longAvgDelta,
+    //                     bg.toFloat(), iob, variableSensitivity, cob, normalBgThreshold,
+    //                     recentSteps180Minutes, averageBeatsPerMinute.toFloat(), averageBeatsPerMinute10.toFloat(),
+    //                     profile.insulinDivisor.toFloat(), recentSteps5Minutes, recentSteps10Minutes
+    //                 )
+    //                 val enhancedInput = input.copyOf(input.size + 1)
+    //                 enhancedInput[input.size] = trendIndicator.toFloat()
+    //                 lastEnhancedInput = enhancedInput
+    //
+    //                 val targetValue = cols.getOrNull(targetColIndex)?.toDoubleOrNull()
+    //                 if (enhancedInput.size == colIndices.size + 1 && targetValue != null) {
+    //                     inputs.add(enhancedInput)
+    //                     targets.add(doubleArrayOf(targetValue))
+    //                 }
+    //             }
+    //
+    //             if (inputs.isEmpty() || targets.isEmpty()) {
+    //                 return (predictedSMB)
+    //             }
+    //             val epochsPerIteration = 10000
+    //             val totalEpochs = 30000.0
+    //             var learningRate = 0.001f // Default learning rate
+    //             val decayFactor = 0.99f // For exponential decay
+    //             val k = 5
+    //
+    //             val foldSize = inputs.size / k
+    //             for (i in 0 until k) {
+    //                 val validationInputs = inputs.subList(i * foldSize, (i + 1) * foldSize)
+    //                 val validationTargets = targets.subList(i * foldSize, (i + 1) * foldSize)
+    //                 val trainingInputs = inputs.minus(validationInputs)
+    //                 val trainingTargets = targets.minus(validationTargets)
+    //
+    //                 neuralNetwork = AimiNeuralNetwork(inputs.first().size, 5, 1)
+    //
+    //                 // Training loop with learning rate decay
+    //                 for (epoch in 10000..totalEpochs.toInt() step epochsPerIteration) {
+    //                     for (innerEpoch in 1000 until epochsPerIteration) {
+    //                         neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, 10000, learningRate)
+    //                         learningRate *= decayFactor // Exponential decay
+    //                     }
+    //                 }
+    //             }
+    //
+    //             do {
+    //                 totalDifference = 0.0f
+    //
+    //                 // Calculer la différence dynamique basée sur les itérations précédentes et les caractéristiques de la glycémie
+    //                 val dynamicDifferenceThreshold = calculateDynamicThreshold(iterationCount, delta, shortAvgDelta, longAvgDelta)
+    //
+    //                 for (enhancedInput in inputs) {
+    //                     val doubleInput = enhancedInput.toDoubleArray()
+    //                     val predictedrefineSMB = finalRefinedSMB // Prédiction du modèle TFLite
+    //                     val refinedSMB = neuralNetwork?.let { refineSMB(predictedrefineSMB, it, doubleInput) }
+    //                     if (delta > 10 && bg > 120) {
+    //                         isAggressiveResponseNeeded = true
+    //                     }
+    //                     val difference = abs(predictedrefineSMB - refinedSMB!!)
+    //                     totalDifference += difference
+    //                     val increasedToleranceFactor = if (iterationCount > maxIterations / 2) 1.5f else 1.0f
+    //                     val adaptiveThreshold = dynamicDifferenceThreshold * increasedToleranceFactor
+    //                     if (difference <= adaptiveThreshold) {
+    //                         finalRefinedSMB = if (refinedSMB > 0.0f) refinedSMB else 0.0f
+    //                         differenceWithinRange = true
+    //                         break
+    //                     }
+    //                 }
+    //                 // Ajuster la valeur SMB de manière plus progressive
+    //                 if (isAggressiveResponseNeeded) {
+    //                     // Calculer une valeur provisoire du SMB basé sur delta
+    //                     val provisionalSMB = maxSMB.toFloat() * (delta / 30)
+    //                     // Utiliser la valeur minimale entre le SMB maximum permis et la valeur calculée, mais toujours au moins égale à finalRefinedSMB
+    //                     finalRefinedSMB = max(finalRefinedSMB, min(provisionalSMB, maxSMB.toFloat() / 1.5f))
+    //                 }
+    //
+    //
+    //                 if (finalRefinedSMB > 0.5 && bg < 120 && delta < 8) {
+    //                     finalRefinedSMB /= 2
+    //                 }
+    //
+    //                 iterationCount++
+    //                 if (differenceWithinRange || iterationCount >= maxIterations) {
+    //                     break
+    //                 }
+    //             } while (true)
+    //
+    //             if (differenceWithinRange || iterationCount >= maxIterations) {
+    //                 globalConvergenceReached = true
+    //             }
+    //             if (globalConvergenceReached) {
+    //                 break
+    //             }
+    //
+    //             globalIterationCount++
+    //
+    //         }
+    //     }
+    //     // if (!globalConvergenceReached) {
+    //     //     finalRefinedSMB = (predictedSMB * 0.4f) + (finalRefinedSMB * 0.6f)
+    //     // }
+    //
+    //     if (!globalConvergenceReached) {
+    //         // Si on a plus de 4 jours de données, on n'utilise que AimiNeuralNetwork
+    //         if (daysOfData >= 4) {
+    //             val doubleInput = lastEnhancedInput?.toDoubleArray()
+    //             finalRefinedSMB = neuralNetwork?.let { refineSMB(predictedSMB, it, doubleInput) } ?: predictedSMB
+    //         } else {
+    //             // Si on a moins de 4 jours de données, on combine TensorFlow et AimiNeuralNetwork
+    //             finalRefinedSMB = (predictedSMB * 0.4f) + (finalRefinedSMB * 0.6f)
+    //         }
+    //     }
+    //     return if (globalConvergenceReached) finalRefinedSMB else predictedSMB
+    // }
     private fun neuralnetwork5(delta: Float, shortAvgDelta: Float, longAvgDelta: Float, predictedSMB: Float, profile: OapsProfileAimi): Float {
         val minutesToConsider = 2500.0
         val linesToConsider = (minutesToConsider / 5).toInt()
@@ -734,12 +884,12 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val maxIterations = 10000.0
         var differenceWithinRange = false
         var finalRefinedSMB: Float = calculateSMBFromModel()
-        val maxGlobalIterations = 5 // Nombre maximum d'itérations globales
+        val maxGlobalIterations = 5
         var globalConvergenceReached = false
         val allLines = csvfile.readLines()
-        val linesPerDay = (24 * 60) / 5 // Nombre de lignes correspondant à une journée de données (ici, 288 lignes)
-        val totalLines = allLines.size - 1 // Nombre total de lignes dans le fichier (moins l'en-tête)
-        val daysOfData = totalLines / linesPerDay // Nombre de jours de données disponibles
+        val linesPerDay = (24 * 60) / 5
+        val totalLines = allLines.size - 1
+        val daysOfData = totalLines / linesPerDay
         var neuralNetwork: AimiNeuralNetwork? = null
         var lastEnhancedInput: FloatArray? = null
 
@@ -754,14 +904,14 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 val colIndices = listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB").map { headers.indexOf(it) }
                 val targetColIndex = headers.indexOf("smbGiven")
 
-                val lines = if (allLines.size > linesToConsider) allLines.takeLast(linesToConsider + 1) else allLines // +1 pour inclure l'en-tête
+                val lines = if (allLines.size > linesToConsider) allLines.takeLast(linesToConsider + 1) else allLines
 
                 val inputs = mutableListOf<FloatArray>()
                 val targets = mutableListOf<DoubleArray>()
                 var isAggressiveResponseNeeded = false
-                for (line in lines.drop(1)) { // Ignorer l'en-tête
-                    val cols = line.split(",").map { it.trim() }
 
+                for (line in lines.drop(1)) {
+                    val cols = line.split(",").map { it.trim() }
                     val input = colIndices.mapNotNull { index -> cols.getOrNull(index)?.toFloatOrNull() }.toFloatArray()
 
                     val trendIndicator = calculateTrendIndicator(
@@ -770,58 +920,57 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                         recentSteps180Minutes, averageBeatsPerMinute.toFloat(), averageBeatsPerMinute10.toFloat(),
                         profile.insulinDivisor.toFloat(), recentSteps5Minutes, recentSteps10Minutes
                     )
+
                     val enhancedInput = input.copyOf(input.size + 1)
                     enhancedInput[input.size] = trendIndicator.toFloat()
                     lastEnhancedInput = enhancedInput
 
                     val targetValue = cols.getOrNull(targetColIndex)?.toDoubleOrNull()
-                    if (enhancedInput.size == colIndices.size + 1 && targetValue != null) {
+                    if (enhancedInput.isNotEmpty() && targetValue != null) {
                         inputs.add(enhancedInput)
                         targets.add(doubleArrayOf(targetValue))
                     }
                 }
 
                 if (inputs.isEmpty() || targets.isEmpty()) {
-                    return (predictedSMB)
+                    return predictedSMB
                 }
+
                 val epochsPerIteration = 10000
                 val totalEpochs = 30000.0
-                var learningRate = 0.001f // Default learning rate
-                val decayFactor = 0.99f // For exponential decay
+                var learningRate = 0.001f
+                val decayFactor = 0.99f
                 val k = 5
 
-                val foldSize = inputs.size / k
+                val foldSize = maxOf(1, inputs.size / k) // Ensure foldSize is at least 1
                 for (i in 0 until k) {
-                    val validationInputs = inputs.subList(i * foldSize, (i + 1) * foldSize)
-                    val validationTargets = targets.subList(i * foldSize, (i + 1) * foldSize)
+                    val validationInputs = inputs.subList(i * foldSize, minOf((i + 1) * foldSize, inputs.size))
+                    val validationTargets = targets.subList(i * foldSize, minOf((i + 1) * foldSize, targets.size))
                     val trainingInputs = inputs.minus(validationInputs)
                     val trainingTargets = targets.minus(validationTargets)
 
                     neuralNetwork = AimiNeuralNetwork(inputs.first().size, 5, 1)
 
-                    // Training loop with learning rate decay
                     for (epoch in 10000..totalEpochs.toInt() step epochsPerIteration) {
                         for (innerEpoch in 1000 until epochsPerIteration) {
                             neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, 10000, learningRate)
-                            learningRate *= decayFactor // Exponential decay
+                            learningRate *= decayFactor
                         }
                     }
                 }
 
                 do {
                     totalDifference = 0.0f
-
-                    // Calculer la différence dynamique basée sur les itérations précédentes et les caractéristiques de la glycémie
                     val dynamicDifferenceThreshold = calculateDynamicThreshold(iterationCount, delta, shortAvgDelta, longAvgDelta)
 
                     for (enhancedInput in inputs) {
                         val doubleInput = enhancedInput.toDoubleArray()
-                        val predictedrefineSMB = finalRefinedSMB // Prédiction du modèle TFLite
-                        val refinedSMB = neuralNetwork?.let { refineSMB(predictedrefineSMB, it, doubleInput) }
+                        val predictedRefineSMB = finalRefinedSMB
+                        val refinedSMB = neuralNetwork?.let { refineSMB(predictedRefineSMB, it, doubleInput) }
                         if (delta > 10 && bg > 120) {
                             isAggressiveResponseNeeded = true
                         }
-                        val difference = abs(predictedrefineSMB - refinedSMB!!)
+                        val difference = abs(predictedRefineSMB - refinedSMB!!)
                         totalDifference += difference
                         val increasedToleranceFactor = if (iterationCount > maxIterations / 2) 1.5f else 1.0f
                         val adaptiveThreshold = dynamicDifferenceThreshold * increasedToleranceFactor
@@ -831,52 +980,37 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                             break
                         }
                     }
-                    // Ajuster la valeur SMB de manière plus progressive
                     if (isAggressiveResponseNeeded) {
-                        // Calculer une valeur provisoire du SMB basé sur delta
                         val provisionalSMB = maxSMB.toFloat() * (delta / 30)
-                        // Utiliser la valeur minimale entre le SMB maximum permis et la valeur calculée, mais toujours au moins égale à finalRefinedSMB
                         finalRefinedSMB = max(finalRefinedSMB, min(provisionalSMB, maxSMB.toFloat() / 1.5f))
                     }
-
-
                     if (finalRefinedSMB > 0.5 && bg < 120 && delta < 8) {
                         finalRefinedSMB /= 2
                     }
 
                     iterationCount++
-                    if (differenceWithinRange || iterationCount >= maxIterations) {
-                        break
-                    }
+                    if (differenceWithinRange || iterationCount >= maxIterations) break
                 } while (true)
 
-                if (differenceWithinRange || iterationCount >= maxIterations) {
-                    globalConvergenceReached = true
-                }
-                if (globalConvergenceReached) {
-                    break
-                }
+                if (differenceWithinRange || iterationCount >= maxIterations) globalConvergenceReached = true
+                if (globalConvergenceReached) break
 
                 globalIterationCount++
-
             }
         }
-        // if (!globalConvergenceReached) {
-        //     finalRefinedSMB = (predictedSMB * 0.4f) + (finalRefinedSMB * 0.6f)
-        // }
 
         if (!globalConvergenceReached) {
-            // Si on a plus de 4 jours de données, on n'utilise que AimiNeuralNetwork
             if (daysOfData >= 4) {
                 val doubleInput = lastEnhancedInput?.toDoubleArray()
                 finalRefinedSMB = neuralNetwork?.let { refineSMB(predictedSMB, it, doubleInput) } ?: predictedSMB
             } else {
-                // Si on a moins de 4 jours de données, on combine TensorFlow et AimiNeuralNetwork
                 finalRefinedSMB = (predictedSMB * 0.4f) + (finalRefinedSMB * 0.6f)
             }
         }
+
         return if (globalConvergenceReached) finalRefinedSMB else predictedSMB
     }
+
     private fun calculateDynamicThreshold(iterationCount: Int, delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Float {
         val baseThreshold = 2.5f
 
@@ -2325,7 +2459,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val logTemplate = buildString {
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "09  november 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "12  november 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
