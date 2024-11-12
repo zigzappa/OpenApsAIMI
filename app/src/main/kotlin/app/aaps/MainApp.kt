@@ -177,40 +177,78 @@ class MainApp : DaggerApplication() {
             config.appInitialized = true
         }
     }
+    // private fun copyModelToInternalStorage(context: Context) {
+    //     aapsLogger.debug("copyModelToInternalStorage - début")
+    //     try {
+    //         val assetManager = context.assets
+    //         aapsLogger.debug("copyModelToInternalStorage - assetManager : $assetManager")
+    //
+    //         // Copie de model.tflite
+    //         val inputStreamModel = assetManager.open("model.tflite")
+    //         aapsLogger.debug("copyModelToInternalStorage - inputStreamModel : $inputStreamModel")
+    //         val externalFileModel = File(Environment.getExternalStorageDirectory().absolutePath + "/Documents/AAPS/ml", "model.tflite")
+    //         externalFileModel.parentFile?.mkdirs() // Crée le dossier s'il n'existe pas
+    //         val outputStreamModel = FileOutputStream(externalFileModel)
+    //         inputStreamModel.copyTo(outputStreamModel)
+    //         inputStreamModel.close()
+    //         outputStreamModel.close()
+    //         aapsLogger.debug("copyModelToInternalStorage - file.absolutePath : ${externalFileModel.absolutePath}")
+    //         Log.d("ModelCopy", "Fichier 'model.tflite' copié dans ${externalFileModel.absolutePath}")
+    //
+    //         // Copie de modelUAM.tflite
+    //         val inputStreamUAM = assetManager.open("modelUAM.tflite")
+    //         aapsLogger.debug("copyModelToInternalStorage - inputStreamUAM : $inputStreamUAM")
+    //         val externalFileUAM = File(Environment.getExternalStorageDirectory().absolutePath + "/Documents/AAPS/ml", "modelUAM.tflite")
+    //         externalFileUAM.parentFile?.mkdirs() // Crée le dossier s'il n'existe pas
+    //         val outputStreamUAM = FileOutputStream(externalFileUAM)
+    //         inputStreamUAM.copyTo(outputStreamUAM)
+    //         inputStreamUAM.close()
+    //         outputStreamUAM.close()
+    //         aapsLogger.debug("copyModelToInternalStorage - file.absolutePath : ${externalFileUAM.absolutePath}")
+    //         Log.d("ModelCopy", "Fichier 'modelUAM.tflite' copié dans ${externalFileUAM.absolutePath}")
+    //
+    //     } catch (e: Exception) {
+    //         Log.e("ModelCopyError", "Erreur lors de la copie: ${e.message}")
+    //     }
+    // }
     private fun copyModelToInternalStorage(context: Context) {
         aapsLogger.debug("copyModelToInternalStorage - début")
         try {
             val assetManager = context.assets
             aapsLogger.debug("copyModelToInternalStorage - assetManager : $assetManager")
 
+            // Dossier privé externe de l'application
+            val targetDir = context.getExternalFilesDir("ml") ?: return
+
             // Copie de model.tflite
             val inputStreamModel = assetManager.open("model.tflite")
             aapsLogger.debug("copyModelToInternalStorage - inputStreamModel : $inputStreamModel")
-            val externalFileModel = File(Environment.getExternalStorageDirectory().absolutePath + "/Documents/AAPS/ml", "model.tflite")
-            externalFileModel.parentFile?.mkdirs() // Crée le dossier s'il n'existe pas
-            val outputStreamModel = FileOutputStream(externalFileModel)
+            val targetFileModel = File(targetDir, "model.tflite")
+            targetFileModel.parentFile?.mkdirs() // Crée le dossier s'il n'existe pas
+            val outputStreamModel = FileOutputStream(targetFileModel)
             inputStreamModel.copyTo(outputStreamModel)
             inputStreamModel.close()
             outputStreamModel.close()
-            aapsLogger.debug("copyModelToInternalStorage - file.absolutePath : ${externalFileModel.absolutePath}")
-            Log.d("ModelCopy", "Fichier 'model.tflite' copié dans ${externalFileModel.absolutePath}")
+            aapsLogger.debug("copyModelToInternalStorage - file.absolutePath : ${targetFileModel.absolutePath}")
+            Log.d("ModelCopy", "Fichier 'model.tflite' copié dans ${targetFileModel.absolutePath}")
 
             // Copie de modelUAM.tflite
             val inputStreamUAM = assetManager.open("modelUAM.tflite")
             aapsLogger.debug("copyModelToInternalStorage - inputStreamUAM : $inputStreamUAM")
-            val externalFileUAM = File(Environment.getExternalStorageDirectory().absolutePath + "/Documents/AAPS/ml", "modelUAM.tflite")
-            externalFileUAM.parentFile?.mkdirs() // Crée le dossier s'il n'existe pas
-            val outputStreamUAM = FileOutputStream(externalFileUAM)
+            val targetFileUAM = File(targetDir, "modelUAM.tflite")
+            targetFileUAM.parentFile?.mkdirs() // Crée le dossier s'il n'existe pas
+            val outputStreamUAM = FileOutputStream(targetFileUAM)
             inputStreamUAM.copyTo(outputStreamUAM)
             inputStreamUAM.close()
             outputStreamUAM.close()
-            aapsLogger.debug("copyModelToInternalStorage - file.absolutePath : ${externalFileUAM.absolutePath}")
-            Log.d("ModelCopy", "Fichier 'modelUAM.tflite' copié dans ${externalFileUAM.absolutePath}")
+            aapsLogger.debug("copyModelToInternalStorage - file.absolutePath : ${targetFileUAM.absolutePath}")
+            Log.d("ModelCopy", "Fichier 'modelUAM.tflite' copié dans ${targetFileUAM.absolutePath}")
 
         } catch (e: Exception) {
             Log.e("ModelCopyError", "Erreur lors de la copie: ${e.message}")
         }
     }
+
 
     private fun setRxErrorHandler() {
         RxJavaPlugins.setErrorHandler { t: Throwable ->

@@ -115,7 +115,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         .shortName(R.string.oaps_aimi_shortname)
         .preferencesId(PluginDescription.PREFERENCE_SCREEN)
         .preferencesVisibleInSimpleMode(false)
-        .showInList(config.APS)
+        .showInList({ config.APS })
         .description(R.string.description_openapsaimi)
         .setDefault(),
     aapsLogger, rh
