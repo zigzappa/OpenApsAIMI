@@ -1469,36 +1469,54 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             .replace("and", " ")
             .replace("\\s+", " ")
     }
-    // private fun removeLastNLines(n: Int) {
-    //     val file = File("Documents/AAPS/oapsaimiML2_records.csv")
-    //     if (!file.exists()) {
-    //         println("Le fichier n'existe pas.")
-    //         return
+    // private fun calculateDynamicPeakTime(
+    //     currentActivity: Double,
+    //     futureActivity: Double,
+    //     sensorLagActivity: Double,
+    //     historicActivity: Double,
+    //     profile: OapsProfileAimi
+    // ): Double {
+    //     var dynamicPeakTime = profile.peakTime
+    //     val activityRatio = futureActivity / (currentActivity + 0.0001)
+    //
+    //     // Ajustement basé sur l'IOB (currentActivity)
+    //     if (currentActivity > 0.1) {
+    //         dynamicPeakTime += currentActivity * 25 + 10 // Ajuster le peakTime proportionnellement à l'activité courante avec un minimum fixe
+    //     }
+    //     // Ajustement basé sur le ratio d'activité
+    //     dynamicPeakTime *= when {
+    //         activityRatio > 1.5 -> 0.5 + (activityRatio - 1.5) * 0.05
+    //         activityRatio < 0.5 -> 1.5 + (0.5 - activityRatio) * 0.05
+    //         else -> 1.0
     //     }
     //
-    //     // Lire toutes les lignes du fichier
-    //     val allLines = file.readLines()
+    //     this.peakintermediaire = dynamicPeakTime
     //
-    //     // Vérifier si le fichier a suffisamment de lignes à supprimer
-    //     val numberOfLinesToKeep = allLines.size - n
-    //     if (numberOfLinesToKeep <= 0) {
-    //         println("Le fichier a moins de $n lignes. Tout le contenu sera effacé.")
-    //         file.writeText("") // Effacer tout le fichier
-    //     } else {
-    //         // Garder les lignes restantes après suppression des n dernières lignes
-    //         val filteredLines = allLines.take(numberOfLinesToKeep)
-    //
-    //         // Réécrire le fichier avec les lignes filtrées
-    //         file.writeText(filteredLines.joinToString("\n"))
-    //         println("Les $n dernières lignes ont été supprimées.")
+    //     // Ajustement basé sur le retard capteur (sensor lag) et historique
+    //     if (dynamicPeakTime > 40) {
+    //         if (sensorLagActivity > historicActivity) {
+    //             dynamicPeakTime *= 0.85
+    //         } else if (sensorLagActivity < historicActivity) {
+    //             dynamicPeakTime *= 1.2
+    //         }
     //     }
+    //
+    //     // Limiter la réduction si l'IOB est non négligeable
+    //     // if (currentActivity > 1.5 && dynamicPeakTime < 65) {
+    //     //     dynamicPeakTime = 65.0
+    //     // }
+    //
+    //     // Limiter le peakTime à des valeurs réalistes (par exemple, 40 à 140 minutes)
+    //     return dynamicPeakTime.coerceIn(10.0, 160.0)
     // }
     private fun calculateDynamicPeakTime(
         currentActivity: Double,
         futureActivity: Double,
         sensorLagActivity: Double,
         historicActivity: Double,
-        profile: OapsProfileAimi
+        profile: OapsProfileAimi,
+        stepCount: Int? = null, // Ajout du nombre de pas
+        heartRate: Int? = null  // Ajout du rythme cardiaque
     ): Double {
         var dynamicPeakTime = profile.peakTime
         val activityRatio = futureActivity / (currentActivity + 0.0001)
@@ -1507,11 +1525,37 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (currentActivity > 0.1) {
             dynamicPeakTime += currentActivity * 25 + 10 // Ajuster le peakTime proportionnellement à l'activité courante avec un minimum fixe
         }
+
         // Ajustement basé sur le ratio d'activité
         dynamicPeakTime *= when {
             activityRatio > 1.5 -> 0.5 + (activityRatio - 1.5) * 0.05
             activityRatio < 0.5 -> 1.5 + (0.5 - activityRatio) * 0.05
             else -> 1.0
+        }
+
+        // Ajustement basé sur le nombre de pas
+        stepCount?.let {
+            if (it > 500) { // Seuil de 500 pas pour déclencher un ajustement
+                dynamicPeakTime += it * 0.01 // Ajuster proportionnellement au nombre de pas
+            }
+        }
+
+        // Ajustement basé sur le rythme cardiaque
+        heartRate?.let {
+            if (it > 100) { // Seuil de 100 bpm pour un rythme cardiaque élevé
+                dynamicPeakTime *= 1.1 // Augmenter le peakTime de 10 % si la fréquence cardiaque est élevée
+            } else if (it < 60) { // Fréquence cardiaque basse, potentiellement au repos
+                dynamicPeakTime *= 0.9 // Réduire le peakTime de 10 % si la personne est probablement au repos
+            }
+        }
+
+        // Ajustement basé sur la corrélation entre les variables (stepCount et heartRate)
+        if (stepCount != null && heartRate != null) {
+            if (stepCount > 1000 && heartRate > 110) {
+                dynamicPeakTime *= 1.2 // Augmenter le peakTime de 20 % si à la fois le nombre de pas et le rythme cardiaque sont élevés
+            } else if (stepCount < 200 && heartRate < 50) {
+                dynamicPeakTime *= 0.8 // Réduire le peakTime de 20 % si à la fois le nombre de pas et le rythme cardiaque sont faibles
+            }
         }
 
         this.peakintermediaire = dynamicPeakTime
@@ -1525,12 +1569,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             }
         }
 
-        // Limiter la réduction si l'IOB est non négligeable
-        // if (currentActivity > 1.5 && dynamicPeakTime < 65) {
-        //     dynamicPeakTime = 65.0
-        // }
-
-        // Limiter le peakTime à des valeurs réalistes (par exemple, 40 à 140 minutes)
+        // Limiter le peakTime à des valeurs réalistes (par exemple, 10 à 160 minutes)
         return dynamicPeakTime.coerceIn(10.0, 160.0)
     }
 
@@ -2227,7 +2266,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             futureActivity = profile.futureActivity,
             sensorLagActivity = profile.sensorLagActivity,
             historicActivity = profile.historicActivity,
-            profile
+            profile,
+            recentSteps15Minutes,
+            averageBeatsPerMinute.toInt()
         )
         if (glucose_status.delta <= 4.0) {
 
@@ -2481,7 +2522,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val logTemplate = buildString {
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "12  november 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "16  november 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
