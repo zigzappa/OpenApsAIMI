@@ -62,12 +62,12 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     private val consoleError = mutableListOf<String>()
     private val consoleLog = mutableListOf<String>()
     private val path = File(Environment.getExternalStorageDirectory().toString())
-    //private val modelFile = File(path, "Documents/AAPS/ml/model.tflite")
-    private val modelFile = File(context.getExternalFilesDir("ml"), "model.tflite")
-    //private val modelFileUAM = File(path, "Documents/AAPS/ml/modelUAM.tflite")
-    private val modelFileUAM = File(context.getExternalFilesDir("ml"), "modelUAM.tflite")
-    //private val csvfile = File(path, "Documents/AAPS/oapsaimiML2_records.csv")
-    private val csvfile = File(context.getExternalFilesDir("AAPS"), "oapsaimiML2_records.csv")
+    private val modelFile = File(path, "Documents/AAPS/ml/model.tflite")
+    //private val modelFile = File(context.getExternalFilesDir("ml"), "model.tflite")
+    private val modelFileUAM = File(path, "Documents/AAPS/ml/modelUAM.tflite")
+    //private val modelFileUAM = File(context.getExternalFilesDir("ml"), "modelUAM.tflite")
+    private val csvfile = File(path, "AAPS/oapsaimiML2_records.csv")
+    //private val csvfile = File(context.getExternalFilesDir("AAPS"), "oapsaimiML2_records.csv")
     private val tempFile = File(context.getExternalFilesDir("AAPS"), "temp.csv")
     private var predictedSMB = 0.0f
     private var variableSensitivity = 0.0f
@@ -276,23 +276,6 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         return rT
     }
 
-    // private fun logDataMLToCsv(predictedSMB: Float, smbToGive: Float) {
-    //     val usFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm")
-    //     val dateStr = dateUtil.dateAndTimeString(dateUtil.now()).format(usFormatter)
-    //
-    //     val headerRow = "dateStr, bg, iob, cob, delta, shortAvgDelta, longAvgDelta, tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour, predictedSMB, smbGiven\n"
-    //     val valuesToRecord = "$dateStr," +
-    //         "$bg,$iob,$cob,$delta,$shortAvgDelta,$longAvgDelta," +
-    //         "$tdd7DaysPerHour,$tdd2DaysPerHour,$tddPerHour,$tdd24HrsPerHour," +
-    //         "$predictedSMB,$smbToGive"
-    //
-    //     val file = File(path, "Documents/AAPS/oapsaimiML2_records.csv")
-    //     if (!file.exists()) {
-    //         file.createNewFile()
-    //         file.appendText(headerRow)
-    //     }
-    //     file.appendText(valuesToRecord + "\n")
-    // }
     private fun logDataMLToCsv(predictedSMB: Float, smbToGive: Float) {
         val usFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm")
         val dateStr = dateUtil.dateAndTimeString(dateUtil.now()).format(usFormatter)
@@ -311,62 +294,6 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         csvfile.appendText(valuesToRecord + "\n")
     }
-
-    // private fun createFilteredAndSortedCopy(dateToRemove: String) {
-    //     val originalFile = File(path, "AAPS/oapsaimiML2_records.csv")
-    //     val outputFile = File(path, "AAPS/test.csv")
-    //
-    //     if (!originalFile.exists()) {
-    //         println("Le fichier original n'existe pas.")
-    //         return
-    //     }
-    //
-    //     // Lire le fichier original ligne par ligne
-    //     val lines = originalFile.readLines()
-    //     val header = lines.first()
-    //     val dataLines = lines.drop(1)
-    //
-    //     // Liste des lignes valides après filtrage
-    //     val validLines = mutableListOf<String>()
-    //
-    //     // Filtrer les lignes qui ne correspondent pas à la date à supprimer
-    //     dataLines.forEach { line ->
-    //         val lineParts = line.split(",")
-    //         if (lineParts.isNotEmpty()) {
-    //             val dateStr = lineParts[0].trim()
-    //             // Vérifier si la date commence par la date à supprimer
-    //             if (!dateStr.startsWith(dateToRemove)) {
-    //                 validLines.add(line)
-    //             } else {
-    //                 println("Ligne supprimée : $line")
-    //             }
-    //         }
-    //     }
-    //
-    //     // Trier les lignes par ordre croissant de date (en utilisant les dates en texte)
-    //     validLines.sortBy { it.split(",")[0] }
-    //
-    //     // Écrire dans le nouveau fichier
-    //     if (!outputFile.exists()) {
-    //         outputFile.createNewFile()
-    //     }
-    //     outputFile.writeText(header + "\n")
-    //     validLines.forEach { line ->
-    //         outputFile.appendText(line + "\n")
-    //     }
-    //
-    //     // Renommer les fichiers
-    //     val oldFile = File(path, "AAPS/oapsaimiML2old_records.csv")
-    //     if (originalFile.renameTo(oldFile)) {
-    //         if (outputFile.renameTo(originalFile)) {
-    //             println("Le fichier original a été renommé en 'oapsaimiML2old_records.csv', et le fichier temporaire 'test.csv' est maintenant 'oapsaimiML2_records.csv'.")
-    //         } else {
-    //             println("Erreur lors du renommage du fichier temporaire 'test.csv' en 'oapsaimiML2_records.csv'.")
-    //         }
-    //     } else {
-    //         println("Erreur lors du renommage du fichier original en 'oapsaimiML2old_records.csv'.")
-    //     }
-    // }
 
     private fun createFilteredAndSortedCopy(dateToRemove: String) {
         if (!csvfile.exists()) {
@@ -411,7 +338,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val dateFormat = SimpleDateFormat("yyyyMMdd_HHmm")
         val currentDateTime = dateFormat.format(Date())
         val backupFileName = "oapsaimiML2_records_$currentDateTime.csv"
-        val backupFile = File(path, "Documents/AAPS/$backupFileName")
+        val backupFile = File(path, "AAPS/$backupFileName")
 
         // Renommer l'ancien fichier avec la date et l'heure
         if (csvfile.renameTo(backupFile)) {
@@ -449,57 +376,6 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
     }
 
-    // private fun logDataToCsv(predictedSMB: Float, smbToGive: Float) {
-    //
-    //     val usFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm")
-    //     val dateStr = dateUtil.dateAndTimeString(dateUtil.now()).format(usFormatter)
-    //
-    //     val headerRow = "dateStr,dateLong,hourOfDay,weekend," +
-    //         "bg,targetBg,iob,cob,lastCarbAgeMin,futureCarbs,delta,shortAvgDelta,longAvgDelta," +
-    //         "tdd7DaysPerHour,tdd2DaysPerHour,tddPerHour,tdd24HrsPerHour," +
-    //         "recentSteps5Minutes,recentSteps10Minutes,recentSteps15Minutes,recentSteps30Minutes,recentSteps60Minutes,recentSteps180Minutes," +
-    //         "tags0to60minAgo,tags60to120minAgo,tags120to180minAgo,tags180to240minAgo," +
-    //         "predictedSMB,maxIob,maxSMB,smbGiven\n"
-    //     val valuesToRecord = "$dateStr,$hourOfDay,$weekend," +
-    //         "$bg,$targetBg,$iob,$cob,$lastCarbAgeMin,$futureCarbs,$delta,$shortAvgDelta,$longAvgDelta," +
-    //         "$tdd7DaysPerHour,$tdd2DaysPerHour,$tddPerHour,$tdd24HrsPerHour," +
-    //         "$recentSteps5Minutes,$recentSteps10Minutes,$recentSteps15Minutes,$recentSteps30Minutes,$recentSteps60Minutes,$recentSteps180Minutes," +
-    //         "$tags0to60minAgo,$tags60to120minAgo,$tags120to180minAgo,$tags180to240minAgo," +
-    //         "$predictedSMB,$maxIob,$maxSMB,$smbToGive"
-    //
-    //     val file = File(path, "Documents/AAPS/oapsaimi_records.csv")
-    //     if (!file.exists()) {
-    //         file.createNewFile()
-    //         file.appendText(headerRow)
-    //     }
-    //     file.appendText(valuesToRecord + "\n")
-    // }
-
-    // private fun logDataToCsvHB(predictedSMB: Float, smbToGive: Float) {
-    //     val dateStr = dateUtil.dateAndTimeString(dateUtil.now())
-    //         val headerRow = "dateStr,dateLong,hourOfDay,weekend," +
-    //         "bg,targetBg,iob,cob,lastCarbAgeMin,futureCarbs,delta,shortAvgDelta,longAvgDelta," +
-    //         "accelerating_up,deccelerating_up,accelerating_down,deccelerating_down,stable," +
-    //         "tdd7DaysPerHour,tdd2DaysPerHour,tddDailyPerHour,tdd24HrsPerHour," +
-    //         "recentSteps5Minutes,recentSteps10Minutes,recentSteps15Minutes,recentSteps30Minutes,recentSteps60Minutes,averageBeatsPerMinute, averageBeatsPerMinute180," +
-    //         "tags0to60minAgo,tags60to120minAgo,tags120to180minAgo,tags180to240minAgo," +
-    //         "variableSensitivity,lastbolusage,predictedSMB,maxIob,maxSMB,smbGiven\n"
-    //     val valuesToRecord = "$dateStr,${dateUtil.now()},$hourOfDay,$weekend," +
-    //         "$bg,$targetBg,$iob,$cob,$lastCarbAgeMin,$futureCarbs,$delta,$shortAvgDelta,$longAvgDelta," +
-    //         "$acceleratingUp,$decceleratingUp,$acceleratingDown,$decceleratingDown,$stable," +
-    //         "$tdd7DaysPerHour,$tdd2DaysPerHour,$tddPerHour,$tdd24HrsPerHour," +
-    //         "$recentSteps5Minutes,$recentSteps10Minutes,$recentSteps15Minutes,$recentSteps30Minutes,$recentSteps60Minutes,$recentSteps180Minutes," +
-    //         "$averageBeatsPerMinute, $averageBeatsPerMinute180," +
-    //         "$tags0to60minAgo,$tags60to120minAgo,$tags120to180minAgo,$tags180to240minAgo," +
-    //         "$variableSensitivity,$predictedSMB,$maxIob,$maxSMB,$smbToGive"
-    //
-    //     val file = File(path, "Documents/AAPS/oapsaimiHB_records.csv")
-    //     if (!file.exists()) {
-    //         file.createNewFile()
-    //         file.appendText(headerRow)
-    //     }
-    //     file.appendText(valuesToRecord + "\n")
-    // }
     private fun applySafetyPrecautions(mealData: MealData, smbToGiveParam: Float): Float {
         var smbToGive = smbToGiveParam
         val (conditionResult, _) = isCriticalSafetyCondition(mealData)
@@ -1469,46 +1345,6 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             .replace("and", " ")
             .replace("\\s+", " ")
     }
-    // private fun calculateDynamicPeakTime(
-    //     currentActivity: Double,
-    //     futureActivity: Double,
-    //     sensorLagActivity: Double,
-    //     historicActivity: Double,
-    //     profile: OapsProfileAimi
-    // ): Double {
-    //     var dynamicPeakTime = profile.peakTime
-    //     val activityRatio = futureActivity / (currentActivity + 0.0001)
-    //
-    //     // Ajustement basé sur l'IOB (currentActivity)
-    //     if (currentActivity > 0.1) {
-    //         dynamicPeakTime += currentActivity * 25 + 10 // Ajuster le peakTime proportionnellement à l'activité courante avec un minimum fixe
-    //     }
-    //     // Ajustement basé sur le ratio d'activité
-    //     dynamicPeakTime *= when {
-    //         activityRatio > 1.5 -> 0.5 + (activityRatio - 1.5) * 0.05
-    //         activityRatio < 0.5 -> 1.5 + (0.5 - activityRatio) * 0.05
-    //         else -> 1.0
-    //     }
-    //
-    //     this.peakintermediaire = dynamicPeakTime
-    //
-    //     // Ajustement basé sur le retard capteur (sensor lag) et historique
-    //     if (dynamicPeakTime > 40) {
-    //         if (sensorLagActivity > historicActivity) {
-    //             dynamicPeakTime *= 0.85
-    //         } else if (sensorLagActivity < historicActivity) {
-    //             dynamicPeakTime *= 1.2
-    //         }
-    //     }
-    //
-    //     // Limiter la réduction si l'IOB est non négligeable
-    //     // if (currentActivity > 1.5 && dynamicPeakTime < 65) {
-    //     //     dynamicPeakTime = 65.0
-    //     // }
-    //
-    //     // Limiter le peakTime à des valeurs réalistes (par exemple, 40 à 140 minutes)
-    //     return dynamicPeakTime.coerceIn(10.0, 160.0)
-    // }
     private fun calculateDynamicPeakTime(
         currentActivity: Double,
         futureActivity: Double,
