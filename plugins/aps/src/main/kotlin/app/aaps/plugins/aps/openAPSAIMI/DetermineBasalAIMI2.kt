@@ -61,14 +61,12 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     @Inject lateinit var profileFunction: ProfileFunction
     private val consoleError = mutableListOf<String>()
     private val consoleLog = mutableListOf<String>()
-    private val path = File(Environment.getExternalStorageDirectory().toString())
-    private val modelFile = File(path, "Documents/AAPS/ml/model.tflite")
-    //private val modelFile = File(context.getExternalFilesDir("ml"), "model.tflite")
-    private val modelFileUAM = File(path, "Documents/AAPS/ml/modelUAM.tflite")
-    //private val modelFileUAM = File(context.getExternalFilesDir("ml"), "modelUAM.tflite")
-    private val csvfile = File(path, "AAPS/oapsaimiML2_records.csv")
-    //private val csvfile = File(context.getExternalFilesDir("AAPS"), "oapsaimiML2_records.csv")
-    private val tempFile = File(context.getExternalFilesDir("AAPS"), "temp.csv")
+    //private val path = File(Environment.getExternalStorageDirectory().toString())
+    private val externalDir = File(Environment.getExternalStorageDirectory().absolutePath + "/Documents/AAPS")
+    private val modelFile = File(externalDir, "ml/model.tflite")
+    private val modelFileUAM = File(externalDir, "ml/modelUAM.tflite")
+    private val csvfile = File(externalDir, "oapsaimiML2_records.csv")
+    private val tempFile = File(externalDir, "temp.csv")
     private var predictedSMB = 0.0f
     private var variableSensitivity = 0.0f
     private var averageBeatsPerMinute = 0.0
@@ -338,7 +336,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val dateFormat = SimpleDateFormat("yyyyMMdd_HHmm")
         val currentDateTime = dateFormat.format(Date())
         val backupFileName = "oapsaimiML2_records_$currentDateTime.csv"
-        val backupFile = File(path, "AAPS/$backupFileName")
+        val backupFile = File(externalDir, backupFileName)
 
         // Renommer l'ancien fichier avec la date et l'heure
         if (csvfile.renameTo(backupFile)) {
@@ -2358,7 +2356,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val logTemplate = buildString {
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "16  november 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "18  november 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
