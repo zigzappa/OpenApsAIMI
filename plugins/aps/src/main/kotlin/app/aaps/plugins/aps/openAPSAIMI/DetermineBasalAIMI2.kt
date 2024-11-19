@@ -794,9 +794,14 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             var iterationCount = 0
 
             while (globalIterationCount < maxGlobalIterations && !globalConvergenceReached) {
-
+                if (allLines.isEmpty()) {
+                    throw IllegalStateException("CSV file is empty.")
+                }
                 val headerLine = allLines.first()
                 val headers = headerLine.split(",").map { it.trim() }
+                if (!listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB", "smbGiven").all { headers.contains(it) }) {
+                    throw IllegalStateException("CSV file is missing required columns.")
+                }
                 val colIndices = listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB").map { headers.indexOf(it) }
                 val targetColIndex = headers.indexOf("smbGiven")
 
@@ -837,9 +842,13 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 var learningRate = 0.001f
                 val decayFactor = 0.99f
                 val k = 5
-
-                val foldSize = maxOf(1, inputs.size / k) // Ensure foldSize is at least 1
-                for (i in 0 until k) {
+                val adjustedK = minOf(k, inputs.size)
+                if (inputs.isEmpty() || adjustedK == 0) {
+                    println("Insufficient data for cross-validation. Inputs size: ${inputs.size}, k: $k")
+                    return predictedSMB
+                }
+                val foldSize = maxOf(1, inputs.size / adjustedK)
+                for (i in 0 until adjustedK) {
                     val validationInputs = inputs.subList(i * foldSize, minOf((i + 1) * foldSize, inputs.size))
                     val validationTargets = targets.subList(i * foldSize, minOf((i + 1) * foldSize, targets.size))
                     val trainingInputs = inputs.minus(validationInputs)
@@ -883,7 +892,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                     if (finalRefinedSMB > 0.5 && bg < 120 && delta < 8) {
                         finalRefinedSMB /= 2
                     }
-
+                    println("Iteration $iterationCount complete. Total difference: $totalDifference")
                     iterationCount++
                     if (differenceWithinRange || iterationCount >= maxIterations) break
                 } while (true)
@@ -2356,7 +2365,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val logTemplate = buildString {
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "18  november 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "19  november 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
