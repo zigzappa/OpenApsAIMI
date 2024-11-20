@@ -110,7 +110,7 @@ class FileListProviderImpl @Inject constructor(
                         }
                     }
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Handle any exceptions that may occur while accessing assets
             }
         }
@@ -213,7 +213,7 @@ class FileListProviderImpl @Inject constructor(
                     createdAt.status = PrefsStatusImpl.WARN
                     createdAt.info = rh.gs(R.string.metadata_warning_old_export, daysOld.toString())
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 createdAt.status = PrefsStatusImpl.WARN
                 createdAt.info = rh.gs(R.string.metadata_warning_date_format)
             }

@@ -111,7 +111,7 @@ open class OpenAPSAutoISFPlugin @Inject constructor(
         .shortName(R.string.autoisf_shortname)
         .preferencesId(PluginDescription.PREFERENCE_SCREEN)
         .preferencesVisibleInSimpleMode(false)
-        .showInList({ config.isEngineeringMode() && config.isDev() })
+        .showInList { config.isEngineeringMode() && config.isDev() }
         .description(R.string.description_auto_isf),
     aapsLogger, rh
 ), APS, PluginConstraints {
@@ -194,7 +194,7 @@ open class OpenAPSAutoISFPlugin @Inject constructor(
         return config.isEngineeringMode() && config.isDev() &&
             try {
                 activePlugin.activePump.pumpDescription.isTempBasalCapable
-            } catch (ignored: Exception) {
+            } catch (_: Exception) {
                 // may fail during initialization
                 true
             }
@@ -217,7 +217,7 @@ open class OpenAPSAutoISFPlugin @Inject constructor(
     private val dynIsfCache = LongSparseArray<Double>()
 
     @Synchronized
-    private fun calculateVariableIsf(timestamp: Long, bg: Double?): Pair<String, Double?> {
+    private fun calculateVariableIsf(timestamp: Long, @Suppress("SameParameterValue") bg: Double?): Pair<String, Double?> {
         val profile = profileFunction.getProfile(timestamp)
         if (profile == null) return Pair("OFF", null)
         if (!preferences.get(BooleanKey.ApsUseDynamicSensitivity)) return Pair("OFF", null)
@@ -849,7 +849,6 @@ open class OpenAPSAutoISFPlugin @Inject constructor(
             val evenTarget: Boolean
             val msgUnits: String
             val msgTail: String
-            val msgEven: String
             if (profile.out_units == "mmol/L") {
                 evenTarget = round(target * 10.0, 0).toInt() % 2 == 0
                 target = round(target, 1)
@@ -861,7 +860,7 @@ open class OpenAPSAutoISFPlugin @Inject constructor(
                 msgUnits = "is"
                 msgTail = "number"
             }
-            msgEven = if (evenTarget) "even" else "odd"
+            val msgEven: String = if (evenTarget) "even" else "odd"
 
             val iobThUser = preferences.get(IntKey.ApsAutoIsfIobThPercent)  //iobThresholdPercent
             if (useIobTh) {
@@ -884,7 +883,7 @@ open class OpenAPSAutoISFPlugin @Inject constructor(
                 consoleLog.add("SMB disabled because of max_iob=0")
                 return "blocked"
             } else if (useIobTh && iobThEffective < iob_data_iob) {
-                consoleLog.add("SMB disabled by Full Loop logic: iob ${iob_data_iob} is above effective iobTH $iobThEffective")
+                consoleLog.add("SMB disabled by Full Loop logic: iob $iob_data_iob is above effective iobTH $iobThEffective")
                 consoleLog.add("Loop power level temporarily capped")
                 return "iobTH"
             } else {

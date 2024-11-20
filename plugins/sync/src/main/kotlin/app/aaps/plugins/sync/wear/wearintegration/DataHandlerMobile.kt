@@ -532,7 +532,7 @@ class DataHandlerMobile @Inject constructor(
                 } else {
                     sendError(rh.gs(R.string.user_action_not_available, command.title))
                 }
-            } ?:apply {
+            } ?: apply {
                 sendError(rh.gs(R.string.user_action_not_available, command.title))
             }
         } else {
@@ -599,9 +599,9 @@ class DataHandlerMobile @Inject constructor(
         if (quickWizardEntry.useEcarbs() == QuickWizardEntry.YES) {
             val carbs2 = quickWizardEntry.carbs2()
             val offset = quickWizardEntry.time()
-            val durration = quickWizardEntry.duration()
+            val duration = quickWizardEntry.duration()
 
-            eCarbsMessagePart += "\n+" + carbs2.toString() + rh.gs(R.string.grams_short) + "/" + durration.toString() + rh.gs(R.string.hour_short) + "(+" + offset.toString() +
+            eCarbsMessagePart += "\n+" + carbs2.toString() + rh.gs(R.string.grams_short) + "/" + duration.toString() + rh.gs(R.string.hour_short) + "(+" + offset.toString() +
                 rh.gs(app.aaps.core.interfaces.R.string.shortminute) + ")"
         }
 
@@ -1038,6 +1038,7 @@ class DataHandlerMobile @Inject constructor(
                 for (bg in predArray) if (bg.value > 39)
                     predictions.add(
                         EventData.SingleBg(
+                            dataset = 0,
                             timeStamp = bg.timestamp,
                             glucoseUnits = GlucoseUnit.MGDL.asText,
                             sgv = bg.value,
@@ -1095,6 +1096,7 @@ class DataHandlerMobile @Inject constructor(
         rxBus.send(
             EventMobileToWear(
                 EventData.Status(
+                    dataset = 0,
                     externalStatus = status,
                     iobSum = iobSum,
                     iobDetail = iobDetail,
@@ -1107,59 +1109,6 @@ class DataHandlerMobile @Inject constructor(
                     batteryLevel = if (phoneBattery >= 30) 1 else 0,
                     patientName = patientName
                 )
-            )
-        )
-    }
-
-    //Both function below can be simplified according to the way external data is built and rules concerning Id between AAPS, AAPSClient, AAPSClient2
-    private fun sendStatusExternal(status: EventData.Status, extId: Int = 1) {
-        rxBus.send(
-            EventMobileToWear(
-                if (status.id != 0)
-                    status
-                else
-                    EventData.Status(
-                        externalStatus = status.externalStatus,
-                        iobSum = status.iobSum,
-                        iobDetail = status.iobDetail,
-                        cob = status.cob,
-                        currentBasal = status.currentBasal,
-                        battery = status.battery,
-                        rigBattery = status.rigBattery,
-                        openApsStatus = status.openApsStatus,
-                        bgi = status.bgi,
-                        batteryLevel = status.batteryLevel,
-                        patientName = status.patientName,
-                        id = extId
-                    )
-            )
-        )
-    }
-
-    private fun sendSingleBGExternal(singleBG: EventData.SingleBg, extId: Int = 1) {
-        rxBus.send(
-            EventMobileToWear(
-                if (singleBG.id != 0)
-                    singleBG
-                else
-                    EventData.SingleBg(
-                        timeStamp = singleBG.timeStamp,
-                        sgvString = singleBG.sgvString,
-                        glucoseUnits = singleBG.glucoseUnits,
-                        slopeArrow = singleBG.slopeArrow,
-                        delta = singleBG.delta,
-                        deltaDetailed = singleBG.deltaDetailed,
-                        avgDelta = singleBG.avgDelta,
-                        avgDeltaDetailed = singleBG.avgDeltaDetailed,
-                        sgvLevel = singleBG.sgvLevel,
-                        sgv = singleBG.sgv,
-                        high = singleBG.high, // highLine
-                        low = singleBG.low, // lowLine
-                        color = singleBG.color,
-                        deltaMgdl = singleBG.deltaMgdl,
-                        avgDeltaMgdl = singleBG.avgDeltaMgdl,
-                        id = extId
-                    )
             )
         )
     }
@@ -1191,6 +1140,7 @@ class DataHandlerMobile @Inject constructor(
         val highLine = profileUtil.convertToMgdl(preferences.get(UnitDoubleKey.OverviewHighMark), units)
 
         return EventData.SingleBg(
+            dataset = 0,
             timeStamp = glucoseValue.timestamp,
             sgvString = profileUtil.stringInCurrentUnitsDetect(glucoseValue.recalculated),
             glucoseUnits = units.asText,
@@ -1402,10 +1352,10 @@ class DataHandlerMobile @Inject constructor(
         if (detailedBolusInfo.insulin > 0 || detailedBolusInfo.carbs > 0) {
 
             val action = when {
-                amount == 0.0 -> Action.CARBS
-                carbs == 0 -> Action.BOLUS
+                amount == 0.0     -> Action.CARBS
+                carbs == 0        -> Action.BOLUS
                 carbsDuration > 0 -> Action.EXTENDED_CARBS
-                else -> Action.TREATMENT
+                else              -> Action.TREATMENT
             }
             uel.log(
                 action = action, source = Sources.Wear,

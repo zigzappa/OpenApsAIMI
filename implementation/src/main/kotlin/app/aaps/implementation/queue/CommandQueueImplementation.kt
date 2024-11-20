@@ -173,7 +173,7 @@ class CommandQueueImplementation @Inject constructor(
     @Synchronized
     fun isLastScheduled(type: CommandType): Boolean {
         synchronized(queue) {
-            if (queue.size > 0 && queue[queue.size - 1].commandType == type) {
+            if (queue.isNotEmpty() && queue[queue.size - 1].commandType == type) {
                 return true
             }
         }

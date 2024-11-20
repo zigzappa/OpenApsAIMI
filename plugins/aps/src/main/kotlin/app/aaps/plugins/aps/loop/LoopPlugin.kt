@@ -170,7 +170,7 @@ class LoopPlugin @Inject constructor(
         return try {
             val pump = activePlugin.activePump
             pump.pumpDescription.isTempBasalCapable
-        } catch (ignored: Exception) {
+        } catch (_: Exception) {
             // may fail during initialization
             true
         }
@@ -340,7 +340,7 @@ class LoopPlugin @Inject constructor(
                                 disposable += persistenceLayer.insertPumpTherapyEventIfNewByTimestamp(
                                     therapyEvent = TE.asAnnouncement(resultAfterConstraints.carbsRequiredText),
                                     timestamp = dateUtil.now(),
-                                    action = app.aaps.core.data.ue.Action.TREATMENT,
+                                    action = Action.TREATMENT,
                                     source = Sources.Loop,
                                     note = resultAfterConstraints.carbsRequiredText,
                                     listValues = listOf()
@@ -784,7 +784,7 @@ class LoopPlugin @Inject constructor(
             val calcIob = iobCobCalculator.calculateIobArrayInDia(profile)
             if (calcIob.isNotEmpty()) {
                 iob = calcIob[0].json(dateUtil)
-                iob?.put("time", dateUtil.toISOString(dateUtil.now()))
+                iob.put("time", dateUtil.toISOString(dateUtil.now()))
             }
         }
         persistenceLayer.insertDeviceStatus(

@@ -167,8 +167,8 @@ class ImportExportPrefsImpl @Inject constructor(
         passwordCheck.queryPassword(activity, app.aaps.core.ui.R.string.master_password, StringKey.ProtectionMasterPassword.key, { password ->
             then(password)
         }, {
-                ToastUtils.warnToast(activity, rh.gs(canceledMsg))
-            })
+                                        ToastUtils.warnToast(activity, rh.gs(canceledMsg))
+                                    })
     }
 
     @Suppress("SameParameterValue")
@@ -179,8 +179,8 @@ class ImportExportPrefsImpl @Inject constructor(
         passwordCheck.queryAnyPassword(activity, passwordName, StringKey.ProtectionMasterPassword.key, passwordExplanation, passwordWarning, { password ->
             then(password)
         }, {
-               ToastUtils.warnToast(activity, rh.gs(canceledMsg))
-           })
+                                           ToastUtils.warnToast(activity, rh.gs(canceledMsg))
+                                       })
     }
 
     @Suppress("SameParameterValue")
@@ -285,9 +285,9 @@ class ImportExportPrefsImpl @Inject constructor(
             resultOk = true // Assuming export was executed successfully (or it would have thrown an exception)
 
         } catch (e: FileNotFoundException) {
-            log.error(LTag.CORE, "Unhandled exception: filenotfound", e)
+            log.error(LTag.CORE, "Unhandled exception: file not found", e)
         } catch (e: IOException) {
-            log.error(LTag.CORE, "Unhandled exception: IOexception", e)
+            log.error(LTag.CORE, "Unhandled exception: IO exception", e)
         } catch (e: PrefFileNotFoundError) {
             log.error(LTag.CORE, "File system exception: Pref File not found, export canceled", e)
         } catch (e: PrefIOError) {
@@ -341,7 +341,7 @@ class ImportExportPrefsImpl @Inject constructor(
 
         try {
             if (activity is DaggerAppCompatActivityWithResult)
-                activity.callForPrefFile.launch(null)
+                activity.callForPrefFile?.launch(null)
         } catch (e: IllegalArgumentException) {
             // this exception happens on some early implementations of ActivityResult contracts
             // when registered and called for the second time
@@ -357,7 +357,7 @@ class ImportExportPrefsImpl @Inject constructor(
     override fun importCustomWatchface(activity: FragmentActivity) {
         try {
             if (activity is DaggerAppCompatActivityWithResult)
-                activity.callForCustomWatchfaceFile.launch(null)
+                activity.callForCustomWatchfaceFile?.launch(null)
         } catch (e: IllegalArgumentException) {
             // this exception happens on some early implementations of ActivityResult contracts
             // when registered and called for the second time

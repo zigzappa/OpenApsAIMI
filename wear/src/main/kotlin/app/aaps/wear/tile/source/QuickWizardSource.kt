@@ -45,7 +45,7 @@ class QuickWizardSource @Inject constructor(private val context: Context, privat
 
     override fun getValidFor(): Long? {
         val quickMap = getQuickWizardData(sp)
-        if (quickMap.entries.size == 0) return null
+        if (quickMap.entries.isEmpty()) return null
 
         val sfm = secondsFromMidnight()
         var validTill = 24 * 60 * 60

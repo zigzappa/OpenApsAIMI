@@ -203,7 +203,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
             resources.displayMetrics.densityDpi <= 320 -> 35
             resources.displayMetrics.densityDpi <= 420 -> 50
             resources.displayMetrics.densityDpi <= 560 -> 70
-            else                                    -> 80
+            else                                       -> 80
         }
         binding.graphsLayout.bgGraph.gridLabelRenderer?.gridColor = rh.gac(context, app.aaps.core.ui.R.attr.graphGrid)
         binding.graphsLayout.bgGraph.gridLabelRenderer?.reloadStyles()
@@ -601,7 +601,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
             // Automation buttons
             binding.buttonsLayout.userButtonsLayout.removeAllViews()
             val events = automation.userEvents()
-            if (!loop.isDisconnected && pump.isInitialized() && !pump.isSuspended() && profile != null)
+            if (!loop.isDisconnected && pump.isInitialized() && !pump.isSuspended() && profile != null && !config.showUserActionsOnWatchOnly())
                 for (event in events)
                     if (event.isEnabled && event.canRun()) {
                         context?.let { context ->
@@ -738,7 +738,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
             secondaryGraphs.clear()
             secondaryGraphsLabel.clear()
             binding.graphsLayout.iobGraph.removeAllViews()
-            for (i in 1 until numOfGraphs) {
+            (1 until numOfGraphs).forEach {
                 val relativeLayout = RelativeLayout(context)
                 relativeLayout.layoutParams = RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
 
