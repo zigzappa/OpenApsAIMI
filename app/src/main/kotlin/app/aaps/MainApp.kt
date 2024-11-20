@@ -1,5 +1,7 @@
 package app.aaps
 
+import android.app.Activity
+import android.app.AlertDialog
 import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.content.Intent
@@ -7,6 +9,7 @@ import android.content.IntentFilter
 import android.hardware.Sensor
 import android.hardware.SensorManager
 import android.net.ConnectivityManager
+import android.net.Uri
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Environment
@@ -73,6 +76,7 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Provider
+import android.provider.Settings
 
 class MainApp : DaggerApplication() {
 

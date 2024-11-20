@@ -6,6 +6,7 @@ import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.PersistableBundle
 import android.text.SpannableString
 import android.text.method.LinkMovementMethod
@@ -85,6 +86,7 @@ import io.reactivex.rxjava3.kotlin.plusAssign
 import java.util.Locale
 import javax.inject.Inject
 import kotlin.system.exitProcess
+import android.provider.Settings
 
 class MainActivity : DaggerAppCompatActivityWithResult() {
 
@@ -121,6 +123,7 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
         LocaleHelper.update(applicationContext)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        checkAndRequestPermissions()
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -348,6 +351,14 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
 
     override fun onResume() {
         super.onResume()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()) {
+                ToastUtils.errorToast(this, "Permission to manage files is required for this app to work.")
+            } else {
+                // La permission est accordée, continuez normalement
+                ToastUtils.okToast(this, "Permission granted. Thank you!")
+            }
+        }
         if (config.appInitialized) binding.splash.visibility = View.GONE
         if (!isProtectionCheckActive) {
             isProtectionCheckActive = true
@@ -491,6 +502,32 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
 
     // Correct place for calling setUserStats() would be probably MainApp
     // but we need to have it called at least once a day. Thus this location
+    private fun checkAndRequestPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()) {
+                showPermissionExplanation()
+            }
+        }
+    }
+
+    private fun showPermissionExplanation() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Permission Required")
+            .setMessage("This app needs access to manage all files to provide functionality.")
+            .setPositiveButton("Grant Access") { _, _ ->
+                requestManageExternalStoragePermission()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun requestManageExternalStoragePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+            intent.data = Uri.parse("package:$packageName")
+            startActivity(intent)
+        }
+    }
 
     private fun setUserStats() {
         if (!fabricPrivacy.fabricEnabled()) return

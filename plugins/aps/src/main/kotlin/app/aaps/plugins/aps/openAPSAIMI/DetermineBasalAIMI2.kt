@@ -3,6 +3,7 @@ package app.aaps.plugins.aps.openAPSAIMI
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Environment
+import android.util.Log
 import androidx.core.content.ContentProviderCompat.requireContext
 import app.aaps.core.data.model.BS
 import app.aaps.core.data.model.UE
@@ -28,10 +29,12 @@ import app.aaps.core.keys.Preferences
 import app.aaps.plugins.aps.openAPSAIMI.AimiNeuralNetwork.Companion.refineSMB
 import org.tensorflow.lite.Interpreter
 import java.io.File
+import java.io.FileOutputStream
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.text.SimpleDateFormat
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
@@ -63,6 +66,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     private val consoleLog = mutableListOf<String>()
     //private val path = File(Environment.getExternalStorageDirectory().toString())
     private val externalDir = File(Environment.getExternalStorageDirectory().absolutePath + "/Documents/AAPS")
+    //private val externalDir = File(context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), "AAPS")
     private val modelFile = File(externalDir, "ml/model.tflite")
     private val modelFileUAM = File(externalDir, "ml/modelUAM.tflite")
     private val csvfile = File(externalDir, "oapsaimiML2_records.csv")
@@ -292,64 +296,164 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         csvfile.appendText(valuesToRecord + "\n")
     }
+    // private fun logDataMLToCsv(predictedSMB: Float, smbToGive: Float) {
+    //     val usFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm")
+    //     val dateStr = LocalDateTime.now().format(usFormatter)
+    //
+    //     // Entêtes CSV
+    //     val headerRow = "dateStr, bg, iob, cob, delta, shortAvgDelta, longAvgDelta, tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour, predictedSMB, smbGiven\n"
+    //
+    //     // Ligne de données
+    //     val valuesToRecord = "$dateStr," +
+    //         "$bg,$iob,$cob,$delta,$shortAvgDelta,$longAvgDelta," +
+    //         "$tdd7DaysPerHour,$tdd2DaysPerHour,$tddPerHour,$tdd24HrsPerHour," +
+    //         "$predictedSMB,$smbToGive"
+    //
+    //     try {
+    //         // Vérifie si le répertoire parent existe, sinon le crée
+    //         if (!externalDir.exists() && !externalDir.mkdirs()) {
+    //             Log.e("CSVError", "Impossible de créer le répertoire parent : ${externalDir.absolutePath}")
+    //             return
+    //         }
+    //
+    //         // Vérifie si le fichier existe, sinon le crée avec les entêtes
+    //         if (!csvfile.exists()) {
+    //             csvfile.createNewFile()
+    //             FileOutputStream(csvfile, true).use { it.write(headerRow.toByteArray()) }
+    //             Log.d("CSVInfo", "Fichier CSV créé avec les entêtes.")
+    //         }
+    //
+    //         // Ajoute les données au fichier CSV
+    //         FileOutputStream(csvfile, true).use { it.write((valuesToRecord + "\n").toByteArray()) }
+    //         Log.d("CSVInfo", "Données ajoutées au fichier CSV : $valuesToRecord")
+    //
+    //     } catch (e: Exception) {
+    //         Log.e("CSVError", "Erreur lors de l'écriture dans le fichier CSV : ${e.message}")
+    //     }
+    // }
 
+
+    // private fun createFilteredAndSortedCopy(dateToRemove: String) {
+    //     if (!csvfile.exists()) {
+    //         println("Le fichier original n'existe pas.")
+    //         return
+    //     }
+    //     // Lire le fichier original ligne par ligne
+    //     val lines = csvfile.readLines()
+    //     val header = lines.first()
+    //     val dataLines = lines.drop(1)
+    //
+    //     // Liste des lignes valides après filtrage
+    //     val validLines = mutableListOf<String>()
+    //
+    //     // Filtrer les lignes qui ne correspondent pas à la date à supprimer
+    //     dataLines.forEach { line ->
+    //         val lineParts = line.split(",")
+    //         if (lineParts.isNotEmpty()) {
+    //             val dateStr = lineParts[0].trim()
+    //             // Vérifier si la date commence par la date à supprimer
+    //             if (!dateStr.startsWith(dateToRemove)) {
+    //                 validLines.add(line)
+    //             } else {
+    //                 println("Ligne supprimée : $line")
+    //             }
+    //         }
+    //     }
+    //
+    //     // Trier les lignes par ordre croissant de date (en utilisant les dates en texte)
+    //     validLines.sortBy { it.split(",")[0] }
+    //
+    //     // Écrire dans le fichier temporaire (test.csv)
+    //     if (!tempFile.exists()) {
+    //         tempFile.createNewFile()
+    //     }
+    //     tempFile.writeText(header + "\n")
+    //     validLines.forEach { line ->
+    //         tempFile.appendText(line + "\n")
+    //     }
+    //
+    //     // Obtenir la date et l'heure actuelles pour renommer le fichier original
+    //     val dateFormat = SimpleDateFormat("yyyyMMdd_HHmm")
+    //     val currentDateTime = dateFormat.format(Date())
+    //     val backupFileName = "oapsaimiML2_records_$currentDateTime.csv"
+    //     val backupFile = File(externalDir, backupFileName)
+    //
+    //     // Renommer l'ancien fichier avec la date et l'heure
+    //     if (csvfile.renameTo(backupFile)) {
+    //         // Renommer le fichier temporaire 'test.csv' en 'oapsaimiML2_records.csv'
+    //         if (tempFile.renameTo(csvfile)) {
+    //             println("Le fichier original a été sauvegardé sous '$backupFileName', et 'test.csv' a été renommé en 'oapsaimiML2_records.csv'.")
+    //         } else {
+    //             println("Erreur lors du renommage du fichier temporaire 'test.csv' en 'oapsaimiML2_records.csv'.")
+    //         }
+    //     } else {
+    //         println("Erreur lors du renommage du fichier original en '$backupFileName'.")
+    //     }
+    // }
     private fun createFilteredAndSortedCopy(dateToRemove: String) {
         if (!csvfile.exists()) {
             println("Le fichier original n'existe pas.")
             return
         }
-        // Lire le fichier original ligne par ligne
-        val lines = csvfile.readLines()
-        val header = lines.first()
-        val dataLines = lines.drop(1)
 
-        // Liste des lignes valides après filtrage
-        val validLines = mutableListOf<String>()
+        try {
+            // Lire le fichier original ligne par ligne
+            val lines = csvfile.readLines()
+            val header = lines.firstOrNull() ?: return
+            val dataLines = lines.drop(1)
 
-        // Filtrer les lignes qui ne correspondent pas à la date à supprimer
-        dataLines.forEach { line ->
-            val lineParts = line.split(",")
-            if (lineParts.isNotEmpty()) {
-                val dateStr = lineParts[0].trim()
-                // Vérifier si la date commence par la date à supprimer
-                if (!dateStr.startsWith(dateToRemove)) {
-                    validLines.add(line)
-                } else {
-                    println("Ligne supprimée : $line")
+            // Liste des lignes valides après filtrage
+            val validLines = mutableListOf<String>()
+
+            // Filtrer les lignes qui ne correspondent pas à la date à supprimer
+            dataLines.forEach { line ->
+                val lineParts = line.split(",")
+                if (lineParts.isNotEmpty()) {
+                    val dateStr = lineParts[0].trim()
+                    if (!dateStr.startsWith(dateToRemove)) {
+                        validLines.add(line)
+                    } else {
+                        println("Ligne supprimée : $line")
+                    }
                 }
             }
-        }
 
-        // Trier les lignes par ordre croissant de date (en utilisant les dates en texte)
-        validLines.sortBy { it.split(",")[0] }
+            // Trier les lignes par ordre croissant de date (en utilisant les dates en texte)
+            validLines.sortBy { it.split(",")[0] }
 
-        // Écrire dans le fichier temporaire (test.csv)
-        if (!tempFile.exists()) {
-            tempFile.createNewFile()
-        }
-        tempFile.writeText(header + "\n")
-        validLines.forEach { line ->
-            tempFile.appendText(line + "\n")
-        }
-
-        // Obtenir la date et l'heure actuelles pour renommer le fichier original
-        val dateFormat = SimpleDateFormat("yyyyMMdd_HHmm")
-        val currentDateTime = dateFormat.format(Date())
-        val backupFileName = "oapsaimiML2_records_$currentDateTime.csv"
-        val backupFile = File(externalDir, backupFileName)
-
-        // Renommer l'ancien fichier avec la date et l'heure
-        if (csvfile.renameTo(backupFile)) {
-            // Renommer le fichier temporaire 'test.csv' en 'oapsaimiML2_records.csv'
-            if (tempFile.renameTo(csvfile)) {
-                println("Le fichier original a été sauvegardé sous '$backupFileName', et 'test.csv' a été renommé en 'oapsaimiML2_records.csv'.")
-            } else {
-                println("Erreur lors du renommage du fichier temporaire 'test.csv' en 'oapsaimiML2_records.csv'.")
+            if (!tempFile.exists()) {
+                tempFile.createNewFile()
             }
-        } else {
-            println("Erreur lors du renommage du fichier original en '$backupFileName'.")
+
+            // Écrire les lignes filtrées et triées dans le fichier temporaire
+            tempFile.writeText(header + "\n")
+            validLines.forEach { line ->
+                tempFile.appendText(line + "\n")
+            }
+
+            // Obtenir la date et l'heure actuelles pour renommer le fichier original
+            val dateFormat = SimpleDateFormat("yyyyMMdd_HHmm", Locale.getDefault())
+            val currentDateTime = dateFormat.format(Date())
+            val backupFileName = "oapsaimiML2_records_$currentDateTime.csv"
+            val backupFile = File(externalDir, backupFileName)
+
+            // Renommer le fichier original en fichier de sauvegarde
+            if (csvfile.renameTo(backupFile)) {
+                // Renommer le fichier temporaire en fichier principal
+                if (tempFile.renameTo(csvfile)) {
+                    println("Le fichier original a été sauvegardé sous '$backupFileName', et 'temp.csv' a été renommé en 'oapsaimiML2_records.csv'.")
+                } else {
+                    println("Erreur lors du renommage du fichier temporaire 'temp.csv' en 'oapsaimiML2_records.csv'.")
+                }
+            } else {
+                println("Erreur lors du renommage du fichier original en '$backupFileName'.")
+            }
+
+        } catch (e: Exception) {
+            println("Erreur lors de la gestion des fichiers : ${e.message}")
         }
     }
+
     private fun automateDeletionIfBadDay(tir1DAYIR: Int) {
         // Vérifier si le TIR est inférieur à 80
         if (tir1DAYIR < 75) {
@@ -789,6 +893,131 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         var neuralNetwork: AimiNeuralNetwork? = null
         var lastEnhancedInput: FloatArray? = null
 
+        // (1..maxGlobalIterations).forEach { _ ->
+        //     var globalIterationCount = 0
+        //     var iterationCount = 0
+        //
+        //     while (globalIterationCount < maxGlobalIterations && !globalConvergenceReached) {
+        //         if (allLines.isEmpty()) {
+        //             throw IllegalStateException("CSV file is empty.")
+        //         }
+        //         val headerLine = allLines.first()
+        //         val headers = headerLine.split(",").map { it.trim() }
+        //         if (!listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB", "smbGiven").all { headers.contains(it) }) {
+        //             throw IllegalStateException("CSV file is missing required columns.")
+        //         }
+        //         val colIndices = listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB").map { headers.indexOf(it) }
+        //         val targetColIndex = headers.indexOf("smbGiven")
+        //
+        //         val lines = if (allLines.size > linesToConsider) allLines.takeLast(linesToConsider + 1) else allLines
+        //
+        //         val inputs = mutableListOf<FloatArray>()
+        //         val targets = mutableListOf<DoubleArray>()
+        //         var isAggressiveResponseNeeded = false
+        //
+        //         for (line in lines.drop(1)) {
+        //             val cols = line.split(",").map { it.trim() }
+        //             val input = colIndices.mapNotNull { index -> cols.getOrNull(index)?.toFloatOrNull() }.toFloatArray()
+        //
+        //             val trendIndicator = calculateTrendIndicator(
+        //                 delta, shortAvgDelta, longAvgDelta,
+        //                 bg.toFloat(), iob, variableSensitivity, cob, normalBgThreshold,
+        //                 recentSteps180Minutes, averageBeatsPerMinute.toFloat(), averageBeatsPerMinute10.toFloat(),
+        //                 profile.insulinDivisor.toFloat(), recentSteps5Minutes, recentSteps10Minutes
+        //             )
+        //
+        //             val enhancedInput = input.copyOf(input.size + 1)
+        //             enhancedInput[input.size] = trendIndicator.toFloat()
+        //             lastEnhancedInput = enhancedInput
+        //
+        //             val targetValue = cols.getOrNull(targetColIndex)?.toDoubleOrNull()
+        //             if (enhancedInput.isNotEmpty() && targetValue != null) {
+        //                 inputs.add(enhancedInput)
+        //                 targets.add(doubleArrayOf(targetValue))
+        //             }
+        //         }
+        //
+        //         if (inputs.isEmpty() || targets.isEmpty()) {
+        //             return predictedSMB
+        //         }
+        //
+        //         val epochsPerIteration = 10000
+        //         val totalEpochs = 30000.0
+        //         var learningRate = 0.001f
+        //         val decayFactor = 0.99f
+        //         val k = 5
+        //         val adjustedK = minOf(k, inputs.size)
+        //         if (inputs.isEmpty() || adjustedK == 0) {
+        //             println("Insufficient data for cross-validation. Inputs size: ${inputs.size}, k: $k")
+        //             return predictedSMB
+        //         }
+        //         val foldSize = maxOf(1, inputs.size / adjustedK)
+        //         for (i in 0 until adjustedK) {
+        //             val validationInputs = inputs.subList(i * foldSize, minOf((i + 1) * foldSize, inputs.size))
+        //             val validationTargets = targets.subList(i * foldSize, minOf((i + 1) * foldSize, targets.size))
+        //             val trainingInputs = inputs.minus(validationInputs)
+        //             val trainingTargets = targets.minus(validationTargets)
+        //
+        //             neuralNetwork = AimiNeuralNetwork(inputs.first().size, 5, 1)
+        //
+        //             for (epoch in 10000..totalEpochs.toInt() step epochsPerIteration) {
+        //                 for (innerEpoch in 1000 until epochsPerIteration) {
+        //                     neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, 10000, learningRate)
+        //                     learningRate *= decayFactor
+        //                 }
+        //             }
+        //         }
+        //
+        //         do {
+        //             totalDifference = 0.0f
+        //             val dynamicDifferenceThreshold = calculateDynamicThreshold(iterationCount, delta, shortAvgDelta, longAvgDelta)
+        //
+        //             for (enhancedInput in inputs) {
+        //                 val doubleInput = enhancedInput.toDoubleArray()
+        //                 val predictedRefineSMB = finalRefinedSMB
+        //                 val refinedSMB = neuralNetwork?.let { refineSMB(predictedRefineSMB, it, doubleInput) }
+        //                 if (delta > 10 && bg > 120) {
+        //                     isAggressiveResponseNeeded = true
+        //                 }
+        //                 val difference = abs(predictedRefineSMB - refinedSMB!!)
+        //                 totalDifference += difference
+        //                 val increasedToleranceFactor = if (iterationCount > maxIterations / 2) 1.5f else 1.0f
+        //                 val adaptiveThreshold = dynamicDifferenceThreshold * increasedToleranceFactor
+        //                 if (difference <= adaptiveThreshold) {
+        //                     finalRefinedSMB = if (refinedSMB > 0.0f) refinedSMB else 0.0f
+        //                     differenceWithinRange = true
+        //                     break
+        //                 }
+        //             }
+        //             if (isAggressiveResponseNeeded) {
+        //                 val provisionalSMB = maxSMB.toFloat() * (delta / 30)
+        //                 finalRefinedSMB = max(finalRefinedSMB, min(provisionalSMB, maxSMB.toFloat() / 1.5f))
+        //             }
+        //             if (finalRefinedSMB > 0.5 && bg < 120 && delta < 8) {
+        //                 finalRefinedSMB /= 2
+        //             }
+        //             println("Iteration $iterationCount complete. Total difference: $totalDifference")
+        //             iterationCount++
+        //             if (differenceWithinRange || iterationCount >= maxIterations) break
+        //         } while (true)
+        //
+        //         if (differenceWithinRange || iterationCount >= maxIterations) globalConvergenceReached = true
+        //         if (globalConvergenceReached) break
+        //
+        //         globalIterationCount++
+        //     }
+        // }
+        //
+        // if (!globalConvergenceReached) {
+        //     if (daysOfData >= 4) {
+        //         val doubleInput = lastEnhancedInput?.toDoubleArray()
+        //         finalRefinedSMB = neuralNetwork?.let { refineSMB(predictedSMB, it, doubleInput) } ?: predictedSMB
+        //     } else {
+        //         finalRefinedSMB = (predictedSMB * 0.4f) + (finalRefinedSMB * 0.6f)
+        //     }
+        // }
+        //
+        // return if (globalConvergenceReached) finalRefinedSMB else predictedSMB
         (1..maxGlobalIterations).forEach { _ ->
             var globalIterationCount = 0
             var iterationCount = 0
@@ -834,36 +1063,46 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 }
 
                 if (inputs.isEmpty() || targets.isEmpty()) {
+                    println("Insufficient data for training.")
                     return predictedSMB
                 }
 
-                val epochsPerIteration = 10000
-                val totalEpochs = 30000.0
-                var learningRate = 0.001f
-                val decayFactor = 0.99f
-                val k = 5
-                val adjustedK = minOf(k, inputs.size)
-                if (inputs.isEmpty() || adjustedK == 0) {
-                    println("Insufficient data for cross-validation. Inputs size: ${inputs.size}, k: $k")
-                    return predictedSMB
-                }
+                // Gestion dynamique de k pour la validation croisée
+                val maxK = 10
+                val adjustedK = minOf(maxK, inputs.size)
                 val foldSize = maxOf(1, inputs.size / adjustedK)
+                println("Using $adjustedK folds for cross-validation. Fold size: $foldSize")
+
                 for (i in 0 until adjustedK) {
                     val validationInputs = inputs.subList(i * foldSize, minOf((i + 1) * foldSize, inputs.size))
                     val validationTargets = targets.subList(i * foldSize, minOf((i + 1) * foldSize, targets.size))
                     val trainingInputs = inputs.minus(validationInputs)
                     val trainingTargets = targets.minus(validationTargets)
 
+                    if (validationInputs.isEmpty() || validationTargets.isEmpty()) {
+                        println("Empty validation fold at iteration $i. Skipping.")
+                        continue
+                    }
+
+                    // Création et entraînement du réseau neuronal
                     neuralNetwork = AimiNeuralNetwork(inputs.first().size, 5, 1)
 
-                    for (epoch in 10000..totalEpochs.toInt() step epochsPerIteration) {
-                        for (innerEpoch in 1000 until epochsPerIteration) {
-                            neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, 10000, learningRate)
-                            learningRate *= decayFactor
-                        }
+                    // Gestion simplifiée des epochs
+                    val totalEpochs = 30000
+                    var learningRate = 0.001f
+                    val decayFactor = 0.99f
+                    val epochsPerIteration = 1000
+                    var currentEpoch = 0
+                    while (currentEpoch < totalEpochs) {
+                        val remainingEpochs = minOf(epochsPerIteration, totalEpochs - currentEpoch)
+                        neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, remainingEpochs, learningRate)
+                        learningRate *= decayFactor
+                        currentEpoch += remainingEpochs
+                        println("Epoch $currentEpoch/$totalEpochs complete.")
                     }
                 }
 
+                // Phase d'optimisation
                 do {
                     totalDifference = 0.0f
                     val dynamicDifferenceThreshold = calculateDynamicThreshold(iterationCount, delta, shortAvgDelta, longAvgDelta)
@@ -914,6 +1153,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
 
         return if (globalConvergenceReached) finalRefinedSMB else predictedSMB
+
     }
 
     private fun calculateDynamicThreshold(iterationCount: Int, delta: Float, shortAvgDelta: Float, longAvgDelta: Float): Float {
