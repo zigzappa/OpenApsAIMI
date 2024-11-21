@@ -22,6 +22,7 @@ import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.stats.TddCalculator
 import app.aaps.core.interfaces.stats.TirCalculator
 import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.IntKey
@@ -54,7 +55,7 @@ import kotlin.times
 @Singleton
 class DetermineBasalaimiSMB2 @Inject constructor(
     private val profileUtil: ProfileUtil,
-    context: Context
+    private val fabricPrivacy: FabricPrivacy
 ) {
     @Inject lateinit var preferences: Preferences
     @Inject lateinit var persistenceLayer: PersistenceLayer
@@ -1709,6 +1710,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             consoleLog = consoleLog,
             consoleError = consoleError
         )
+
         val honeymoon = preferences.get(BooleanKey.OApsAIMIhoneymoon)
         this.bg = glucose_status.glucose
         val getlastBolusSMB = persistenceLayer.getNewestBolusOfType(BS.Type.SMB)
@@ -2479,6 +2481,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 if (dynIsfMode) round((-iobTick.activity * (1800 / (profile.TDD * (ln((max(IOBpredBGs[IOBpredBGs.size - 1], 39.0) / profile.insulinDivisor) + 1)))) * 5), 2)
                 else predBGI
             iobTick.iobWithZeroTemp ?: error("iobTick.iobWithZeroTemp missing")
+            // try to find where is crashing https://console.firebase.google.com/u/0/project/androidaps-c34f8/crashlytics/app/android:info.nightscout.androidaps/issues/950cdbaf63d545afe6d680281bb141e5?versions=3.3.0-dev-d%20(1500)&time=last-thirty-days&types=crash&sessionEventKey=673BF7DD032300013D4704707A053273_2017608123846397475
+            if (iobTick.iobWithZeroTemp!!.activity.isNaN() || sens.isNaN())
+                fabricPrivacy.logCustom("iobTick.iobWithZeroTemp!!.activity=${iobTick.iobWithZeroTemp!!.activity} sens=$sens")
             val predZTBGI =
                 if (dynIsfMode) round((-iobTick.iobWithZeroTemp!!.activity * (1800 / (profile.TDD * (ln((max(ZTpredBGs[ZTpredBGs.size - 1], 39.0) / profile.insulinDivisor) + 1)))) * 5), 2)
                 else round((-iobTick.iobWithZeroTemp!!.activity * sens * 5), 2)
