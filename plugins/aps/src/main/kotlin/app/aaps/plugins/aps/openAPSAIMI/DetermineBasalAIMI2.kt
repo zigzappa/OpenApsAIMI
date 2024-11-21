@@ -887,11 +887,15 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val maxGlobalIterations = 5
         var globalConvergenceReached = false
         val allLines = csvfile.readLines()
+        println("CSV file path: ${csvfile.absolutePath}")
         val linesPerDay = (24 * 60) / 5
         val totalLines = allLines.size - 1
         val daysOfData = totalLines / linesPerDay
         var neuralNetwork: AimiNeuralNetwork? = null
         var lastEnhancedInput: FloatArray? = null
+        allLines.take(5).forEachIndexed { index, line ->
+            println("Line $index: $line")
+        }
 
         // (1..maxGlobalIterations).forEach { _ ->
         //     var globalIterationCount = 0
@@ -1088,14 +1092,18 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                     neuralNetwork = AimiNeuralNetwork(inputs.first().size, 5, 1)
 
                     // Gestion simplifiée des epochs
-                    val totalEpochs = 30000
+                    val totalEpochs = 1000
                     var learningRate = 0.001f
                     val decayFactor = 0.99f
                     val epochsPerIteration = 1000
+                    val batchSize = 32
+                    val adjustedBatchSize = minOf(batchSize, trainingInputs.size)
                     var currentEpoch = 0
                     while (currentEpoch < totalEpochs) {
                         val remainingEpochs = minOf(epochsPerIteration, totalEpochs - currentEpoch)
-                        neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, remainingEpochs, learningRate)
+                        //neuralNetwork.train(trainingInputs, trainingTargets, validationInputs, validationTargets, remainingEpochs, learningRate)
+                        neuralNetwork.trainSimplified(trainingInputs, trainingTargets, epochs = remainingEpochs, batchSize = adjustedBatchSize)
+
                         learningRate *= decayFactor
                         currentEpoch += remainingEpochs
                         println("Epoch $currentEpoch/$totalEpochs complete.")

@@ -135,7 +135,7 @@ class AimiNeuralNetwork(
     }
 
     fun predict(input: FloatArray): DoubleArray {
-        return forwardPass(input).second
+        return forwardPassSimplified(input).second
     }
 
     private fun mseLoss(output: DoubleArray, target: DoubleArray): Double {
@@ -157,67 +157,153 @@ class AimiNeuralNetwork(
         return regularizationLoss * regularizationLambda
     }
 
-    fun train(
-        inputs: List<FloatArray>,
-        targets: List<DoubleArray>,
-        validationRawInputs: List<FloatArray>,
-        validationTargets: List<DoubleArray>,
-        epochs: Int,
-        batchSize: Float = 32.0f,
-        patience: Int = 10
-    ) {
-        var epochsWithoutImprovement = 0
-        val preparedInputs = createNewFeature(inputs)
-        val normalizedInputs = zScoreNormalization(preparedInputs)
-        val preparedValidationInputs = createNewFeature(validationRawInputs)
-        val normalizedValidationInputs = zScoreNormalization(preparedValidationInputs)
+    // fun train(
+    //     inputs: List<FloatArray>,
+    //     targets: List<DoubleArray>,
+    //     validationRawInputs: List<FloatArray>,
+    //     validationTargets: List<DoubleArray>,
+    //     epochs: Int,
+    //     batchSize: Float = 32.0f,
+    //     patience: Int = 10
+    // ) {
+    //     var epochsWithoutImprovement = 0
+    //     val preparedInputs = createNewFeature(inputs)
+    //     val normalizedInputs = zScoreNormalization(preparedInputs)
+    //     val preparedValidationInputs = createNewFeature(validationRawInputs)
+    //     val normalizedValidationInputs = zScoreNormalization(preparedValidationInputs)
+    //
+    //     val m = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
+    //     val v = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
+    //     val mOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
+    //     val vOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
+    //     var t = 1
+    //
+    //     for (epoch in 1..epochs) {
+    //         var totalLoss = 0.0
+    //         try {
+    //             normalizedInputs.chunked(batchSize.toInt()).zip(targets.chunked(batchSize.toInt())).forEach { (batchInputs, batchTargets) ->
+    //                 batchInputs.zip(batchTargets).forEach { (input, target) ->
+    //                     val output = forwardPass(input).second
+    //                     totalLoss += mseLoss(output, target) + l2Regularization()
+    //                     backpropagation(input, target, m, v, mOutput, vOutput)
+    //                 }
+    //             }
+    //             trainWithAdam(normalizedInputs, targets, normalizedValidationInputs, validationTargets, epochs - epoch + 1)
+    //             val averageLoss = totalLoss / normalizedInputs.size
+    //             trainingLossHistory.add(averageLoss)
+    //
+    //             val validationLoss = validate(normalizedValidationInputs, validationTargets)
+    //             println("Epoch $epoch, Training Loss: $averageLoss, Validation Loss: $validationLoss")
+    //             adjustLearningRate(epoch, validationLoss)
+    //             if (validationLoss < bestLoss) {
+    //                 bestLoss = validationLoss
+    //                 epochsWithoutImprovement = 0
+    //             } else {
+    //                 epochsWithoutImprovement++
+    //                 if (epochsWithoutImprovement >= patience) {
+    //                     println("Early stopping triggered at epoch $epoch")
+    //                     break
+    //                 }
+    //             }
+    //
+    //             config.learningRate *= 0.95 // Réduction dynamique du taux d'apprentissage
+    //             t++
+    //         } catch (e: Exception) {
+    //             lastTrainingException = e
+    //             println("Exception during training at epoch $epoch: ${e.message}")
+    //             break
+    //         }
+    //     }
+    // }
+    // fun train(
+    //     inputs: List<FloatArray>,
+    //     targets: List<DoubleArray>,
+    //     validationRawInputs: List<FloatArray>,
+    //     validationTargets: List<DoubleArray>,
+    //     epochs: Int,
+    //     batchSize: Float = 32.0f,
+    //     patience: Int = 10
+    // ) {
+    //     if (inputs.isEmpty() || targets.isEmpty()) {
+    //         println("No training data available.")
+    //         return
+    //     }
+    //
+    //     val preparedInputs = createNewFeature(inputs)
+    //     val normalizedInputs = zScoreNormalization(preparedInputs)
+    //     val preparedValidationInputs = createNewFeature(validationRawInputs)
+    //     val normalizedValidationInputs = zScoreNormalization(preparedValidationInputs)
+    //
+    //     if (normalizedInputs.isEmpty() || normalizedValidationInputs.isEmpty()) {
+    //         println("Preprocessing resulted in empty data. Aborting training.")
+    //         return
+    //     }
+    //
+    //     // Initialize Adam parameters
+    //     val m = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
+    //     val v = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
+    //     val mOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
+    //     val vOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
+    //     var t = 1
+    //
+    //     var bestLoss = Double.MAX_VALUE
+    //     var epochsWithoutImprovement = 0
+    //
+    //     val adjustedBatchSize = minOf(batchSize.toInt(), inputs.size)
+    //     if (adjustedBatchSize == 0) {
+    //         println("Batch size is too small. Aborting training.")
+    //         return
+    //     }
+    //
+    //     for (epoch in 1..epochs) {
+    //         var totalLoss = 0.0
+    //         try {
+    //             // Batch processing
+    //             normalizedInputs.chunked(adjustedBatchSize).zip(targets.chunked(adjustedBatchSize)).forEach { (batchInputs, batchTargets) ->
+    //                 batchInputs.zip(batchTargets).forEach { (input, target) ->
+    //                     val output = forwardPass(input).second
+    //                     totalLoss += mseLoss(output, target) + l2Regularization()
+    //                     backpropagation(input, target, m, v, mOutput, vOutput)
+    //                 }
+    //             }
+    //
+    //             val averageLoss = totalLoss / normalizedInputs.size
+    //             trainingLossHistory.add(averageLoss)
+    //
+    //             // Call trainWithAdam for further refinement
+    //             trainWithAdam(normalizedInputs, targets, normalizedValidationInputs, validationTargets, epochs - epoch + 1)
+    //
+    //             // Validation and logging
+    //             val validationLoss = validate(normalizedValidationInputs, validationTargets)
+    //             println("Epoch $epoch, Training Loss: $averageLoss, Validation Loss: $validationLoss")
+    //             adjustLearningRate(epoch, validationLoss)
+    //             // Early stopping logic
+    //             if (validationLoss < bestLoss) {
+    //                 bestLoss = validationLoss
+    //                 epochsWithoutImprovement = 0
+    //             } else {
+    //                 epochsWithoutImprovement++
+    //                 if (epochsWithoutImprovement >= patience) {
+    //                     println("Early stopping triggered at epoch $epoch due to no improvement.")
+    //                     break
+    //                 }
+    //             }
+    //
+    //             // Dynamically reduce learning rate
+    //             config.learningRate *= 0.95
+    //             t++
+    //         } catch (e: Exception) {
+    //             lastTrainingException = e
+    //             println("Exception during training at epoch $epoch: ${e.message}")
+    //             break
+    //         }
+    //     }
+    // }
 
-        val m = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
-        val v = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
-        val mOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
-        val vOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
-        var t = 1
 
-        for (epoch in 1..epochs) {
-            var totalLoss = 0.0
-            try {
-                normalizedInputs.chunked(batchSize.toInt()).zip(targets.chunked(batchSize.toInt())).forEach { (batchInputs, batchTargets) ->
-                    batchInputs.zip(batchTargets).forEach { (input, target) ->
-                        val output = forwardPass(input).second
-                        totalLoss += mseLoss(output, target) + l2Regularization()
-                        backpropagation(input, target, m, v, mOutput, vOutput)
-                    }
-                }
-                trainWithAdam(normalizedInputs, targets, normalizedValidationInputs, validationTargets, epochs - epoch + 1)
-                val averageLoss = totalLoss / normalizedInputs.size
-                trainingLossHistory.add(averageLoss)
-
-                val validationLoss = validate(normalizedValidationInputs, validationTargets)
-                println("Epoch $epoch, Training Loss: $averageLoss, Validation Loss: $validationLoss")
-                adjustLearningRate(epoch, validationLoss)
-                if (validationLoss < bestLoss) {
-                    bestLoss = validationLoss
-                    epochsWithoutImprovement = 0
-                } else {
-                    epochsWithoutImprovement++
-                    if (epochsWithoutImprovement >= patience) {
-                        println("Early stopping triggered at epoch $epoch")
-                        break
-                    }
-                }
-
-                config.learningRate *= 0.95 // Réduction dynamique du taux d'apprentissage
-                t++
-            } catch (e: Exception) {
-                lastTrainingException = e
-                println("Exception during training at epoch $epoch: ${e.message}")
-                break
-            }
-        }
-    }
 
     private fun backpropagation(input: FloatArray, target: DoubleArray, m: Array<DoubleArray>, v: Array<DoubleArray>, mOutput: Array<DoubleArray>, vOutput: Array<DoubleArray>) {
-        val (hidden, output) = forwardPass(input)
+        val (hidden, output) = forwardPassSimplified(input)
         val gradLossOutput = calculateOutputLayerGradient(output, target)
         updateWeightsAndBiasesForOutputLayer(hidden, gradLossOutput, mOutput, vOutput)
 
@@ -300,72 +386,287 @@ class AimiNeuralNetwork(
         }
     }
 
-    private fun trainWithAdam(
+    // private fun trainWithAdam(
+    //     inputs: List<FloatArray>,
+    //     targets: List<DoubleArray>,
+    //     validationRawInputs: List<FloatArray>,
+    //     validationTargets: List<DoubleArray>,
+    //     epochs: Int,
+    //     batchSize: Int = 32,
+    //     patience: Int = 10
+    // ) {
+    //     val preparedInputs = createNewFeature(inputs)
+    //     val normalizedInputs = zScoreNormalization(preparedInputs)
+    //     val preparedValidationInputs = createNewFeature(validationRawInputs)
+    //     val normalizedValidationInputs = zScoreNormalization(preparedValidationInputs)
+    //
+    //     // Initialize Adam parameters
+    //     val m = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
+    //     val v = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
+    //     val mOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
+    //     val vOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
+    //     var t = 0  // Initialize time step for Adam
+    //
+    //     var bestLoss = Double.MAX_VALUE
+    //     var epochsWithoutImprovement = 0
+    //
+    //     for (epoch in 1..epochs) {
+    //         var totalLoss = 0.0
+    //         try {
+    //             normalizedInputs.chunked(batchSize).zip(targets.chunked(batchSize)).forEach { (batchInputs, batchTargets) ->
+    //                 batchInputs.zip(batchTargets).forEach { (input, target) ->
+    //                     val (_, output) = forwardPass(input)
+    //                     val gradOutputs = DoubleArray(outputSize) { i -> 2.0 * (output[i] - target[i]) }
+    //                     val (gradInputHidden, gradHiddenOutput) = backpropagationWithAdam(input, gradOutputs)
+    //
+    //                     // Update weights with Adam optimizer for both layers
+    //                     updateWeightsAdam(weightsInputHidden, gradInputHidden, m, v, ++t)
+    //                     updateWeightsAdam(weightsHiddenOutput, gradHiddenOutput, mOutput, vOutput, t)
+    //
+    //                     totalLoss += mseLoss(output, target) + l2Regularization()
+    //                 }
+    //             }
+    //
+    //             val averageLoss = totalLoss / normalizedInputs.size
+    //             trainingLossHistory.add(averageLoss)
+    //
+    //             val validationLoss = validate(normalizedValidationInputs, validationTargets)
+    //             println("Epoch $epoch, Training Loss: $averageLoss, Validation Loss: $validationLoss")
+    //
+    //             if (validationLoss < bestLoss) {
+    //                 bestLoss = validationLoss
+    //                 epochsWithoutImprovement = 0
+    //             } else {
+    //                 epochsWithoutImprovement++
+    //                 if (epochsWithoutImprovement >= patience) {
+    //                     println("Early stopping triggered at epoch $epoch")
+    //                     break
+    //                 }
+    //             }
+    //
+    //             config.learningRate *= 0.95  // Dynamically reduce the learning rate
+    //         } catch (e: Exception) {
+    //             lastTrainingException = e
+    //             println("Exception during training at epoch $epoch: ${e.message}")
+    //             break
+    //         }
+    //     }
+    // }
+    // private fun trainWithAdam(
+    //     inputs: List<FloatArray>,
+    //     targets: List<DoubleArray>,
+    //     validationRawInputs: List<FloatArray>,
+    //     validationTargets: List<DoubleArray>,
+    //     epochs: Int,
+    //     batchSize: Int = 32,
+    //     patience: Int = 10
+    // ) {
+    //     if (inputs.isEmpty() || targets.isEmpty()) {
+    //         println("Training data is empty. Aborting training.")
+    //         return
+    //     }
+    //
+    //     // Prétraitement
+    //     println("Preparing inputs and targets for training...")
+    //     val preparedInputs = createNewFeature(inputs)
+    //     val normalizedInputs = zScoreNormalization(preparedInputs)
+    //     val preparedValidationInputs = createNewFeature(validationRawInputs)
+    //     val normalizedValidationInputs = zScoreNormalization(preparedValidationInputs)
+    //
+    //     println("Data sizes after preprocessing: ")
+    //     println(" - Training data: ${normalizedInputs.size} samples.")
+    //     println(" - Validation data: ${normalizedValidationInputs.size} samples.")
+    //
+    //     if (normalizedInputs.isEmpty() || normalizedValidationInputs.isEmpty()) {
+    //         println("Preprocessing resulted in empty data. Aborting training.")
+    //         return
+    //     }
+    //
+    //     // Ajustement initial de la taille des batchs
+    //     var adjustedBatchSize = minOf(batchSize, normalizedInputs.size)
+    //     if (adjustedBatchSize <= 0) {
+    //         println("Adjusted batch size is too small (${adjustedBatchSize}). Aborting training.")
+    //         return
+    //     }
+    //     println("Using initial adjusted batch size: $adjustedBatchSize")
+    //
+    //     // Initialisation des paramètres Adam
+    //     val m = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
+    //     val v = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
+    //     val mOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
+    //     val vOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
+    //     var t = 0  // Initialisation de l'étape de temps pour Adam
+    //
+    //     var bestLoss = Double.MAX_VALUE
+    //     var epochsWithoutImprovement = 0
+    //
+    //     for (epoch in 1..epochs) {
+    //         var totalLoss = 0.0
+    //         try {
+    //             println("Starting epoch $epoch...")
+    //
+    //             // Processus d'entraînement par batch
+    //             val batches = normalizedInputs.chunked(adjustedBatchSize).zip(targets.chunked(adjustedBatchSize))
+    //             if (batches.isEmpty()) {
+    //                 println("No valid batches available. Aborting training at epoch $epoch.")
+    //                 break
+    //             }
+    //
+    //             batches.forEach { (batchInputs, batchTargets) ->
+    //                 if (batchInputs.isEmpty() || batchTargets.isEmpty()) {
+    //                     println("Skipping empty batch at epoch $epoch.")
+    //                     return@forEach
+    //                 }
+    //
+    //                 batchInputs.zip(batchTargets).forEach { (input, target) ->
+    //                     val (_, output) = forwardPass(input)
+    //
+    //                     // Calcul des gradients et mise à jour des poids
+    //                     val gradOutputs = DoubleArray(outputSize) { i -> 2.0 * (output[i] - target[i]) }
+    //                     val (gradInputHidden, gradHiddenOutput) = backpropagationWithAdam(input, gradOutputs)
+    //
+    //                     updateWeightsAdam(weightsInputHidden, gradInputHidden, m, v, ++t)
+    //                     updateWeightsAdam(weightsHiddenOutput, gradHiddenOutput, mOutput, vOutput, t)
+    //
+    //                     totalLoss += mseLoss(output, target) + l2Regularization()
+    //                 }
+    //             }
+    //
+    //             // Calcul de la perte moyenne et validation
+    //             val averageLoss = totalLoss / normalizedInputs.size
+    //             trainingLossHistory.add(averageLoss)
+    //
+    //             val validationLoss = validate(normalizedValidationInputs, validationTargets)
+    //             println("Epoch $epoch complete. Training Loss: $averageLoss, Validation Loss: $validationLoss")
+    //
+    //             // Early stopping
+    //             if (validationLoss < bestLoss) {
+    //                 bestLoss = validationLoss
+    //                 epochsWithoutImprovement = 0
+    //             } else {
+    //                 epochsWithoutImprovement++
+    //                 if (epochsWithoutImprovement >= patience) {
+    //                     println("Early stopping triggered at epoch $epoch due to no improvement.")
+    //                     break
+    //                 }
+    //             }
+    //
+    //             // Ajustement dynamique du taux d'apprentissage
+    //             config.learningRate *= 0.95
+    //
+    //             // Réévaluer la taille des batchs si nécessaire
+    //             adjustedBatchSize = minOf(batchSize, normalizedInputs.size)
+    //             if (adjustedBatchSize <= 0) {
+    //                 println("Adjusted batch size too small after epoch $epoch. Aborting training.")
+    //                 break
+    //             }
+    //
+    //         } catch (e: Exception) {
+    //             println("Exception during training at epoch $epoch: ${e.message}")
+    //             e.printStackTrace()
+    //             break
+    //         }
+    //     }
+    // }
+    private fun adamSimplified(
+        weights: Array<DoubleArray>,
+        grads: Array<DoubleArray>,
+        m: Array<DoubleArray>,
+        v: Array<DoubleArray>,
+        t: Int,
+        learningRate: Double = 0.001,
+        beta1: Double = 0.9,
+        beta2: Double = 0.999,
+        epsilon: Double = 1e-8
+    ) {
+        for (i in weights.indices) {
+            for (j in weights[i].indices) {
+                m[i][j] = beta1 * m[i][j] + (1 - beta1) * grads[i][j]
+                v[i][j] = beta2 * v[i][j] + (1 - beta2) * grads[i][j] * grads[i][j]
+
+                val mHat = m[i][j] / (1 - beta1.pow(t))
+                val vHat = v[i][j] / (1 - beta2.pow(t))
+
+                weights[i][j] -= learningRate * mHat / (sqrt(vHat) + epsilon)
+            }
+        }
+    }
+    private fun forwardPassSimplified(input: FloatArray): Pair<DoubleArray, DoubleArray> {
+        // Calcul d'une couche cachée simple
+        val hidden = DoubleArray(hiddenSize) { i ->
+            input.indices.sumOf { j -> input[j] * weightsInputHidden[j][i] } + biasHidden[i]
+        }
+
+        val activatedHidden = hidden.map { relu(it) }.toDoubleArray()
+
+        // Calcul de la sortie
+        val output = DoubleArray(outputSize) { i ->
+            activatedHidden.indices.sumOf { j -> activatedHidden[j] * weightsHiddenOutput[j][i] } + biasOutput[i]
+        }
+
+        return Pair(activatedHidden, output)
+    }
+    fun trainSimplified(
         inputs: List<FloatArray>,
         targets: List<DoubleArray>,
-        validationRawInputs: List<FloatArray>,
-        validationTargets: List<DoubleArray>,
         epochs: Int,
-        batchSize: Int = 32,
-        patience: Int = 10
+        batchSize: Int = 32
     ) {
-        val preparedInputs = createNewFeature(inputs)
-        val normalizedInputs = zScoreNormalization(preparedInputs)
-        val preparedValidationInputs = createNewFeature(validationRawInputs)
-        val normalizedValidationInputs = zScoreNormalization(preparedValidationInputs)
+        trainWithAdamSimplified(inputs, targets, epochs, batchSize)
+    }
+    private fun trainWithAdamSimplified(
+        inputs: List<FloatArray>,
+        targets: List<DoubleArray>,
+        epochs: Int,
+        batchSize: Int = 32
+    ) {
+        if (inputs.isEmpty() || targets.isEmpty()) {
+            println("No training data available. Aborting.")
+            return
+        }
 
-        // Initialize Adam parameters
+        // Normalisation basique
+        val normalizedInputs = zScoreNormalization(inputs)
+        if (normalizedInputs.isEmpty()) {
+            println("Normalization resulted in empty data. Aborting.")
+            return
+        }
+
+        // Initialisation des paramètres Adam
         val m = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
         val v = Array(weightsInputHidden.size) { DoubleArray(weightsInputHidden[0].size) { 0.0 } }
-        val mOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
-        val vOutput = Array(weightsHiddenOutput.size) { DoubleArray(weightsHiddenOutput[0].size) { 0.0 } }
-        var t = 0  // Initialize time step for Adam
-
-        var bestLoss = Double.MAX_VALUE
-        var epochsWithoutImprovement = 0
+        var t = 0
 
         for (epoch in 1..epochs) {
+            println("Starting epoch $epoch...")
             var totalLoss = 0.0
+
             try {
+                // Processus par batch
                 normalizedInputs.chunked(batchSize).zip(targets.chunked(batchSize)).forEach { (batchInputs, batchTargets) ->
                     batchInputs.zip(batchTargets).forEach { (input, target) ->
-                        val (_, output) = forwardPass(input)
+                        val (_, output) = forwardPassSimplified(input)
                         val gradOutputs = DoubleArray(outputSize) { i -> 2.0 * (output[i] - target[i]) }
-                        val (gradInputHidden, gradHiddenOutput) = backpropagationWithAdam(input, gradOutputs)
 
-                        // Update weights with Adam optimizer for both layers
+                        // Calcul des gradients et mise à jour des poids
+                        val (gradInputHidden, _) = backpropagationWithAdam(input, gradOutputs)
                         updateWeightsAdam(weightsInputHidden, gradInputHidden, m, v, ++t)
-                        updateWeightsAdam(weightsHiddenOutput, gradHiddenOutput, mOutput, vOutput, t)
 
-                        totalLoss += mseLoss(output, target) + l2Regularization()
+                        totalLoss += mseLoss(output, target)
                     }
                 }
 
                 val averageLoss = totalLoss / normalizedInputs.size
-                trainingLossHistory.add(averageLoss)
-
-                val validationLoss = validate(normalizedValidationInputs, validationTargets)
-                println("Epoch $epoch, Training Loss: $averageLoss, Validation Loss: $validationLoss")
-
-                if (validationLoss < bestLoss) {
-                    bestLoss = validationLoss
-                    epochsWithoutImprovement = 0
-                } else {
-                    epochsWithoutImprovement++
-                    if (epochsWithoutImprovement >= patience) {
-                        println("Early stopping triggered at epoch $epoch")
-                        break
-                    }
-                }
-
-                config.learningRate *= 0.95  // Dynamically reduce the learning rate
+                println("Epoch $epoch complete. Training Loss: $averageLoss")
             } catch (e: Exception) {
-                lastTrainingException = e
-                println("Exception during training at epoch $epoch: ${e.message}")
-                break
+                println("Exception during epoch $epoch: ${e.message}")
+                e.printStackTrace()
+                return
             }
         }
     }
+
+
     private fun adjustLearningRate(epoch: Int, validationLoss: Double) {
         if (validationLoss > bestLoss) {
             config.learningRate *= 0.9 // Réduis si la validation n’améliore pas
@@ -398,7 +699,7 @@ class AimiNeuralNetwork(
         }
 
         private fun backpropagationWithAdam(input: FloatArray, gradOutputs: DoubleArray): Pair<Array<DoubleArray>, Array<DoubleArray>> {
-            val (hidden, _) = forwardPass(input)
+            val (hidden, _) = forwardPassSimplified(input)
             val gradInputHidden = Array(inputSize) { DoubleArray(hiddenSize) { 0.0 } }
             val gradHiddenOutput = Array(hiddenSize) { DoubleArray(outputSize) { 0.0 } }
 
@@ -429,7 +730,7 @@ class AimiNeuralNetwork(
     private fun validate(inputs: List<FloatArray>, targets: List<DoubleArray>): Double {
             var totalLoss = 0.0
             for ((input, target) in inputs.zip(targets)) {
-                val output = forwardPass(input).second
+                val output = forwardPassSimplified(input).second
                 totalLoss += mseLoss(output, target) + l2Regularization()
             }
             return totalLoss / inputs.size
