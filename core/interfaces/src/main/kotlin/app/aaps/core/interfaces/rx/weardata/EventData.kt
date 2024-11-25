@@ -296,7 +296,9 @@ sealed class EventData : Event() {
         val patientName: String = "",
         val tempTarget: String,
         val tempTargetLevel: Int,
-        val id: Int = 0
+        val reservoirString: String,
+        val reservoir: Double,
+        val reservoirLevel: Int
     ) : EventData(), EventDataSet
 
     @Serializable
