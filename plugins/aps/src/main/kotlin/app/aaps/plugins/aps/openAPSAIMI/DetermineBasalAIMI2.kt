@@ -2140,14 +2140,6 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         val timenow = LocalTime.now().hour
         val sixAMHour = LocalTime.of(6, 0).hour
-        // if (averageBeatsPerMinute != 0.0) {
-        //     this.basalaimi = when {
-        //         averageBeatsPerMinute >= averageBeatsPerMinute180 && recentSteps5Minutes > 100 && recentSteps10Minutes > 200 -> (basalaimi * 0.65).toFloat()
-        //         averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute > averageBeatsPerMinute180 && bg >= 130 && recentSteps10Minutes == 0 && timenow > sixAMHour -> (basalaimi * 1.2).toFloat()
-        //         averageBeatsPerMinute180 != 80.0 && averageBeatsPerMinute < averageBeatsPerMinute180 && recentSteps10Minutes == 0 && bg >= 110 -> (basalaimi * 1.1).toFloat()
-        //         else -> basalaimi
-        //     }
-        // }
 
         val pregnancyEnable = preferences.get(BooleanKey.OApsAIMIpregnancy)
 
@@ -2155,7 +2147,6 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             this.basalaimi = when {
                 tirbasalhAP != null && tirbasalhAP >= 5 -> (basalaimi * 2.0).toFloat()
                 lastHourTIRAbove != null && lastHourTIRAbove >= 2 -> (basalaimi * 1.8).toFloat()
-                // Ajustement en fonction de honeymoon et de l'heure
                 timenow < sixAMHour -> {
                     val multiplier = if (honeymoon) 1.2 else 1.4
                     (basalaimi * multiplier).toFloat()
@@ -2167,11 +2158,13 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                 tirbasal3B <= 5 && tirbasal3IR in 70.0..80.0 -> (basalaimi * 1.1).toFloat()
                 tirbasal3B <= 5 && tirbasal3IR <= 70 -> (basalaimi * 1.3).toFloat()
                 tirbasal3B > 5 && tirbasal3A!! < 5 -> (basalaimi * 0.85).toFloat()
-                else -> basalaimi  // Cas par défaut pour gérer toute condition non explicitement couverte
+                else -> basalaimi
             }
         }
 
         this.basalaimi = if (honeymoon && basalaimi > profile_current_basal * 2) (profile_current_basal.toFloat() * 2) else basalaimi
+
+        this.basalaimi = if (basalaimi < 0.0f) 0.0f else basalaimi
 
         this.variableSensitivity = if (honeymoon) {
             if (bg < 150) {
@@ -2618,7 +2611,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val logTemplate = buildString {
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "19  november 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "29 november 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
