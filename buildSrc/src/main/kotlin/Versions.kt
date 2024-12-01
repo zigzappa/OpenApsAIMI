@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 object Versions {
 
-    const val appVersion = "3.3.0-dev-d-AIMI-d-291124"
+    const val appVersion = "3.3.0-dev-e-AIMI-d-011224"
     const val versionCode = 1500
 
     const val ndkVersion = "21.1.6352462"
