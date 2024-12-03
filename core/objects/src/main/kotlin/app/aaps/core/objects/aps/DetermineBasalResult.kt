@@ -65,6 +65,7 @@ class DetermineBasalResult @Inject constructor(var injector: HasAndroidInjector)
     override var carbsReq = 0
     override var carbsReqWithin = 0
     override var variableSens: Double? = null
+    override var isfMgdlForCarbs: Double? = null // used only to pass to AAPS client
     override var scriptDebug: List<String>? = null
     var eventualBG = 0.0
     var snoozeBG = 0.0
@@ -124,6 +125,7 @@ class DetermineBasalResult @Inject constructor(var injector: HasAndroidInjector)
         targetBG = result.targetBG ?: 0.0
         deliverAt = result.deliverAt ?: 0L
         variableSens = result.variable_sens
+        isfMgdlForCarbs = result.isfMgdlForCarbs
         scriptDebug = result.consoleError
     }
 
