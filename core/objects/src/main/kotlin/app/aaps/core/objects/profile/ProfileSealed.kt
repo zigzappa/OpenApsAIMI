@@ -259,74 +259,31 @@ sealed class ProfileSealed(
     override fun getBasal(timestamp: Long): Double = basalBlocks.blockValueBySeconds(MidnightUtils.secondsFromMidnight(timestamp), percentage / 100.0, timeshift)
     override fun getIc(): Double =
         if (aps?.supportsDynamicIc() ?: error("APS not defined"))
-            aps.getIc(100.0 / percentage, timeshift) ?: icBlocks.blockValueBySeconds(MidnightUtils.secondsFromMidnight(), 100.0 / percentage, timeshift)
+            aps.getIc(this) ?: icBlocks.blockValueBySeconds(MidnightUtils.secondsFromMidnight(), 100.0 / percentage, timeshift)
         else icBlocks.blockValueBySeconds(MidnightUtils.secondsFromMidnight(), 100.0 / percentage, timeshift)
 
     override fun getIc(timestamp: Long): Double =
         if (aps?.supportsDynamicIc() ?: error("APS not defined"))
-            aps.getIc(timestamp, 100.0 / percentage, timeshift) ?: icBlocks.blockValueBySeconds(MidnightUtils.secondsFromMidnight(timestamp), 100.0 / percentage, timeshift)
+            aps.getIc(timestamp, this) ?: icBlocks.blockValueBySeconds(MidnightUtils.secondsFromMidnight(timestamp), 100.0 / percentage, timeshift)
         else icBlocks.blockValueBySeconds(MidnightUtils.secondsFromMidnight(timestamp), 100.0 / percentage, timeshift)
 
     override fun getProfileIsfMgdl(): Double =
         toMgdl(isfBlocks.blockValueBySeconds(MidnightUtils.secondsFromMidnight(), 100.0 / percentage, timeshift), units)
 
-    override fun getIsfMgdl(caller: String): Double {
-        return if (aps?.supportsDynamicIsf() ?: error("APS not defined")) {
-                val averageIsf = aps.getAverageIsfMgdl(timestamp, caller)
-                if (averageIsf != null) {
-                    // Utilisation de la moyenne de l'ISF dynamique
-                    averageIsf
-                } else {
-                    // Sinon, fallback vers les blocs ISF du profil
-                    toMgdl(isfBlocks.blockValueBySeconds(MidnightUtils.secondsFromMidnight(), 100.0 / percentage, timeshift), units)
-                }
+    override fun getIsfMgdl(caller: String): Double =
+        if (aps?.supportsDynamicIsf() ?: error("APS not defined"))
+            aps.getIsfMgdl(this, caller) ?: toMgdl(isfBlocks.blockValueBySeconds(MidnightUtils.secondsFromMidnight(), 100.0 / percentage, timeshift), units)
+        else getProfileIsfMgdl()
+
+    override fun getIsfMgdlForCarbs(timestamp: Long, caller: String, config: Config, processedDeviceStatusData: ProcessedDeviceStatusData): Double =
+        if (config.NSCLIENT) {
+            processedDeviceStatusData.getAPSResult()?.isfMgdlForCarbs ?: toMgdl(isfBlocks.blockValueBySeconds(MidnightUtils.secondsFromMidnight(timestamp), 100.0 / percentage, timeshift), units)
         } else {
-            // Si l'APS ne supporte pas l'ISF dynamique, fallback vers l'ISF du profil
-            getProfileIsfMgdl()
+            if (aps?.supportsDynamicIsf() ?: error("APS not defined"))
+                aps.getAverageIsfMgdl(timestamp, caller) ?: toMgdl(isfBlocks.blockValueBySeconds(MidnightUtils.secondsFromMidnight(timestamp), 100.0 / percentage, timeshift), units)
+            else toMgdl(isfBlocks.blockValueBySeconds(MidnightUtils.secondsFromMidnight(timestamp), 100.0 / percentage, timeshift), units)
         }
     }
-
-    override fun getIsfMgdlForCarbs(
-        timestamp: Long,
-        caller: String,
-        config: Config,
-        processedDeviceStatusData: ProcessedDeviceStatusData
-    ): Double {
-        return if (config.NSCLIENT) {
-            // Utilisation des données traitées de l'APS si NSCLIENT est activé
-            processedDeviceStatusData.getAPSResult()?.isfMgdlForCarbs
-                ?: toMgdl(
-                    isfBlocks.blockValueBySeconds(
-                        MidnightUtils.secondsFromMidnight(timestamp),
-                        100.0 / percentage,
-                        timeshift
-                    ), units
-                )
-        } else {
-            // Si NSCLIENT n'est pas activé, appliquer la logique dynamique ou par défaut
-            if (aps?.supportsDynamicIsf() ?: error("APS not defined")) {
-                val averageIsf = aps.getAverageIsfMgdl(timestamp, caller)
-                averageIsf
-                    ?: toMgdl(
-                        isfBlocks.blockValueBySeconds(
-                            MidnightUtils.secondsFromMidnight(timestamp),
-                            100.0 / percentage,
-                            timeshift
-                        ), units
-                    )
-            } else {
-                toMgdl(
-                    isfBlocks.blockValueBySeconds(
-                        MidnightUtils.secondsFromMidnight(timestamp),
-                        100.0 / percentage,
-                        timeshift
-                    ), units
-                )
-            }
-        }
-    }
-
-
     override fun getTargetMgdl(): Double = toMgdl(targetBlocks.targetBlockValueBySeconds(MidnightUtils.secondsFromMidnight(), timeshift), units)
     override fun getTargetLowMgdl(): Double = toMgdl(targetBlocks.lowTargetBlockValueBySeconds(MidnightUtils.secondsFromMidnight(), timeshift), units)
     override fun getTargetLowMgdl(timestamp: Long): Double = toMgdl(targetBlocks.lowTargetBlockValueBySeconds(MidnightUtils.secondsFromMidnight(timestamp), timeshift), units)
