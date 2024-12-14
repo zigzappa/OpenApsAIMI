@@ -1740,7 +1740,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val enableUAM = profile.enableUAM
         this.maxSMB = preferences.get(DoubleKey.OApsAIMIMaxSMB)
         this.maxSMBHB = preferences.get(DoubleKey.OApsAIMIHighBGMaxSMB)
-        this.maxSMB = if (bg > 120) maxSMBHB else maxSMB
+        this.maxSMB = if (bg > 120 && !honeymoon || bg > 180 && honeymoon) maxSMBHB else maxSMB
         this.tir1DAYabove = tirCalculator.averageTIR(tirCalculator.calculate(1, 65.0, 180.0))?.abovePct()!!
         val tir1DAYIR = tirCalculator.averageTIR(tirCalculator.calculate(1, 65.0, 180.0))?.inRangePct()!!
         this.currentTIRLow = tirCalculator.averageTIR(tirCalculator.calculateDaily(65.0, 180.0))?.belowPct()!!
@@ -2611,7 +2611,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val logTemplate = buildString {
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "12 december 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "14 december 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
