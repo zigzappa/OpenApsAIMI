@@ -2611,7 +2611,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val logTemplate = buildString {
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "14 december 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "17 december 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
