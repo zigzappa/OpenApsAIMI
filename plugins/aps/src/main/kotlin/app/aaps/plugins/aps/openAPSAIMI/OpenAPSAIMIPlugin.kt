@@ -167,7 +167,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         }
         var count = 0
         var sum = 0.0
-        val start = timestamp - T.hours(24).msecs()
+        val start = timestamp - T.hours(8).msecs()
         dynIsfCache.forEach { key, value ->
             if (key in start..timestamp) {
                 count++
