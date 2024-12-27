@@ -117,5 +117,6 @@ enum class BooleanKey(
     OApsAIMIEnableStepsFromWatch("count_steps_watch", false),
     OApsAIMIpregnancy("key_use_AimiPregnancy",false),
     OApsAIMInight("OApsAIMI_Enable_night",false),
-    OApsAIMIhoneymoon("key_use_Aimi_honeymoon",false)
+    OApsAIMIhoneymoon("key_use_Aimi_honeymoon",false),
+    OApsxdriponeminute(key = "key_use_Aimi_xdripOM",defaultValue = false)
 }
