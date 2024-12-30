@@ -34,6 +34,7 @@ import org.json.JSONObject
 import javax.inject.Inject
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.round
 
 /**
  * Created by mike on 09.06.2016.
@@ -67,6 +68,8 @@ open class APSResultObject(protected val injector: HasAndroidInjector) : APSResu
     override var hasPredictions = false
     override var smb = 0.0 // super micro bolus in units
     override var deliverAt: Long = 0
+
+
     override var targetBG = 0.0
     override var carbsReq = 0
     override var carbsReqWithin = 0
@@ -118,6 +121,22 @@ open class APSResultObject(protected val injector: HasAndroidInjector) : APSResu
             carbsRequiredText
         } else rh.gs(R.string.nochangerequested)
     }
+    /*fun updateAPSResult(delta: Float, bg: Float, basalaimi: Float, targetBG: Double) {
+        val newRate = round(basalaimi.toDouble() * delta)
+        val newDuration = 30
+        if (delta <= 0.0f && bg <= 140.0f) {
+            this.rate = 0.0
+            this.duration = newDuration
+            this.isTempBasalRequested = true
+            this.isChangeRequested
+        } else if (delta > 0.0f && bg > 80) {
+            this.rate = newRate.toDouble()
+            this.duration = newDuration
+            this.isTempBasalRequested = true
+            this.isChangeRequested
+        }
+        this.targetBG = targetBG
+    }*/
 
     override fun resultAsSpanned(): Spanned {
         val pump = activePlugin.activePump

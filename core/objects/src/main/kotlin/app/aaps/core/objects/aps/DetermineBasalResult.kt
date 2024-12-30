@@ -12,6 +12,7 @@ import app.aaps.core.interfaces.aps.GlucoseStatus
 import app.aaps.core.interfaces.aps.IobTotal
 import app.aaps.core.interfaces.aps.MealData
 import app.aaps.core.interfaces.aps.OapsProfile
+import app.aaps.core.interfaces.aps.OapsProfileAimi
 import app.aaps.core.interfaces.aps.OapsProfileAutoIsf
 import app.aaps.core.interfaces.aps.Predictions
 import app.aaps.core.interfaces.aps.RT
@@ -37,7 +38,7 @@ import javax.inject.Inject
 import kotlin.math.abs
 import kotlin.math.max
 
-class DetermineBasalResult @Inject constructor(val injector: HasAndroidInjector) : APSResult {
+class DetermineBasalResult @Inject constructor(var injector: HasAndroidInjector) : APSResult {
 
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var constraintChecker: ConstraintsChecker
@@ -82,17 +83,30 @@ class DetermineBasalResult @Inject constructor(val injector: HasAndroidInjector)
     override var currentTemp: CurrentTemp? = null
     override var oapsProfile: OapsProfile? = null
     override var oapsProfileAutoIsf: OapsProfileAutoIsf? = null
+    override var oapsProfileAimi: OapsProfileAimi? = null
     override var mealData: MealData? = null
 
     lateinit var result: RT
+
+    private val allowedAlgorithms = listOf(
+        APSResult.Algorithm.SMB,
+        APSResult.Algorithm.AMA,
+        APSResult.Algorithm.AIMI
+    )
 
     init {
         injector.androidInjector().inject(this)
         algorithm = APSResult.Algorithm.UNKNOWN
     }
 
-    constructor(injector: HasAndroidInjector, result: RT) : this(injector) {
+    constructor(injector: HasAndroidInjector, result: RT) : this(injector){
+        this.injector = injector
+        injector.androidInjector().inject(this)
+
         this.algorithm = result.algorithm
+        if (algorithm !in allowedAlgorithms) {
+            throw IllegalArgumentException("Unsupported algorithm: $algorithm")
+        }
         this.result = result
         hasPredictions = true
         date = result.timestamp ?: dateUtil.now()
@@ -114,6 +128,8 @@ class DetermineBasalResult @Inject constructor(val injector: HasAndroidInjector)
         isfMgdlForCarbs = result.isfMgdlForCarbs
         scriptDebug = result.consoleError
     }
+
+    //constructor() : this()
 
     override val carbsRequiredText: String
         get() = rh.gs(R.string.carbsreq, carbsReq, carbsReqWithin)

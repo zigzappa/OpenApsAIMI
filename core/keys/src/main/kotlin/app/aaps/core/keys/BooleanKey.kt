@@ -41,7 +41,7 @@ enum class BooleanKey(
     BgSourceUploadToNs("dexcomg5_nsupload", true, defaultedBySM = true, hideParentScreenIfHidden = true),
     BgSourceCreateSensorChange("dexcom_lognssensorchange", true, defaultedBySM = true),
 
-    ApsUseDynamicSensitivity("use_dynamic_sensitivity", false),
+    ApsUseDynamicSensitivity("use_dynamic_sensitivity", true),
     ApsUseAutosens("openapsama_useautosens", true, defaultedBySM = true, negativeDependency = ApsUseDynamicSensitivity), // change from default false
     ApsUseSmb("use_smb", true, defaultedBySM = true), // change from default false
     ApsUseSmbWithHighTt("enableSMB_with_high_temptarget", false, defaultedBySM = true, dependency = ApsUseSmb),
@@ -112,4 +112,11 @@ enum class BooleanKey(
     WearCustomWatchfaceAuthorization(key = "wear_custom_watchface_autorization", defaultValue = false),
     WearNotifyOnSmb(key = "wear_notifySMB", defaultValue = true),
     WearBroadcastData(key = "wear_broadcast_data", defaultValue = false),
+    OApsAIMIMLtraining("key_enable_ML_training", false),
+    OApsAIMIEnableBasal("key_enable_basal", false),
+    OApsAIMIEnableStepsFromWatch("count_steps_watch", false),
+    OApsAIMIpregnancy("key_use_AimiPregnancy",false),
+    OApsAIMInight("OApsAIMI_Enable_night",false),
+    OApsAIMIhoneymoon("key_use_Aimi_honeymoon",false),
+    OApsxdriponeminute(key = "key_use_Aimi_xdripOM",defaultValue = false)
 }

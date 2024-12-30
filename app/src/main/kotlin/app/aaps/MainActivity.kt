@@ -6,6 +6,7 @@ import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.PersistableBundle
 import android.text.SpannableString
 import android.text.method.LinkMovementMethod
@@ -83,6 +84,7 @@ import io.reactivex.rxjava3.kotlin.plusAssign
 import java.util.Locale
 import javax.inject.Inject
 import kotlin.system.exitProcess
+import android.provider.Settings
 
 class MainActivity : DaggerAppCompatActivityWithResult() {
 
@@ -120,6 +122,7 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
         LocaleHelper.update(applicationContext)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        checkAndRequestPermissions()
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -351,6 +354,14 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
 
     override fun onResume() {
         super.onResume()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()) {
+                ToastUtils.errorToast(this, "Permission to manage files is required for this app to work.")
+            } else {
+                // La permission est accordée, continuez normalement
+                ToastUtils.okToast(this, "Permission granted. Thank you!")
+            }
+        }
         if (config.appInitialized) binding.splash.visibility = View.GONE
         if (!isProtectionCheckActive) {
             isProtectionCheckActive = true
@@ -445,7 +456,6 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
         }
         return super.dispatchTouchEvent(event)
     }
-
     override fun onMenuOpened(featureId: Int, menu: Menu): Boolean {
         menuOpen = true
         if (binding.mainDrawerLayout.isDrawerOpen(GravityCompat.START)) {
@@ -454,9 +464,11 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
         val result = super.onMenuOpened(featureId, menu)
         menu.findItem(R.id.nav_treatments)?.isEnabled = profileFunction.getProfile() != null
         if (binding.mainPager.currentItem >= 0) {
-            val plugin = (binding.mainPager.adapter as TabPageAdapter?)?.getPluginAt(binding.mainPager.currentItem) ?: return result
-            this.menu?.findItem(R.id.nav_plugin_preferences)?.title = rh.gs(R.string.nav_preferences_plugin, plugin.name)
-            pluginPreferencesMenuItem?.isEnabled = (binding.mainPager.adapter as TabPageAdapter).getPluginAt(binding.mainPager.currentItem).preferencesId != PluginDescription.PREFERENCE_NONE
+            (binding.mainPager.adapter as? TabPageAdapter)?.let { tabPageAdapter ->
+                val plugin = tabPageAdapter.getPluginAt(binding.mainPager.currentItem)
+                this.menu?.findItem(R.id.nav_plugin_preferences)?.title = rh.gs(R.string.nav_preferences_plugin, plugin.name)
+                pluginPreferencesMenuItem?.isEnabled = plugin.preferencesId != PluginDescription.PREFERENCE_NONE
+            }
         }
         if (pluginPreferencesMenuItem?.isEnabled == false) {
             val spanString = SpannableString(this.menu?.findItem(R.id.nav_plugin_preferences)?.title.toString())
@@ -466,6 +478,26 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
         return result
     }
 
+    /*override fun onMenuOpened(featureId: Int, menu: Menu): Boolean {
+        menuOpen = true
+        if (binding.mainDrawerLayout.isDrawerOpen(GravityCompat.START)) {
+            binding.mainDrawerLayout.closeDrawers()
+        }
+        val result = super.onMenuOpened(featureId, menu)
+        menu.findItem(R.id.nav_treatments)?.isEnabled = profileFunction.getProfile() != null
+        if (binding.mainPager.currentItem >= 0) {
+            val plugin = (binding.mainPager.adapter as TabPageAdapter).getPluginAt(binding.mainPager.currentItem)
+            this.menu?.findItem(R.id.nav_plugin_preferences)?.title = rh.gs(R.string.nav_preferences_plugin, plugin.name)
+            pluginPreferencesMenuItem?.isEnabled = (binding.mainPager.adapter as TabPageAdapter).getPluginAt(binding.mainPager.currentItem).preferencesId != PluginDescription.PREFERENCE_NONE
+        }
+        if (pluginPreferencesMenuItem?.isEnabled == false) {
+            val spanString = SpannableString(this.menu?.findItem(R.id.nav_plugin_preferences)?.title.toString())
+            spanString.setSpan(ForegroundColorSpan(rh.gac(app.aaps.core.ui.R.attr.disabledTextColor)), 0, spanString.length, 0)
+            this.menu?.findItem(R.id.nav_plugin_preferences)?.title = spanString
+        }
+        return result
+    }*/
+
     override fun onPanelClosed(featureId: Int, menu: Menu) {
         menuOpen = false
         super.onPanelClosed(featureId, menu)
@@ -473,6 +505,32 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
 
     // Correct place for calling setUserStats() would be probably MainApp
     // but we need to have it called at least once a day. Thus this location
+    private fun checkAndRequestPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()) {
+                showPermissionExplanation()
+            }
+        }
+    }
+
+    private fun showPermissionExplanation() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Permission Required")
+            .setMessage("This app needs access to manage all files to provide functionality.")
+            .setPositiveButton("Grant Access") { _, _ ->
+                requestManageExternalStoragePermission()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun requestManageExternalStoragePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+            intent.data = Uri.parse("package:$packageName")
+            startActivity(intent)
+        }
+    }
 
     private fun setUserStats() {
         if (!fabricPrivacy.fabricEnabled()) return
