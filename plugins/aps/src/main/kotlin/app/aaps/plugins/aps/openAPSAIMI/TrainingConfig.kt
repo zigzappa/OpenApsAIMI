@@ -7,5 +7,10 @@ data class TrainingConfig(
     val epsilon: Double = 1e-8,
     var patience: Int = 10,
     var batchSize: Int = 32,
-    var weightDecay: Double = 0.01
+    var weightDecay: Double = 0.01,
+    var epochs: Int = 30000,
+    var useBatchNorm: Boolean = true,
+    var useDropout: Boolean = true,
+    var dropoutRate: Double = 0.5,
+    var leakyReluAlpha: Double = 0.01
 )
