@@ -1,10 +1,7 @@
 package app.aaps.plugins.aps.openAPSAIMI
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.os.Environment
-import android.util.Log
-import androidx.core.content.ContentProviderCompat.requireContext
 import app.aaps.core.data.model.BS
 import app.aaps.core.data.model.UE
 import app.aaps.core.interfaces.aps.APSResult
@@ -27,15 +24,12 @@ import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.Preferences
-import app.aaps.plugins.aps.openAPSAIMI.AimiNeuralNetwork.Companion.refineSMB
 import org.tensorflow.lite.Interpreter
 import java.io.File
-import java.io.FileOutputStream
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.text.SimpleDateFormat
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
@@ -43,14 +37,12 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.div
 import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.roundToInt
-import kotlin.times
 
 @Singleton
 class DetermineBasalaimiSMB2 @Inject constructor(
@@ -65,9 +57,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     @Inject lateinit var profileFunction: ProfileFunction
     private val consoleError = mutableListOf<String>()
     private val consoleLog = mutableListOf<String>()
-    //private val path = File(Environment.getExternalStorageDirectory().toString())
     private val externalDir = File(Environment.getExternalStorageDirectory().absolutePath + "/Documents/AAPS")
-    //private val externalDir = File(context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), "AAPS")
     private val modelFile = File(externalDir, "ml/model.tflite")
     private val modelFileUAM = File(externalDir, "ml/modelUAM.tflite")
     private val csvfile = File(externalDir, "oapsaimiML2_records.csv")
@@ -1844,7 +1834,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         this.variableSensitivity = sens.toFloat()
         consoleError.add("CR:${profile.carb_ratio}")
         this.predictedBg = predictFutureBg(bg.toFloat(), iob, variableSensitivity, cob, ci,mealTime,bfastTime,lunchTime,dinnerTime,highCarbTime,snackTime,profile)
-        val insulinEffect = calculateInsulinEffect(bg.toFloat(),iob,variableSensitivity,cob,normalBgThreshold,recentSteps180Minutes,averageBeatsPerMinute.toFloat(),averageBeatsPerMinute10.toFloat(),profile.insulinDivisor.toFloat())
+        //val insulinEffect = calculateInsulinEffect(bg.toFloat(),iob,variableSensitivity,cob,normalBgThreshold,recentSteps180Minutes,averageBeatsPerMinute.toFloat(),averageBeatsPerMinute10.toFloat(),profile.insulinDivisor.toFloat())
 
         val now = System.currentTimeMillis()
         val timeMillis5 = now - 5 * 60 * 1000 // 5 minutes en millisecondes
