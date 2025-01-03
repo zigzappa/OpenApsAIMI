@@ -189,35 +189,14 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
     }
 
     override fun specialShowInListCondition(): Boolean {
-        val pump = activePlugin.activePump
-        return pump.pumpDescription.isTempBasalCapable
+        try {
+            val pump = activePlugin.activePump
+            return pump.pumpDescription.isTempBasalCapable
+        } catch (_: Exception) {
+            return true
+        }
     }
 
-    // override fun preprocessPreferences(preferenceFragment: PreferenceFragmentCompat) {
-    //     super.preprocessPreferences(preferenceFragment)
-    //     val uamEnabled = if (preferences.get(BooleanKey.ApsUseSmb)) {
-    //         preferences.get(BooleanKey.ApsUseUam)
-    //     } else {
-    //         preferences.get(BooleanKey.ApsUseSmb)
-    //     }
-    //     val smbAlwaysEnabled = if (preferences.get(BooleanKey.ApsUseSmb)) {
-    //         preferences.get(BooleanKey.ApsUseSmbAlways)
-    //     } else {
-    //         !preferences.get(BooleanKey.ApsUseSmb)
-    //     }
-    //     val advancedFiltering = activePlugin.activeBgSource.advancedFilteringSupported()
-    //     val autoSensOrDynIsfSensEnabled = if (preferences.get(BooleanKey.ApsUseDynamicSensitivity)) {
-    //         preferences.get(BooleanKey.ApsDynIsfAdjustSensitivity)
-    //     } else {
-    //         preferences.get(BooleanKey.ApsUseAutosens)
-    //     }
-    //     preferenceFragment.findPreference<SwitchPreference>(BooleanKey.ApsUseSmbWithCob.key)?.isVisible = !smbAlwaysEnabled || !advancedFiltering
-    //     preferenceFragment.findPreference<SwitchPreference>(BooleanKey.ApsUseSmbWithLowTt.key)?.isVisible = !smbAlwaysEnabled || !advancedFiltering
-    //     preferenceFragment.findPreference<SwitchPreference>(BooleanKey.ApsUseSmbAfterCarbs.key)?.isVisible = !smbAlwaysEnabled || !advancedFiltering
-    //     preferenceFragment.findPreference<SwitchPreference>(BooleanKey.ApsResistanceLowersTarget.key)?.isVisible = autoSensOrDynIsfSensEnabled
-    //     preferenceFragment.findPreference<SwitchPreference>(BooleanKey.ApsSensitivityRaisesTarget.key)?.isVisible = autoSensOrDynIsfSensEnabled
-    //     preferenceFragment.findPreference<AdaptiveIntPreference>(IntKey.ApsUamMaxMinutesOfBasalToLimitSmb.key)?.isVisible = uamEnabled
-    // }
     override fun preprocessPreferences(preferenceFragment: PreferenceFragmentCompat) {
         super.preprocessPreferences(preferenceFragment)
 
