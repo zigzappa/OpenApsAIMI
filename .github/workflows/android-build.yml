@@ -10,7 +10,7 @@ on:
 
 jobs:
   build-signed:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       # 1. Récupérer le code
