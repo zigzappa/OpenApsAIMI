@@ -1,0 +1,53 @@
+name: Android Build (Signed)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-signed:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Récupérer le code
+      - name: Check out the code
+        uses: actions/checkout@v2
+
+      # 2. Installer Java
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          distribution: temurin
+          java-version: 11
+
+      # 3. Recréer le keystore à partir du secret base64
+      - name: Decode keystore
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > monkeystore.jks
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+
+      # 4. Donner les droits d'exécution à Gradlew
+      - name: Grant execute permission for Gradlew
+        run: chmod +x gradlew
+
+      # 5. Construire l'APK en mode release (signé)
+      - name: Build Release
+        run: ./gradlew assembleRelease
+        env:
+          KEYSTORE_FILE: ${{ github.workspace }}/monkeystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      # 6. Optionnel : publier l’artefact (APK) pour le récupérer depuis l'onglet Actions
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-release.apk
+          path: app/build/outputs/apk/release/app-release.apk
