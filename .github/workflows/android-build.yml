@@ -44,7 +44,10 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-
+      - name: Vérifier la génération de l'APK
+        run: |
+          echo "Liste des APK générés :"
+          find app/build/outputs/apk -type f -name "*.apk"
       # 6. Optionnel : publier l’artefact (APK) pour le récupérer depuis l'onglet Actions
       - name: Upload artifact
         uses: actions/upload-artifact@v3
