@@ -38,7 +38,7 @@ jobs:
 
       # 5. Construire l'APK en mode release (signé)
       - name: Build Release
-        run: ./gradlew assembleRelease
+        run: ./gradlew build
         env:
           KEYSTORE_FILE: ${{ github.workspace }}/monkeystore.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
