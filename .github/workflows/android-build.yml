@@ -49,5 +49,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: app-release.apk
-          path: app/app-release.apk
+          name: app-full-release.apk
+          path: app/app-full-release.apk
