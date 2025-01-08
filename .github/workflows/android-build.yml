@@ -70,7 +70,7 @@ on:
     branches:
       - master
     tags:
-      - 'v*.*.*'  # Pour déclencher sur les tags de version
+      - 'v*.*.*'  # Déclenche sur les tags de version
   pull_request:
     branches:
       - master
@@ -120,7 +120,7 @@ jobs:
 
       # 6. Construire les APKs en mode release (signés)
       - name: Build Release APKs
-        run: ./gradlew assembleFullRelease assembleWearFullRelease
+        run: ./gradlew :app:assembleFullRelease :wear:assembleFullRelease
         env:
           KEYSTORE_FILE: ${{ github.workspace }}/monkeystore.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
