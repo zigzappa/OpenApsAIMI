@@ -38,7 +38,7 @@ jobs:
 
       # 5. Construire l'APK en mode release (signé)
       - name: Build Release
-        run: ./gradlew assembleFullRelease
+        run: ./gradlew assembleFullRelease assembleWearFullRelease
         env:
           KEYSTORE_FILE: ${{ github.workspace }}/monkeystore.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -48,11 +48,18 @@ jobs:
         run: |
           echo "Liste des APK générés :"
           find app/build/outputs/apk -type f -name "*.apk"
+          echo "Listing APKs in wear module:"
+          find wear/build/outputs/apk -type f -name "*.apk"
       # 6. Optionnel : publier l’artefact (APK) pour le récupérer depuis l'onglet Actions
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-full-release.apk
           path: app/build/outputs/apk/full/release/app-full-release.apk
+      - name: Upload Wear APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: wear-full-release.apk
+          path: wear/build/outputs/apk/full/release/wear-full-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
