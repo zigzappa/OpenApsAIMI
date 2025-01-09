@@ -567,11 +567,11 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (droppingFastAtHigh) conditionsTrue.add("droppingFastAtHigh")
         val droppingVeryFast = delta < -11
         if (droppingVeryFast) conditionsTrue.add("droppingVeryFast")
-        val prediction = eventualBG < targetBg && bg < 135
+        val prediction = eventualBG < targetBg && bg < 135 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
         if (prediction) conditionsTrue.add("prediction")
-        val interval = eventualBG < targetBg && delta > 10 && iob >= maxSMB/2 && lastsmbtime < 10
+        val interval = eventualBG < targetBg && delta > 10 && iob >= maxSMB/2 && lastsmbtime < 10 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
         if (interval) conditionsTrue.add("interval")
-        val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 12
+        val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 12 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
         if (targetinterval) conditionsTrue.add("targetinterval")
         //val stablebg = delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 120 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
         //if (stablebg) conditionsTrue.add("stablebg")
@@ -727,7 +727,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         profile: OapsProfileAimi
     ): Float {
         // 1) Configuration générale
-        val minutesToConsider = 2500.0
+        val minutesToConsider = 15000.0
         val linesToConsider = (minutesToConsider / 5).toInt()
         val maxIterations = 10000.0
         val maxGlobalIterations = 5
@@ -2398,7 +2398,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "AAPS-MASTER-AIMI"))
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "08 january 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "09 january 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
