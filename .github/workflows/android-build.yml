@@ -8,7 +8,7 @@ on:
       - 'v*.*.*'  # Déclenche sur les tags de version
   pull_request:
     branches:
-      - master
+      - master-AIMI-Test
 
 jobs:
   build-signed:
