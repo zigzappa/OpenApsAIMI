@@ -643,7 +643,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             sensorLagActivity = Round.roundTo(sensorLagActivity, 0.0001)
             historicActivity = Round.roundTo(historicActivity, 0.0001)
             currentActivity = Round.roundTo(currentActivity, 0.0001)
-
+            var tdd4D = tddCalculator.averageTDD(tddCalculator.calculate(4, allowMissingDays = false))
             val oapsProfile = OapsProfileAimi(
                 dia = 0.0, // not used
                 min_5m_carbimpact = 0.0, // not used
@@ -687,7 +687,7 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
                 out_units = if (profileFunction.getUnits() == GlucoseUnit.MMOL) "mmol/L" else "mg/dl",
                 variable_sens = variableSensitivity!!,
                 insulinDivisor = insulinDivisor,
-                TDD = if (tdd == 0.0) preferences.get(DoubleKey.OApsAIMITDD7) else tdd,
+                TDD = if (tdd4D == null) preferences.get(DoubleKey.OApsAIMITDD7) else tdd,
                 peakTime = activityPredTimePK.toDouble(),
                 futureActivity = futureActivity,
                 sensorLagActivity = sensorLagActivity,
