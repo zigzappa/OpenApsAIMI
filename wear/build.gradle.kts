@@ -1,3 +1,6 @@
+import org.gradle.kotlin.dsl.android
+import org.gradle.kotlin.dsl.com
+import org.gradle.kotlin.dsl.kotlin
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -16,11 +19,8 @@ repositories {
     mavenCentral()
 }
 
-// -----------------------------------------------------------------------------
-// Fonctions personnalisées
-// -----------------------------------------------------------------------------
 fun generateGitBuild(): String {
-    val stringBuilder = StringBuilder()
+    val stringBuilder: StringBuilder = StringBuilder()
     try {
         val stdout = ByteArrayOutputStream()
         exec {
@@ -36,9 +36,12 @@ fun generateGitBuild(): String {
 }
 
 fun generateDate(): String {
-    // showing only date prevents app from rebuilding every time
-    return SimpleDateFormat("yyyy.MM.dd").format(Date())
+    val stringBuilder: StringBuilder = StringBuilder()
+    // showing only date prevents app to rebuild everytime
+    stringBuilder.append(SimpleDateFormat("yyyy.MM.dd").format(Date()))
+    return stringBuilder.toString()
 }
+
 
 android {
     namespace = "app.aaps.wear"
@@ -48,49 +51,44 @@ android {
         targetSdk = Versions.wearTargetSdk
 
         buildConfigField("String", "BUILDVERSION", "\"${generateGitBuild()}-${generateDate()}\"")
-
-        // Dagger injected instrumentation tests in wear module
-        testInstrumentationRunner = "app.aaps.runners.InjectedTestRunner"
     }
 
-    // Dimensions et flavors
+    android {
+        buildTypes {
+            debug {
+                enableUnitTestCoverage = true
+                // Disable androidTest coverage, since it performs offline coverage
+                // instrumentation and that causes online (JavaAgent) instrumentation
+                // to fail in this project.
+                enableAndroidTestCoverage = false
+            }
+        }
+    }
+
     flavorDimensions.add("standard")
     productFlavors {
         create("full") {
             isDefault = true
-            applicationId = "info.nightscout.androidaps.wear"
+            applicationId = "info.nightscout.androidaps"
             dimension = "standard"
-            resValue("string", "app_name", "AAPS Wear")
             versionName = Versions.appVersion
-            manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher"
-            manifestPlaceholders["appIconRound"] = "@mipmap/ic_launcher_round"
         }
         create("pumpcontrol") {
-            applicationId = "info.nightscout.aapspumpcontrol.wear"
+            applicationId = "info.nightscout.aapspumpcontrol"
             dimension = "standard"
-            resValue("string", "app_name", "Pumpcontrol Wear")
             versionName = Versions.appVersion + "-pumpcontrol"
-            manifestPlaceholders["appIcon"] = "@mipmap/ic_pumpcontrol"
-            manifestPlaceholders["appIconRound"] = "@null"
         }
         create("aapsclient") {
-            applicationId = "info.nightscout.aapsclient.wear"
+            applicationId = "info.nightscout.aapsclient"
             dimension = "standard"
-            resValue("string", "app_name", "AAPSClient Wear")
             versionName = Versions.appVersion + "-aapsclient"
-            manifestPlaceholders["appIcon"] = "@mipmap/ic_yellowowl"
-            manifestPlaceholders["appIconRound"] = "@mipmap/ic_yellowowl"
         }
         create("aapsclient2") {
-            applicationId = "info.nightscout.aapsclient2.wear"
+            applicationId = "info.nightscout.aapsclient2"
             dimension = "standard"
-            resValue("string", "app_name", "AAPSClient2 Wear")
             versionName = Versions.appVersion + "-aapsclient2"
-            manifestPlaceholders["appIcon"] = "@mipmap/ic_blueowl"
-            manifestPlaceholders["appIconRound"] = "@mipmap/ic_blueowl"
         }
     }
-
     // -------------------------------------------------------------------------
     // Configuration de signature (release)
     // -------------------------------------------------------------------------
@@ -105,7 +103,6 @@ android {
             keyPassword = System.getenv("KEY_PASSWORD") ?: "dummy"
         }
     }
-
     // -------------------------------------------------------------------------
     // Build Types
     // -------------------------------------------------------------------------
@@ -114,10 +111,9 @@ android {
             // Active ou non le minify
             // minifyEnabled true
             // shrinkResources true
-
             // Associe la config "release"
             signingConfig = signingConfigs.getByName("release")
-           // minifyEnabled =false
+            // minifyEnabled =false
             //shrinkResources =false
             //proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -129,7 +125,6 @@ android {
             enableAndroidTestCoverage = false
         }
     }
-
     buildFeatures {
         buildConfig = true
     }
@@ -137,10 +132,9 @@ android {
 
 allprojects {
     repositories {
-        mavenCentral()
-        google()
     }
 }
+
 
 dependencies {
     implementation(project(":shared:impl"))
