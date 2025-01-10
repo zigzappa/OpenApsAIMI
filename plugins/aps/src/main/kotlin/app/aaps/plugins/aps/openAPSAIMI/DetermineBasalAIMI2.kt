@@ -1806,7 +1806,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val iob_data = iobArray[0]
         this.iob = iob_data.iob.toFloat()
         if (iob_data.basaliob < 0) {
-            iob2 = iob_data.netInsulin.toFloat()
+            iob2 = iob_data.basaliob.toFloat() + iob
         }
 
         val tick: String = if (glucose_status.delta > -0.5) {
@@ -2433,7 +2433,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             appendLine("╠${"═".repeat(screenWidth)}╣")
             appendLine(String.format("║ %-${columnWidth}s │ %s u", "Max IOB", String.format("%.1f", maxIob)))
             appendLine(String.format("║ %-${columnWidth}s │ %s u", "IOB", String.format("%.1f", iob)))
-            appendLine(String.format("║ %-${columnWidth}s │ %s u", "IOB", String.format("%.1f", iob2)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s u", "IOB2", String.format("%.1f", iob2)))
             appendLine(String.format("║ %-${columnWidth}s │ %s u", "Max SMB", String.format("%.1f", maxSMB)))
             appendLine(String.format("║ %-${columnWidth}s │ %s", "Safety", conditionResult))
             appendLine(String.format("║ %-${columnWidth}s │ %s", "Met", conditionsTrue))
