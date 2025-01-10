@@ -642,8 +642,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (shouldApplyStepAdjustment()) result = 0.0f
         if (belowTargetAndDropping) result /= 2
         if (honeymoon && bg < 170 && delta < 5) result /= 2
-        if (night && currentHour in 23..23 && delta < 10 && iob < maxSMB) result *= 0.8f
-        if (currentHour in 0..5 && delta < 10 && iob < maxSMB) result *= 0.8f // Ajout d'une réduction pendant la période de minuit à 5h du matin
+        //if (night && currentHour in 23..23 && delta < 10 && iob < maxSMB) result *= 0.8f
+        //if (currentHour in 0..5 && delta < 10 && iob < maxSMB) result *= 0.8f // Ajout d'une réduction pendant la période de minuit à 5h du matin
 
         return result
     }
@@ -2398,7 +2398,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "AAPS-MASTER-AIMI"))
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "09 january 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "10 january 2024"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
