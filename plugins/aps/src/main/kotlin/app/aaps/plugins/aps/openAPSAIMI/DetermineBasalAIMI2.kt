@@ -1807,6 +1807,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         this.iob = iob_data.iob.toFloat()
         if (iob_data.basaliob < 0) {
             iob2 = -iob_data.basaliob.toFloat()+ iob
+            this.iob = iob2
         }
 
         val tick: String = if (glucose_status.delta > -0.5) {
