@@ -287,100 +287,6 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         csvfile.appendText(valuesToRecord + "\n")
     }
-    // private fun logDataMLToCsv(predictedSMB: Float, smbToGive: Float) {
-    //     val usFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm")
-    //     val dateStr = LocalDateTime.now().format(usFormatter)
-    //
-    //     // Entêtes CSV
-    //     val headerRow = "dateStr, bg, iob, cob, delta, shortAvgDelta, longAvgDelta, tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour, predictedSMB, smbGiven\n"
-    //
-    //     // Ligne de données
-    //     val valuesToRecord = "$dateStr," +
-    //         "$bg,$iob,$cob,$delta,$shortAvgDelta,$longAvgDelta," +
-    //         "$tdd7DaysPerHour,$tdd2DaysPerHour,$tddPerHour,$tdd24HrsPerHour," +
-    //         "$predictedSMB,$smbToGive"
-    //
-    //     try {
-    //         // Vérifie si le répertoire parent existe, sinon le crée
-    //         if (!externalDir.exists() && !externalDir.mkdirs()) {
-    //             Log.e("CSVError", "Impossible de créer le répertoire parent : ${externalDir.absolutePath}")
-    //             return
-    //         }
-    //
-    //         // Vérifie si le fichier existe, sinon le crée avec les entêtes
-    //         if (!csvfile.exists()) {
-    //             csvfile.createNewFile()
-    //             FileOutputStream(csvfile, true).use { it.write(headerRow.toByteArray()) }
-    //             Log.d("CSVInfo", "Fichier CSV créé avec les entêtes.")
-    //         }
-    //
-    //         // Ajoute les données au fichier CSV
-    //         FileOutputStream(csvfile, true).use { it.write((valuesToRecord + "\n").toByteArray()) }
-    //         Log.d("CSVInfo", "Données ajoutées au fichier CSV : $valuesToRecord")
-    //
-    //     } catch (e: Exception) {
-    //         Log.e("CSVError", "Erreur lors de l'écriture dans le fichier CSV : ${e.message}")
-    //     }
-    // }
-
-
-    // private fun createFilteredAndSortedCopy(dateToRemove: String) {
-    //     if (!csvfile.exists()) {
-    //         println("Le fichier original n'existe pas.")
-    //         return
-    //     }
-    //     // Lire le fichier original ligne par ligne
-    //     val lines = csvfile.readLines()
-    //     val header = lines.first()
-    //     val dataLines = lines.drop(1)
-    //
-    //     // Liste des lignes valides après filtrage
-    //     val validLines = mutableListOf<String>()
-    //
-    //     // Filtrer les lignes qui ne correspondent pas à la date à supprimer
-    //     dataLines.forEach { line ->
-    //         val lineParts = line.split(",")
-    //         if (lineParts.isNotEmpty()) {
-    //             val dateStr = lineParts[0].trim()
-    //             // Vérifier si la date commence par la date à supprimer
-    //             if (!dateStr.startsWith(dateToRemove)) {
-    //                 validLines.add(line)
-    //             } else {
-    //                 println("Ligne supprimée : $line")
-    //             }
-    //         }
-    //     }
-    //
-    //     // Trier les lignes par ordre croissant de date (en utilisant les dates en texte)
-    //     validLines.sortBy { it.split(",")[0] }
-    //
-    //     // Écrire dans le fichier temporaire (test.csv)
-    //     if (!tempFile.exists()) {
-    //         tempFile.createNewFile()
-    //     }
-    //     tempFile.writeText(header + "\n")
-    //     validLines.forEach { line ->
-    //         tempFile.appendText(line + "\n")
-    //     }
-    //
-    //     // Obtenir la date et l'heure actuelles pour renommer le fichier original
-    //     val dateFormat = SimpleDateFormat("yyyyMMdd_HHmm")
-    //     val currentDateTime = dateFormat.format(Date())
-    //     val backupFileName = "oapsaimiML2_records_$currentDateTime.csv"
-    //     val backupFile = File(externalDir, backupFileName)
-    //
-    //     // Renommer l'ancien fichier avec la date et l'heure
-    //     if (csvfile.renameTo(backupFile)) {
-    //         // Renommer le fichier temporaire 'test.csv' en 'oapsaimiML2_records.csv'
-    //         if (tempFile.renameTo(csvfile)) {
-    //             println("Le fichier original a été sauvegardé sous '$backupFileName', et 'test.csv' a été renommé en 'oapsaimiML2_records.csv'.")
-    //         } else {
-    //             println("Erreur lors du renommage du fichier temporaire 'test.csv' en 'oapsaimiML2_records.csv'.")
-    //         }
-    //     } else {
-    //         println("Erreur lors du renommage du fichier original en '$backupFileName'.")
-    //     }
-    // }
     private fun createFilteredAndSortedCopy(dateToRemove: String) {
         if (!csvfile.exists()) {
             println("Le fichier original n'existe pas.")
@@ -753,7 +659,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         val headerLine = allLines.first()
         val headers = headerLine.split(",").map { it.trim() }
-        if (!listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB", "smbGiven")
+        //if (!listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB", "smbGiven")
+        if (!listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "tdd7DaysPerHour", "tdd2DaysPerHour", "tddPerHour", "tdd24HrsPerHour", "predictedSMB", "smbGiven")
                 .all { headers.contains(it) }
         ) {
             println("CSV file is missing required columns.")
@@ -768,7 +675,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
 
         // 3) Préparation des données (inputs + targets)
-        val colIndices = listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB")
+        //val colIndices = listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB")
+            val colIndices = listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "tdd7DaysPerHour", "tdd2DaysPerHour", "tddPerHour", "tdd24HrsPerHour", "predictedSMB", "smbGiven")
             .map { headers.indexOf(it) }
         val targetColIndex = headers.indexOf("smbGiven")
 
@@ -2584,8 +2492,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             rate = when {
                 // Cas d'hypoglycémie : le taux basal est nul si la glycémie est inférieure à 80.
                 bg < 80 -> 0.0
-                !enablebasal && !mealTime && !lunchTime && !dinnerTime && !highCarbTime && !bfastTime && !snackTime && timenow > sixAMHour -> 0.0
+                !enablebasal && !mealTime && !lunchTime && !dinnerTime && !highCarbTime && !bfastTime && !snackTime && timenow > sixAMHour && recentSteps5Minutes > 100 -> 0.0
                 !enablebasal && timenow <= sixAMHour && delta > 0 -> profile_current_basal
+                !enablebasal && recentSteps5Minutes == 0 && delta  > 0 && !mealTime && !lunchTime && !dinnerTime && !highCarbTime && !bfastTime && !snackTime -> profile_current_basal
                 // Conditions avec un ajustement basé sur le facteur d'interpolation
                 !honeymoon && iob < 0.6 && bg in 90.0..120.0 && delta in 0.0..6.0 && !sportTime                                       -> profile_current_basal * basalAdjustmentFactor
                 honeymoon && iob < 0.4 && bg in 90.0..100.0 && delta in 0.0..5.0 && !sportTime                                        -> profile_current_basal
