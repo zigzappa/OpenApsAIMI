@@ -548,7 +548,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (shouldApplyStepAdjustment()) result = 0.0f
         if (belowTargetAndDropping) result /= 2
         if (honeymoon && bg < 170 && delta < 5) result /= 2
-        //if (night && currentHour in 23..23 && delta < 10 && iob < maxSMB) result *= 0.8f
+        if (night && currentHour in 23..23 && delta < 10 && iob < maxSMB) result *= 0.8f
         //if (currentHour in 0..5 && delta < 10 && iob < maxSMB) result *= 0.8f // Ajout d'une réduction pendant la période de minuit à 5h du matin
 
         return result
@@ -800,7 +800,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                         AimiNeuralNetwork.refineSMB(predictedRefineSMB, it, doubleInput)
                     } ?: predictedRefineSMB
 
-                    val difference = kotlin.math.abs(predictedRefineSMB - refinedSMB)
+                    val difference = abs(predictedRefineSMB - refinedSMB)
                     totalDifference += difference
 
                     // Tolerance adaptative
