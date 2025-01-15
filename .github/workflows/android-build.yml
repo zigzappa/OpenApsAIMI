@@ -1,79 +1,14 @@
-#name: Android Build (Signed)
-#
-#on:
-#  push:
-#    branches:
-#      - master
-#  pull_request:
-#    branches:
-#      - master
-#
-#jobs:
-#  build-signed:
-#    runs-on: ubuntu-22.04
-#
-#    steps:
-#      # 1. Récupérer le code
-#      - name: Check out the code
-#        uses: actions/checkout@v2
-#
-#      # 2. Installer Java
-#      - name: Set up JDK
-#        uses: actions/setup-java@v2
-#        with:
-#          distribution: temurin
-#          java-version: 21
-#
-#      # 3. Recréer le keystore à partir du secret base64
-#      - name: Decode keystore
-#        run: |
-#          echo "$KEYSTORE_BASE64" | base64 --decode > monkeystore.jks
-#        shell: bash
-#        env:
-#          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-#
-#      # 4. Donner les droits d'exécution à Gradlew
-#      - name: Grant execute permission for Gradlew
-#        run: chmod +x gradlew
-#
-#      # 5. Construire l'APK en mode release (signé)
-#      - name: Build Release
-#        run: ./gradlew assembleFullRelease assembleWearFullRelease
-#        env:
-#          KEYSTORE_FILE: ${{ github.workspace }}/monkeystore.jks
-#          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-#          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-#          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-#      - name: Vérifier la génération de l'APK
-#        run: |
-#          echo "Liste des APK générés :"
-#          find app/build/outputs/apk -type f -name "*.apk"
-#          echo "Listing APKs in wear module:"
-#          find wear/build/outputs/apk -type f -name "*.apk"
-#      # 6. Optionnel : publier l’artefact (APK) pour le récupérer depuis l'onglet Actions
-#      - name: Upload artifact
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: app-full-release.apk
-#          path: app/build/outputs/apk/full/release/app-full-release.apk
-#      - name: Upload Wear APK
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: wear-full-release.apk
-#          path: wear/build/outputs/apk/full/release/wear-full-release.apk
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 name: Android Build (Signed)
 
 on:
   push:
     branches:
-      - master
+      - master-AIMI-Test
     tags:
       - 'v*.*.*'  # Déclenche sur les tags de version
   pull_request:
     branches:
-      - master
+      - master-AIMI-Test
 
 jobs:
   build-signed:
