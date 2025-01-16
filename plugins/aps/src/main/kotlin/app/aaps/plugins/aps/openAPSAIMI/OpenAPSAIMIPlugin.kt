@@ -257,10 +257,24 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
         val tdd7P: Double = preferences.get(DoubleKey.OApsAIMITDD7)
         //val tdd4D =  tddCalculator.averageTDD(tddCalculator.calculate(4, allowMissingDays = false))
         val tdd7D =  tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))
-        if (tdd7D != null && tdd7D.data.totalAmount > tdd7P && tdd7D.data.totalAmount > 1.1 * tdd7P) {
-            tdd7D.data.totalAmount = 1.1 * tdd7P
-            aapsLogger.info(LTag.APS, "TDD for 7 days limited to 10% increase. New TDD7D: ${tdd7D.data.totalAmount}")
+        // if (tdd7D != null && tdd7D.data.totalAmount > tdd7P && tdd7D.data.totalAmount > 1.2 * tdd7P) {
+        //     tdd7D.data.totalAmount = 1.1 * tdd7P
+        //     aapsLogger.info(LTag.APS, "TDD for 7 days limited to 10% increase. New TDD7D: ${tdd7D.data.totalAmount}")
+        // }
+        if (tdd7D != null) {
+            // Vérification des augmentations excessives
+            if (tdd7D.data.totalAmount > tdd7P && tdd7D.data.totalAmount > 1.2 * tdd7P) {
+                tdd7D.data.totalAmount = 1.2 * tdd7P
+                aapsLogger.info(LTag.APS, "TDD for 7 days limited to 10% increase. New TDD7D: ${tdd7D.data.totalAmount}")
+            }
+
+            // Vérification des diminutions excessives
+            else if (tdd7D.data.totalAmount < tdd7P && tdd7P - tdd7D.data.totalAmount > 5) { // Exemple : Limite à une réduction de 10 unités
+                tdd7D.data.totalAmount = tdd7P - 5
+                aapsLogger.info(LTag.APS, "TDD for 7 days limited to a 10-unit reduction. New TDD7D: ${tdd7D.data.totalAmount}")
+            }
         }
+
         var tdd2Days = tddCalculator.averageTDD(tddCalculator.calculate(2, allowMissingDays = false))?.data?.totalAmount ?: 0.0
         if (tdd2Days == 0.0 || tdd2Days < tdd7P) tdd2Days = tdd7P
 
@@ -513,9 +527,22 @@ open class OpenAPSAIMIPlugin  @Inject constructor(
             val tdd7P: Double = preferences.get(DoubleKey.OApsAIMITDD7)
 
             var tdd7D =  tddCalculator.averageTDD(tddCalculator.calculate(7, allowMissingDays = false))
-            if (tdd7D != null && tdd7D.data.totalAmount > tdd7P && tdd7D.data.totalAmount > 1.1 * tdd7P) {
-                tdd7D.data.totalAmount = 1.1 * tdd7P
-                aapsLogger.info(LTag.APS, "TDD for 7 days limited to 10% increase. New TDD7D: ${tdd7D.data.totalAmount}")
+            // if (tdd7D != null && tdd7D.data.totalAmount > tdd7P && tdd7D.data.totalAmount > 1.1 * tdd7P) {
+            //     tdd7D.data.totalAmount = 1.1 * tdd7P
+            //     aapsLogger.info(LTag.APS, "TDD for 7 days limited to 10% increase. New TDD7D: ${tdd7D.data.totalAmount}")
+            // }
+            if (tdd7D != null) {
+                // Vérification des augmentations excessives
+                if (tdd7D.data.totalAmount > tdd7P && tdd7D.data.totalAmount > 1.2 * tdd7P) {
+                    tdd7D.data.totalAmount = 1.2 * tdd7P
+                    aapsLogger.info(LTag.APS, "TDD for 7 days limited to 10% increase. New TDD7D: ${tdd7D.data.totalAmount}")
+                }
+
+                // Vérification des diminutions excessives
+                else if (tdd7D.data.totalAmount < tdd7P && tdd7P - tdd7D.data.totalAmount > 5) { // Exemple : Limite à une réduction de 10 unités
+                    tdd7D.data.totalAmount = tdd7P - 5
+                    aapsLogger.info(LTag.APS, "TDD for 7 days limited to a 10-unit reduction. New TDD7D: ${tdd7D.data.totalAmount}")
+                }
             }
             var tdd2Days = tddCalculator.averageTDD(tddCalculator.calculate(2, allowMissingDays = false))?.data?.totalAmount ?: 0.0
             if (tdd2Days == 0.0 || tdd2Days < tdd7P) tdd2Days = tdd7P
