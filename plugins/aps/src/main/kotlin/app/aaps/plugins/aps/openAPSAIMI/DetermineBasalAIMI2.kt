@@ -2311,7 +2311,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             appendLine("╔${"═".repeat(screenWidth)}╗")
             appendLine(String.format("║ %-${screenWidth}s ║", "AAPS-MASTER-AIMI"))
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "17 january 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "17 Janvier 2025"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
