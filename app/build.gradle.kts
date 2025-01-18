@@ -1,7 +1,4 @@
 import org.gradle.kotlin.dsl.android
-import org.gradle.kotlin.dsl.com
-import org.gradle.kotlin.dsl.org
-import org.gradle.kotlin.dsl.test
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
