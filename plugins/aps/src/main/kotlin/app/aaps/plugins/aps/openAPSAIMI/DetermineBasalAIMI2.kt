@@ -1,10 +1,7 @@
 package app.aaps.plugins.aps.openAPSAIMI
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.os.Environment
-import android.util.Log
-import androidx.core.content.ContentProviderCompat.requireContext
 import app.aaps.core.data.model.BS
 import app.aaps.core.data.model.UE
 import app.aaps.core.interfaces.aps.APSResult
@@ -27,15 +24,12 @@ import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.Preferences
-import app.aaps.plugins.aps.openAPSAIMI.AimiNeuralNetwork.Companion.refineSMB
 import org.tensorflow.lite.Interpreter
 import java.io.File
-import java.io.FileOutputStream
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.text.SimpleDateFormat
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
@@ -43,14 +37,12 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.div
 import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.roundToInt
-import kotlin.times
 
 @Singleton
 class DetermineBasalaimiSMB2 @Inject constructor(
@@ -65,9 +57,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
     @Inject lateinit var profileFunction: ProfileFunction
     private val consoleError = mutableListOf<String>()
     private val consoleLog = mutableListOf<String>()
-    //private val path = File(Environment.getExternalStorageDirectory().toString())
     private val externalDir = File(Environment.getExternalStorageDirectory().absolutePath + "/Documents/AAPS")
-    //private val externalDir = File(context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), "AAPS")
     private val modelFile = File(externalDir, "ml/model.tflite")
     private val modelFileUAM = File(externalDir, "ml/modelUAM.tflite")
     private val csvfile = File(externalDir, "oapsaimiML2_records.csv")
@@ -297,100 +287,6 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         csvfile.appendText(valuesToRecord + "\n")
     }
-    // private fun logDataMLToCsv(predictedSMB: Float, smbToGive: Float) {
-    //     val usFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm")
-    //     val dateStr = LocalDateTime.now().format(usFormatter)
-    //
-    //     // Entêtes CSV
-    //     val headerRow = "dateStr, bg, iob, cob, delta, shortAvgDelta, longAvgDelta, tdd7DaysPerHour, tdd2DaysPerHour, tddPerHour, tdd24HrsPerHour, predictedSMB, smbGiven\n"
-    //
-    //     // Ligne de données
-    //     val valuesToRecord = "$dateStr," +
-    //         "$bg,$iob,$cob,$delta,$shortAvgDelta,$longAvgDelta," +
-    //         "$tdd7DaysPerHour,$tdd2DaysPerHour,$tddPerHour,$tdd24HrsPerHour," +
-    //         "$predictedSMB,$smbToGive"
-    //
-    //     try {
-    //         // Vérifie si le répertoire parent existe, sinon le crée
-    //         if (!externalDir.exists() && !externalDir.mkdirs()) {
-    //             Log.e("CSVError", "Impossible de créer le répertoire parent : ${externalDir.absolutePath}")
-    //             return
-    //         }
-    //
-    //         // Vérifie si le fichier existe, sinon le crée avec les entêtes
-    //         if (!csvfile.exists()) {
-    //             csvfile.createNewFile()
-    //             FileOutputStream(csvfile, true).use { it.write(headerRow.toByteArray()) }
-    //             Log.d("CSVInfo", "Fichier CSV créé avec les entêtes.")
-    //         }
-    //
-    //         // Ajoute les données au fichier CSV
-    //         FileOutputStream(csvfile, true).use { it.write((valuesToRecord + "\n").toByteArray()) }
-    //         Log.d("CSVInfo", "Données ajoutées au fichier CSV : $valuesToRecord")
-    //
-    //     } catch (e: Exception) {
-    //         Log.e("CSVError", "Erreur lors de l'écriture dans le fichier CSV : ${e.message}")
-    //     }
-    // }
-
-
-    // private fun createFilteredAndSortedCopy(dateToRemove: String) {
-    //     if (!csvfile.exists()) {
-    //         println("Le fichier original n'existe pas.")
-    //         return
-    //     }
-    //     // Lire le fichier original ligne par ligne
-    //     val lines = csvfile.readLines()
-    //     val header = lines.first()
-    //     val dataLines = lines.drop(1)
-    //
-    //     // Liste des lignes valides après filtrage
-    //     val validLines = mutableListOf<String>()
-    //
-    //     // Filtrer les lignes qui ne correspondent pas à la date à supprimer
-    //     dataLines.forEach { line ->
-    //         val lineParts = line.split(",")
-    //         if (lineParts.isNotEmpty()) {
-    //             val dateStr = lineParts[0].trim()
-    //             // Vérifier si la date commence par la date à supprimer
-    //             if (!dateStr.startsWith(dateToRemove)) {
-    //                 validLines.add(line)
-    //             } else {
-    //                 println("Ligne supprimée : $line")
-    //             }
-    //         }
-    //     }
-    //
-    //     // Trier les lignes par ordre croissant de date (en utilisant les dates en texte)
-    //     validLines.sortBy { it.split(",")[0] }
-    //
-    //     // Écrire dans le fichier temporaire (test.csv)
-    //     if (!tempFile.exists()) {
-    //         tempFile.createNewFile()
-    //     }
-    //     tempFile.writeText(header + "\n")
-    //     validLines.forEach { line ->
-    //         tempFile.appendText(line + "\n")
-    //     }
-    //
-    //     // Obtenir la date et l'heure actuelles pour renommer le fichier original
-    //     val dateFormat = SimpleDateFormat("yyyyMMdd_HHmm")
-    //     val currentDateTime = dateFormat.format(Date())
-    //     val backupFileName = "oapsaimiML2_records_$currentDateTime.csv"
-    //     val backupFile = File(externalDir, backupFileName)
-    //
-    //     // Renommer l'ancien fichier avec la date et l'heure
-    //     if (csvfile.renameTo(backupFile)) {
-    //         // Renommer le fichier temporaire 'test.csv' en 'oapsaimiML2_records.csv'
-    //         if (tempFile.renameTo(csvfile)) {
-    //             println("Le fichier original a été sauvegardé sous '$backupFileName', et 'test.csv' a été renommé en 'oapsaimiML2_records.csv'.")
-    //         } else {
-    //             println("Erreur lors du renommage du fichier temporaire 'test.csv' en 'oapsaimiML2_records.csv'.")
-    //         }
-    //     } else {
-    //         println("Erreur lors du renommage du fichier original en '$backupFileName'.")
-    //     }
-    // }
     private fun createFilteredAndSortedCopy(dateToRemove: String) {
         if (!csvfile.exists()) {
             println("Le fichier original n'existe pas.")
@@ -577,11 +473,11 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (droppingFastAtHigh) conditionsTrue.add("droppingFastAtHigh")
         val droppingVeryFast = delta < -11
         if (droppingVeryFast) conditionsTrue.add("droppingVeryFast")
-        val prediction = eventualBG < targetBg && bg < 135
+        val prediction = eventualBG < targetBg && bg < 135 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
         if (prediction) conditionsTrue.add("prediction")
-        val interval = eventualBG < targetBg && delta > 10 && iob >= maxSMB/2 && lastsmbtime < 10
+        val interval = eventualBG < targetBg && delta > 10 && iob >= maxSMB/2 && lastsmbtime < 10 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
         if (interval) conditionsTrue.add("interval")
-        val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 12
+        val targetinterval = targetBg >= 120 && delta > 0 && iob >= maxSMB/2 && lastsmbtime < 12 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
         if (targetinterval) conditionsTrue.add("targetinterval")
         //val stablebg = delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 120 && !mealTime && !bfastTime && !highCarbTime && !lunchTime && !dinnerTime
         //if (stablebg) conditionsTrue.add("stablebg")
@@ -653,7 +549,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         if (belowTargetAndDropping) result /= 2
         if (honeymoon && bg < 170 && delta < 5) result /= 2
         if (night && currentHour in 23..23 && delta < 10 && iob < maxSMB) result *= 0.8f
-        if (currentHour in 0..5 && delta < 10 && iob < maxSMB) result *= 0.8f // Ajout d'une réduction pendant la période de minuit à 5h du matin
+        //if (currentHour in 0..5 && delta < 10 && iob < maxSMB) result *= 0.8f // Ajout d'une réduction pendant la période de minuit à 5h du matin
 
         return result
     }
@@ -728,6 +624,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         return smbToGive.toFloat()
     }
+
     private fun neuralnetwork5(
         delta: Float,
         shortAvgDelta: Float,
@@ -736,7 +633,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         profile: OapsProfileAimi
     ): Float {
         // 1) Configuration générale
-        val minutesToConsider = 2500.0
+        val minutesToConsider = 15000.0
         val linesToConsider = (minutesToConsider / 5).toInt()
         val maxIterations = 10000.0
         val maxGlobalIterations = 5
@@ -762,7 +659,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         val headerLine = allLines.first()
         val headers = headerLine.split(",").map { it.trim() }
-        if (!listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB", "smbGiven")
+        //if (!listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB", "smbGiven")
+        if (!listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "tdd7DaysPerHour", "tdd2DaysPerHour", "tddPerHour", "tdd24HrsPerHour", "predictedSMB", "smbGiven")
                 .all { headers.contains(it) }
         ) {
             println("CSV file is missing required columns.")
@@ -777,7 +675,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
 
         // 3) Préparation des données (inputs + targets)
-        val colIndices = listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB")
+        //val colIndices = listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "predictedSMB")
+        val colIndices = listOf("bg", "iob", "cob", "delta", "shortAvgDelta", "longAvgDelta", "tdd7DaysPerHour", "tdd2DaysPerHour", "tddPerHour", "tdd24HrsPerHour", "predictedSMB", "smbGiven")
             .map { headers.indexOf(it) }
         val targetColIndex = headers.indexOf("smbGiven")
 
@@ -901,7 +800,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
                         AimiNeuralNetwork.refineSMB(predictedRefineSMB, it, doubleInput)
                     } ?: predictedRefineSMB
 
-                    val difference = kotlin.math.abs(predictedRefineSMB - refinedSMB)
+                    val difference = abs(predictedRefineSMB - refinedSMB)
                     totalDifference += difference
 
                     // Tolerance adaptative
@@ -953,6 +852,9 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         return if (globalConvergenceReached) finalRefinedSMB else predictedSMB
     }
 
+    /**
+     * Exemple de calcul de seuil dynamique pour la convergence
+     */
     private fun calculateDynamicThreshold(
         iterationCount: Int,
         delta: Float,
@@ -972,6 +874,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
         return baseThreshold * iterationFactor * trendFactor
     }
+
     private fun FloatArray.toDoubleArray(): DoubleArray {
         return this.map { it.toDouble() }.toDoubleArray()
     }
@@ -1573,8 +1476,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         this.tags120to180minAgo = parseNotes(120, 180)
         this.tags180to240minAgo = parseNotes(180, 240)
         this.delta = glucose_status.delta.toFloat()
-        this.shortAvgDelta = glucose_status.delta.toFloat()
-        this.longAvgDelta = glucose_status.delta.toFloat()
+        this.shortAvgDelta = glucose_status.shortAvgDelta.toFloat()
+        this.longAvgDelta = glucose_status.longAvgDelta.toFloat()
         val therapy = Therapy(persistenceLayer).also {
             it.updateStatesBasedOnTherapyEvents()
         }
@@ -1607,12 +1510,12 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         this.acceleratingDown = if (delta < -2 && delta - longAvgDelta < -2) 1 else 0
         this.decceleratingDown = if (delta < 0 && (delta > shortAvgDelta || delta > longAvgDelta)) 1 else 0
         this.stable = if (delta>-3 && delta<3 && shortAvgDelta>-3 && shortAvgDelta<3 && longAvgDelta>-3 && longAvgDelta<3 && bg < 180) 1 else 0
-         if (isMealModeCondition()){
-             val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
-                 rT.units = pbolusM
-                 rT.reason.append("Microbolusing Meal Mode ${pbolusM}U. ")
-             return rT
-         }
+        if (isMealModeCondition()){
+            val pbolusM: Double = preferences.get(DoubleKey.OApsAIMIMealPrebolus)
+            rT.units = pbolusM
+            rT.reason.append("Microbolusing Meal Mode ${pbolusM}U. ")
+            return rT
+        }
         if (isbfastModeCondition()){
             val pbolusbfast: Double = preferences.get(DoubleKey.OApsAIMIBFPrebolus)
             rT.units = pbolusbfast
@@ -1628,8 +1531,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         }
         if (isLunchModeCondition()){
             val pbolusLunch: Double = preferences.get(DoubleKey.OApsAIMILunchPrebolus)
-                rT.units = pbolusLunch
-                rT.reason.append("Microbolusing 1/2 Meal Mode ${pbolusLunch}U. ")
+            rT.units = pbolusLunch
+            rT.reason.append("Microbolusing 1/2 Meal Mode ${pbolusLunch}U. ")
             return rT
         }
         if (isLunch2ModeCondition()){
@@ -1806,9 +1709,14 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             }
         }
 
+        var iob2 = 0.0f
         val iobArray = iob_data_array
         val iob_data = iobArray[0]
         this.iob = iob_data.iob.toFloat()
+        if (iob_data.basaliob < 0) {
+            iob2 = -iob_data.basaliob.toFloat()+ iob
+            this.iob = iob2
+        }
 
         val tick: String = if (glucose_status.delta > -0.5) {
             "+" + round(glucose_status.delta)
@@ -1839,7 +1747,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         this.variableSensitivity = sens.toFloat()
         consoleError.add("CR:${profile.carb_ratio}")
         this.predictedBg = predictFutureBg(bg.toFloat(), iob, variableSensitivity, cob, ci,mealTime,bfastTime,lunchTime,dinnerTime,highCarbTime,snackTime,profile)
-        val insulinEffect = calculateInsulinEffect(bg.toFloat(),iob,variableSensitivity,cob,normalBgThreshold,recentSteps180Minutes,averageBeatsPerMinute.toFloat(),averageBeatsPerMinute10.toFloat(),profile.insulinDivisor.toFloat())
+        //val insulinEffect = calculateInsulinEffect(bg.toFloat(),iob,variableSensitivity,cob,normalBgThreshold,recentSteps180Minutes,averageBeatsPerMinute.toFloat(),averageBeatsPerMinute10.toFloat(),profile.insulinDivisor.toFloat())
 
         val now = System.currentTimeMillis()
         val timeMillis5 = now - 5 * 60 * 1000 // 5 minutes en millisecondes
@@ -1852,27 +1760,27 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val allStepsCounts = persistenceLayer.getStepsCountFromTimeToTime(timeMillis180, now)
 
         if (preferences.get(BooleanKey.OApsAIMIEnableStepsFromWatch)) {
-        allStepsCounts.forEach { stepCount ->
-            val timestamp = stepCount.timestamp
-            if (timestamp >= timeMillis5) {
-                this.recentSteps5Minutes = stepCount.steps5min
+            allStepsCounts.forEach { stepCount ->
+                val timestamp = stepCount.timestamp
+                if (timestamp >= timeMillis5) {
+                    this.recentSteps5Minutes = stepCount.steps5min
+                }
+                if (timestamp >= timeMillis10) {
+                    this.recentSteps10Minutes = stepCount.steps10min
+                }
+                if (timestamp >= timeMillis15) {
+                    this.recentSteps15Minutes = stepCount.steps15min
+                }
+                if (timestamp >= timeMillis30) {
+                    this.recentSteps30Minutes = stepCount.steps30min
+                }
+                if (timestamp >= timeMillis60) {
+                    this.recentSteps60Minutes = stepCount.steps60min
+                }
+                if (timestamp >= timeMillis180) {
+                    this.recentSteps180Minutes = stepCount.steps180min
+                }
             }
-            if (timestamp >= timeMillis10) {
-                this.recentSteps10Minutes = stepCount.steps10min
-            }
-            if (timestamp >= timeMillis15) {
-                this.recentSteps15Minutes = stepCount.steps15min
-            }
-            if (timestamp >= timeMillis30) {
-                this.recentSteps30Minutes = stepCount.steps30min
-            }
-            if (timestamp >= timeMillis60) {
-                this.recentSteps60Minutes = stepCount.steps60min
-            }
-            if (timestamp >= timeMillis180) {
-                this.recentSteps180Minutes = stepCount.steps180min
-            }
-        }
         }else{
             this.recentSteps5Minutes = StepService.getRecentStepCount5Min()
             this.recentSteps10Minutes = StepService.getRecentStepCount10Min()
@@ -2089,8 +1997,8 @@ class DetermineBasalaimiSMB2 @Inject constructor(
         val sleepfactor: Double = preferences.get(DoubleKey.OApsAIMIsleepFactor) / 100.0
 
         val adjustedFactors = adjustFactorsBasedOnBgAndHypo(
-                morningfactor.toFloat(), afternoonfactor.toFloat(), eveningfactor.toFloat()
-            )
+            morningfactor.toFloat(), afternoonfactor.toFloat(), eveningfactor.toFloat()
+        )
 
         val (adjustedMorningFactor, adjustedAfternoonFactor, adjustedEveningFactor) = adjustedFactors
 
@@ -2394,15 +2302,16 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             }, Target: ${convertBG(target_bg)}}"
         )
 
-         val (conditionResult, conditionsTrue) = isCriticalSafetyCondition(mealData)
+        val (conditionResult, conditionsTrue) = isCriticalSafetyCondition(mealData)
 
         val screenWidth = preferences.get(IntKey.OApsAIMIlogsize)// Largeur d'écran par défaut en caractères si non spécifié
         val columnWidth = (screenWidth / 2) - 2 // Calcul de la largeur des colonnes en fonction de la largeur de l'écran
 
         val logTemplate = buildString {
             appendLine("╔${"═".repeat(screenWidth)}╗")
+            appendLine(String.format("║ %-${screenWidth}s ║", "AAPS-MASTER-AIMI"))
             appendLine(String.format("║ %-${screenWidth}s ║", "OpenApsAIMI Settings"))
-            appendLine(String.format("║ %-${screenWidth}s ║", "10 janvier 2024"))
+            appendLine(String.format("║ %-${screenWidth}s ║", "18 January 2025"))
             appendLine("╚${"═".repeat(screenWidth)}╝")
             appendLine()
 
@@ -2433,6 +2342,7 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             appendLine("╠${"═".repeat(screenWidth)}╣")
             appendLine(String.format("║ %-${columnWidth}s │ %s u", "Max IOB", String.format("%.1f", maxIob)))
             appendLine(String.format("║ %-${columnWidth}s │ %s u", "IOB", String.format("%.1f", iob)))
+            appendLine(String.format("║ %-${columnWidth}s │ %s u", "IOB2", String.format("%.1f", iob2)))
             appendLine(String.format("║ %-${columnWidth}s │ %s u", "Max SMB", String.format("%.1f", maxSMB)))
             appendLine(String.format("║ %-${columnWidth}s │ %s", "Safety", conditionResult))
             appendLine(String.format("║ %-${columnWidth}s │ %s", "Met", conditionsTrue))
@@ -2582,11 +2492,13 @@ class DetermineBasalaimiSMB2 @Inject constructor(
             rate = when {
                 // Cas d'hypoglycémie : le taux basal est nul si la glycémie est inférieure à 80.
                 bg < 80 -> 0.0
-                !enablebasal && !mealTime && !lunchTime && !dinnerTime && !highCarbTime && !bfastTime && !snackTime -> 0.0
+                !enablebasal && !mealTime && !lunchTime && !dinnerTime && !highCarbTime && !bfastTime && !snackTime && timenow > sixAMHour && recentSteps5Minutes > 100 -> 0.0
+                !enablebasal && timenow <= sixAMHour && delta > 0 -> profile_current_basal
+                !enablebasal && recentSteps5Minutes == 0 && delta  > 0 && !mealTime && !lunchTime && !dinnerTime && !highCarbTime && !bfastTime && !snackTime -> profile_current_basal
                 // Conditions avec un ajustement basé sur le facteur d'interpolation
                 !honeymoon && iob < 0.6 && bg in 90.0..120.0 && delta in 0.0..6.0 && !sportTime                                       -> profile_current_basal * basalAdjustmentFactor
                 honeymoon && iob < 0.4 && bg in 90.0..100.0 && delta in 0.0..5.0 && !sportTime                                        -> profile_current_basal
-                iob < 0.8 && bg in 120.0..130.0 && delta in 0.0..6.0 && !sportTime                                                    -> profile_current_basal * basalAdjustmentFactor
+                enablebasal && iob < 0.8 && bg in 120.0..130.0 && delta in 0.0..6.0 && !sportTime                                                    -> profile_current_basal * basalAdjustmentFactor
                 bg > 180 && delta in -5.0..1.0                                                                                        -> profile_current_basal * basalAdjustmentFactor
                 eventualBG < 65 && !snackTime && !mealTime && !lunchTime && !dinnerTime && !highCarbTime && !bfastTime                -> 0.0
                 eventualBG > 180 && !snackTime && !mealTime && !lunchTime && !dinnerTime && !highCarbTime && !bfastTime && !sportTime && delta > 3 -> calculateBasalRate(basal, profile_current_basal, basalAdjustmentFactor)
@@ -2616,15 +2528,15 @@ class DetermineBasalaimiSMB2 @Inject constructor(
 
                 // Conditions locales spéciales basées sur mealData
                 localconditionResult && delta > 1 && bg > 90                                        -> profile_current_basal * basalAdjustmentFactor
-                bg > 100 && !conditionResult && eventualBG > 100 && delta in 0.0..4.0 && !sportTime -> profile_current_basal * basalAdjustmentFactor
+                enablebasal && bg > 100 && !conditionResult && eventualBG > 100 && delta in 0.0..4.0 && !sportTime -> profile_current_basal * basalAdjustmentFactor
 
                 // Nouveaux cas basés sur les déviations de mealData
                 honeymoon && mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg > 110 && delta > 0                          -> profile_current_basal * basalAdjustmentFactor
                 honeymoon && mealData.slopeFromMaxDeviation in 0.0..0.2 && mealData.slopeFromMinDeviation in 0.0..0.2 && bg in 120.0..150.0 && delta > 0 -> profile_current_basal * basalAdjustmentFactor
                 honeymoon && mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg in 100.0..120.0 && delta > 0                 -> profile_current_basal * basalAdjustmentFactor
-                !honeymoon && mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg > 80 && delta > 0                          -> profile_current_basal * basalAdjustmentFactor
-                !honeymoon && mealData.slopeFromMaxDeviation in 0.0..0.2 && mealData.slopeFromMinDeviation in 0.0..0.2 && bg in 80.0..100.0 && delta > 0 -> profile_current_basal * basalAdjustmentFactor
-                !honeymoon && mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg in 80.0..100.0 && delta > 0                 -> profile_current_basal * basalAdjustmentFactor
+                enablebasal && !honeymoon && mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg > 80 && delta > 0                          -> profile_current_basal * basalAdjustmentFactor
+                enablebasal && !honeymoon && mealData.slopeFromMaxDeviation in 0.0..0.2 && mealData.slopeFromMinDeviation in 0.0..0.2 && bg in 80.0..100.0 && delta > 0 -> profile_current_basal * basalAdjustmentFactor
+                enablebasal && !honeymoon && mealData.slopeFromMaxDeviation > 0 && mealData.slopeFromMinDeviation > 0 && bg in 80.0..100.0 && delta > 0                 -> profile_current_basal * basalAdjustmentFactor
 
                 else -> 0.0
             }

@@ -1,3 +1,7 @@
+import org.gradle.kotlin.dsl.android
+import org.gradle.kotlin.dsl.com
+import org.gradle.kotlin.dsl.org
+import org.gradle.kotlin.dsl.test
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -18,8 +22,11 @@ repositories {
     google()
 }
 
+// -----------------------------------------------------------------------------
+// Fonctions personnalisées
+// -----------------------------------------------------------------------------
 fun generateGitBuild(): String {
-    val stringBuilder: StringBuilder = StringBuilder()
+    val stringBuilder = StringBuilder()
     try {
         val stdout = ByteArrayOutputStream()
         exec {
@@ -35,14 +42,14 @@ fun generateGitBuild(): String {
 }
 
 fun generateGitRemote(): String {
-    val stringBuilder: StringBuilder = StringBuilder()
+    val stringBuilder = StringBuilder()
     try {
         val stdout = ByteArrayOutputStream()
         exec {
             commandLine("git", "remote", "get-url", "origin")
             standardOutput = stdout
         }
-        val commitObject: String = stdout.toString().trim()
+        val commitObject = stdout.toString().trim()
         stringBuilder.append(commitObject)
     } catch (ignored: Exception) {
         stringBuilder.append("NoGitSystemAvailable")
@@ -51,16 +58,14 @@ fun generateGitRemote(): String {
 }
 
 fun generateDate(): String {
-    val stringBuilder: StringBuilder = StringBuilder()
-    // showing only date prevents app to rebuild everytime
-    stringBuilder.append(SimpleDateFormat("yyyy.MM.dd").format(Date()))
-    return stringBuilder.toString()
+    // showing only date prevents app from rebuilding every time
+    return SimpleDateFormat("yyyy.MM.dd").format(Date())
 }
 
 fun isMaster(): Boolean = !Versions.appVersion.contains("-")
 
 fun gitAvailable(): Boolean {
-    val stringBuilder: StringBuilder = StringBuilder()
+    val stringBuilder = StringBuilder()
     try {
         val stdout = ByteArrayOutputStream()
         exec {
@@ -73,11 +78,10 @@ fun gitAvailable(): Boolean {
         return false // NoGitSystemAvailable
     }
     return stringBuilder.toString().isNotEmpty()
-
 }
 
 fun allCommitted(): Boolean {
-    val stringBuilder: StringBuilder = StringBuilder()
+    val stringBuilder = StringBuilder()
     try {
         val stdout = ByteArrayOutputStream()
         exec {
@@ -85,9 +89,11 @@ fun allCommitted(): Boolean {
             standardOutput = stdout
         }
         // ignore all changes done in .idea/codeStyles
-        val cleanedList: String = stdout.toString().replace(Regex("""(?m)^\s*(M|A|D|\?\?)\s*.*?\.idea\/codeStyles\/.*?\s*$"""), "")
+        val cleanedList = stdout.toString()
+            .replace(Regex("""(?m)^\s*(M|A|D|\?\?)\s*.*?\.idea\/codeStyles\/.*?\s*$"""), "")
             // ignore all files added to project dir but not staged/known to GIT
             .replace(Regex("""(?m)^\s*(\?\?)\s*.*?\s*$"""), "")
+
         stringBuilder.append(cleanedList.trim())
     } catch (ignored: Exception) {
         return false // NoGitSystemAvailable
@@ -95,12 +101,18 @@ fun allCommitted(): Boolean {
     return stringBuilder.toString().isEmpty()
 }
 
+// -----------------------------------------------------------------------------
+// Configuration Android
+// -----------------------------------------------------------------------------
 android {
+    // Si tu n'as pas de variable pour compileSdk, mets-le en dur, ex. 34
+    compileSdk = Versions.compileSdk
 
     namespace = "app.aaps"
     ndkVersion = Versions.ndkVersion
 
     defaultConfig {
+        // Remplace par des valeurs fixes si besoin (ex. 21, 34, etc.)
         minSdk = Versions.minSdk
         targetSdk = Versions.targetSdk
 
@@ -110,10 +122,11 @@ android {
         buildConfigField("String", "HEAD", "\"${generateGitBuild()}\"")
         buildConfigField("String", "COMMITTED", "\"${allCommitted()}\"")
 
-        // For Dagger injected instrumentation tests in app module
+        // Dagger injected instrumentation tests in app module
         testInstrumentationRunner = "app.aaps.runners.InjectedTestRunner"
     }
 
+    // Dimensions et flavors
     flavorDimensions.add("standard")
     productFlavors {
         create("full") {
@@ -151,24 +164,64 @@ android {
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Configuration de signature (release)
+    // -------------------------------------------------------------------------
+    signingConfigs {
+        // On peut l'appeler "release" ou un autre nom
+        create("release") {
+            // Seule storeFile attend un File
+            storeFile = file(System.getenv("KEYSTORE_FILE") ?: "dummy.jks")
+            // Les autres sont des Strings
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "dummy"
+            keyAlias = System.getenv("KEY_ALIAS") ?: "dummy"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "dummy"
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Build Types
+    // -------------------------------------------------------------------------
+    buildTypes {
+        getByName("release") {
+            // Active ou non le minify
+            // minifyEnabled true
+            // shrinkResources true
+
+            // Associe la config "release"
+            signingConfig = signingConfigs.getByName("release")
+        }
+        getByName("debug") {
+            // config debug
+        }
+    }
+
     useLibrary("org.apache.http.legacy")
 
-    //Deleting it causes a binding error
+    // Data Binding & Build Config
     buildFeatures {
         dataBinding = true
         buildConfig = true
     }
 }
 
+// -----------------------------------------------------------------------------
+// allprojects / repositories
+// -----------------------------------------------------------------------------
 allprojects {
     repositories {
+        mavenCentral()
+        google()
     }
 }
 
+// -----------------------------------------------------------------------------
+// Dependencies
+// -----------------------------------------------------------------------------
 dependencies {
-    // in order to use internet"s versions you"d need to enable Jetifier again
-    // https://github.com/nightscout/graphview.git
-    // https://github.com/nightscout/iconify.git
+    // in order to use internet"s versions you'd need to enable Jetifier again
+    // ex: implementation("...")
+
     implementation(project(":shared:impl"))
     implementation(project(":core:data"))
     implementation(project(":core:objects"))
@@ -218,28 +271,31 @@ dependencies {
     androidTestImplementation(libs.androidx.test.rules)
     androidTestImplementation(libs.org.skyscreamer.jsonassert)
 
-
     kspAndroidTest(libs.com.google.dagger.android.processor)
 
-    /* Dagger2 - We are going to use dagger.android which includes
-     * support for Activity and fragment injection so we need to include
-     * the following dependencies */
+    // Dagger2
     ksp(libs.com.google.dagger.android.processor)
     ksp(libs.com.google.dagger.compiler)
 
-    // MainApp
     api(libs.com.uber.rxdogtag2.rxdogtag)
 }
 
+// -----------------------------------------------------------------------------
+// Dernières lignes (messages console)
+// -----------------------------------------------------------------------------
 println("-------------------")
 println("isMaster: ${isMaster()}")
 println("gitAvailable: ${gitAvailable()}")
 println("allCommitted: ${allCommitted()}")
 println("-------------------")
-if (isMaster() && !gitAvailable()) {
-    throw GradleException("GIT system is not available. On Windows try to run Android Studio as an Administrator. Check if GIT is installed and Studio have permissions to use it")
-}
-/*if (isMaster() && !allCommitted()) {
-    throw GradleException("There are uncommitted changes. Clone sources again as described in wiki and do not allow gradle update")
-}*/
 
+if (isMaster() && !gitAvailable()) {
+    throw GradleException(
+        "GIT system is not available. On Windows try to run Android Studio as Administrator. " +
+            "Check if GIT is installed and that Studio has permissions to use it."
+    )
+}
+
+/*if (isMaster() && !allCommitted()) {
+    throw GradleException("There are uncommitted changes.")
+}*/
