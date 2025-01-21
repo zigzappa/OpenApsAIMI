@@ -85,7 +85,13 @@ jobs:
         with:
           name: wear-full-release.apk
           path: ${{ env.WEAR_APK_PATH }}
-
+          
+      - name: Upload Aapsclient APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: aapsclient-full-release.apk
+          path: ${{ env.AAPSCLIENT_APK_PATH }}
+          
       # 9. Optionnel : Créer une Release GitHub et y attacher les APKs
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
