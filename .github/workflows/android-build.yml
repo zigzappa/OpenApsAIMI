@@ -71,7 +71,7 @@ jobs:
           echo "Listing APKs in wear module:"
           find wear/build/outputs/apk -type f -name "*.apk"
           echo "Listing APKs in client module:"
-          find app/build/outputs/apk -type f -name "*.apk"
+          find app/aapsclient/release -type f -name "*.apk"
 
       # 8. Optionnel : Upload des APKs en tant qu'artefacts
       - name: Upload App APK
