@@ -17,7 +17,7 @@ jobs:
     env:
       APP_APK_PATH: app/build/outputs/apk/full/release/app-full-release.apk
       WEAR_APK_PATH: wear/build/outputs/apk/full/release/wear-full-release.apk
-      AAPSCLIENT_APK_PATH: aapsclient/build/outputs/apk/full/release/aapsclient.apk
+      CLIENT_APK_PATH: app/aapsclient/release/app-aapsclient-release.apk
 
     steps:
       # 1. Récupérer le code
@@ -71,7 +71,7 @@ jobs:
           echo "Listing APKs in wear module:"
           find wear/build/outputs/apk -type f -name "*.apk"
           echo "Listing APKs in aapsclient module:"
-          find aapsclient/build/outputs/apk -type f -name "*.apk"
+          find app/aapsclient/release -type f -name "*.apk"
 
       # 8. Optionnel : Upload des APKs en tant qu'artefacts
       - name: Upload App APK
