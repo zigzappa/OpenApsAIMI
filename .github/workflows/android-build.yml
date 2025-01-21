@@ -70,6 +70,8 @@ jobs:
           find app/build/outputs/apk -type f -name "*.apk"
           echo "Listing APKs in wear module:"
           find wear/build/outputs/apk -type f -name "*.apk"
+          echo "Listing APKs in aapsclient module:"
+          find aapsclient/build/outputs/apk -type f -name "*.apk"
 
       # 8. Optionnel : Upload des APKs en tant qu'artefacts
       - name: Upload App APK
@@ -110,5 +112,13 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: ${{ env.WEAR_APK_PATH }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload AAPSCLIENT APK to Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ env.AAPSCLIENT_APK_PATH }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
