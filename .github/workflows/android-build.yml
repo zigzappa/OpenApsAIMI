@@ -16,7 +16,7 @@ jobs:
 
     env:
       APP_APK_PATH: app/build/outputs/apk/full/release/app-full-release.apk
-      CLIENT_APK_PATH: app/build/outputs/apk/full/release/app-aapsclient-release.apk
+      CLIENT_APK_PATH: app/build/outputs/apk/aapsclient/release/app-aapsclient-release.apk
       WEAR_APK_PATH: wear/build/outputs/apk/full/release/wear-full-release.apk
 
     steps:
