@@ -16,7 +16,7 @@ jobs:
 
     env:
       APP_APK_PATH: app/build/outputs/apk/full/release/app-full-release.apk
-      CLIENT_APK_PATH: app/build/outputs/apk/full/release/app-aapsclient-release.apk
+      CLIENT_APK_PATH: app/build/outputs/apk/aapsclient/release/app-aapsclient-release.apk
       WEAR_APK_PATH: wear/build/outputs/apk/full/release/wear-full-release.apk
 
     steps:
@@ -53,7 +53,6 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-
       # 6. Construire les APKs en mode release (signés)
       - name: Build Release APKs
         run: ./gradlew :app:assembleFullRelease :wear:assembleFullRelease :app:assembleAapsClientRelease
@@ -72,7 +71,6 @@ jobs:
           find wear/build/outputs/apk -type f -name "*.apk"
           echo "Listing APKs in client module:"
           find app/build/outputs/apk -type f -name "*.apk"
-
       # 8. Optionnel : Upload des APKs en tant qu'artefacts
       - name: Upload App APK
         uses: actions/upload-artifact@v4
